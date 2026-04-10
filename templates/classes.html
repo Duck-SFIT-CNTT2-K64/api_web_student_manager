@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Classes | Student Management System</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,700&family=Space+Grotesk:wght@400;500;700&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}" />
+</head>
+<body>
+    <div class="ambient-bg" aria-hidden="true"></div>
+
+    <header class="page-header">
+        <h1>Student Management System</h1>
+        <p>View classes with teacher and course details using JOIN APIs.</p>
+        <nav>
+            <a href="/students-page">Students</a>
+            <a href="/classes-page" class="active">Classes</a>
+            <a href="/enrollment-page">Enrollment</a>
+        </nav>
+    </header>
+
+    <main class="container">
+        <section class="card">
+            <h2>Class List</h2>
+            <p id="classesMessage" class="message"></p>
+            <div class="table-wrap">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Class Name</th>
+                            <th>Course</th>
+                            <th>Teacher</th>
+                            <th>Start Date</th>
+                            <th>End Date</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody id="classesTableBody"></tbody>
+                </table>
+            </div>
+        </section>
+    </main>
+
+    <script src="{{ url_for('static', filename='js/classes.js') }}"></script>
+</body>
+</html>

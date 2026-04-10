@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Enrollment | Student Management System</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,700&family=Space+Grotesk:wght@400;500;700&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}" />
+</head>
+<body>
+    <div class="ambient-bg" aria-hidden="true"></div>
+
+    <header class="page-header">
+        <h1>Student Management System</h1>
+        <p>Enroll students to classes and continue with payment and score flow.</p>
+        <nav>
+            <a href="/students-page">Students</a>
+            <a href="/classes-page">Classes</a>
+            <a href="/enrollment-page" class="active">Enrollment</a>
+        </nav>
+    </header>
+
+    <main class="container two-col">
+        <section class="card">
+            <h2>Register Enrollment</h2>
+            <form id="enrollmentForm" class="form-grid">
+                <label>
+                    Student
+                    <select id="enrollmentStudentId" required></select>
+                </label>
+                <label>
+                    Class
+                    <select id="enrollmentClassId" required></select>
+                </label>
+                <label>
+                    Status
+                    <input type="text" id="enrollmentStatus" value="Đang học" />
+                </label>
+                <button type="submit" class="btn btn-primary">Enroll Student</button>
+            </form>
+            <p id="enrollmentMessage" class="message"></p>
+        </section>
+
+        <section class="card">
+            <h2>Add Payment</h2>
+            <form id="paymentForm" class="form-grid">
+                <label>
+                    Student
+                    <select id="paymentStudentId" required></select>
+                </label>
+                <label>
+                    Amount
+                    <input type="number" id="paymentAmount" min="1" step="0.01" required />
+                </label>
+                <label>
+                    Method
+                    <input type="text" id="paymentMethod" placeholder="Cash / Bank Transfer" />
+                </label>
+                <button type="submit" class="btn btn-secondary">Create Payment</button>
+            </form>
+            <p id="paymentMessage" class="message"></p>
+        </section>
+
+        <section class="card">
+            <h2>Add Score</h2>
+            <form id="scoreForm" class="form-grid">
+                <label>
+                    Enrollment
+                    <select id="scoreEnrollmentId" required></select>
+                </label>
+                <label>
+                    Score (0-10)
+                    <input type="number" id="scoreValue" min="0" max="10" step="0.1" required />
+                </label>
+                <button type="submit" class="btn btn-secondary">Create Score</button>
+            </form>
+            <p id="scoreMessage" class="message"></p>
+        </section>
+
+        <section class="card card-full">
+            <h2>Enrollment List</h2>
+            <div class="table-wrap">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Student</th>
+                            <th>Class</th>
+                            <th>Course</th>
+                            <th>Teacher</th>
+                            <th>Enroll Date</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody id="enrollmentsTableBody"></tbody>
+                </table>
+            </div>
+        </section>
+    </main>
+
+    <script src="{{ url_for('static', filename='js/enrollment.js') }}"></script>
+</body>
+</html>

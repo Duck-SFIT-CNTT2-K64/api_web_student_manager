@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Students | Student Management System</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,700&family=Space+Grotesk:wght@400;500;700&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}" />
+</head>
+<body>
+    <div class="ambient-bg" aria-hidden="true"></div>
+
+    <header class="page-header">
+        <h1>Student Management System</h1>
+        <p>Manage students quickly with a clean REST-based workflow.</p>
+        <nav>
+            <a href="/students-page" class="active">Students</a>
+            <a href="/classes-page">Classes</a>
+            <a href="/enrollment-page">Enrollment</a>
+        </nav>
+    </header>
+
+    <main class="container">
+        <section class="card">
+            <h2>Add Student</h2>
+            <form id="studentForm" class="form-grid">
+                <label>
+                    Full Name
+                    <input type="text" id="fullName" required />
+                </label>
+                <label>
+                    Email
+                    <input type="email" id="email" placeholder="student@example.com" />
+                </label>
+                <label>
+                    Phone
+                    <input type="text" id="phone" placeholder="0123456789" />
+                </label>
+                <label>
+                    Date Of Birth
+                    <input type="date" id="dateOfBirth" />
+                </label>
+                <button type="submit" class="btn btn-primary">Add Student</button>
+            </form>
+            <p id="studentMessage" class="message"></p>
+        </section>
+
+        <section class="card">
+            <h2>Student List</h2>
+            <div class="table-wrap">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Full Name</th>
+                            <th>Email</th>
+                            <th>Phone</th>
+                            <th>Date Of Birth</th>
+                            <th>Created At</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody id="studentsTableBody"></tbody>
+                </table>
+            </div>
+        </section>
+    </main>
+
+    <script src="{{ url_for('static', filename='js/students.js') }}"></script>
+</body>
+</html>
