@@ -1,0 +1,168 @@
+{% extends 'layouts/base.html' %}
+
+{% block title %}Trang chủ Sinh viên | CLASSES369{% endblock %}
+{% block sidebar_subtitle %}Sinh viên{% endblock %}
+
+{% block sidebar_nav %}
+    <a href="/student/home" class="nav-item active">
+        <i class="fas fa-home"></i><span>Trang chủ</span>
+    </a>
+    <div class="nav-divider">Học tập</div>
+    <a href="/student/home#my-classes" class="nav-item">
+        <i class="fas fa-book-open"></i><span>Lớp học của tôi</span>
+    </a>
+{% endblock %}
+
+{% block topbar_title %}
+    <h1>Trang chủ Sinh viên</h1>
+{% endblock %}
+
+{% block content %}
+    {% if home_data.Profile %}
+        <!-- Profile + Stats -->
+        <div class="grid two" style="margin-bottom:24px">
+            <div class="card">
+                <div class="card-header">
+                    <h3><i class="fas fa-id-card" style="color:var(--primary);margin-right:8px"></i> Hồ sơ sinh viên</h3>
+                </div>
+                <div class="card-body">
+                    <ul class="info-list">
+                        <li>
+                            <span class="label">Họ tên</span>
+                            <span class="value">{{ home_data.Profile.FullName }}</span>
+                        </li>
+                        <li>
+                            <span class="label">Mã sinh viên</span>
+                            <span class="value">{{ home_data.Profile.StudentCode }}</span>
+                        </li>
+                        <li>
+                            <span class="label">Email</span>
+                            <span class="value">{{ home_data.Profile.Email or "—" }}</span>
+                        </li>
+                        <li>
+                            <span class="label">Số điện thoại</span>
+                            <span class="value">{{ home_data.Profile.PhoneNumber or "—" }}</span>
+                        </li>
+                        <li>
+                            <span class="label">Giới tính</span>
+                            <span class="value">{{ home_data.Profile.Gender or "—" }}</span>
+                        </li>
+                        <li>
+                            <span class="label">Ngày sinh</span>
+                            <span class="value">{{ home_data.Profile.DateOfBirth[:10] if home_data.Profile.DateOfBirth else "—" }}</span>
+                        </li>
+                        <li>
+                            <span class="label">Trạng thái</span>
+                            <span class="value">
+                                {% set status_name = home_data.Profile.StatusName or 'N/A' %}
+                                {% if status_name in ['Đang học', 'Active'] %}
+                                    <span class="badge good">{{ status_name }}</span>
+                                {% elif status_name in ['Bảo lưu'] %}
+                                    <span class="badge warn">{{ status_name }}</span>
+                                {% elif status_name in ['Đã nghỉ học'] %}
+                                    <span class="badge bad">{{ status_name }}</span>
+                                {% else %}
+                                    <span class="badge">{{ status_name }}</span>
+                                {% endif %}
+                            </span>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+
+            <div style="display:grid;gap:16px;align-content:start">
+                <div class="gradient-card gc-blue">
+                    <div class="gc-icon"><i class="fas fa-book-open"></i></div>
+                    <div class="gc-info">
+                        <div class="gc-label">Lớp đã ghi danh</div>
+                        <div class="gc-value">{{ home_data.Totals.TotalEnrollments or 0 }}</div>
+                    </div>
+                </div>
+                <div class="gradient-card gc-orange">
+                    <div class="gc-icon"><i class="fas fa-file-invoice-dollar"></i></div>
+                    <div class="gc-info">
+                        <div class="gc-label">Công nợ hiện tại</div>
+                        <div class="gc-value">{{ "{:,.0f}".format((home_data.Totals.OutstandingTuition or 0)|float) }} <span style="font-size:.85rem;font-weight:400">VNĐ</span></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Enrollments Table -->
+        <div class="card" id="my-classes" style="scroll-margin-top:80px">
+            <div class="card-header">
+                <h3><i class="fas fa-list" style="color:var(--info);margin-right:8px"></i> Lớp học của tôi</h3>
+            </div>
+            {% if home_data.Enrollments %}
+            <div class="card-body-flush">
+                <div class="table-wrap">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Lớp</th>
+                                <th>Khóa học</th>
+                                <th>Ngày ghi danh</th>
+                                <th>Điểm TB</th>
+                                <th>Học phí</th>
+                                <th>Trạng thái HP</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for item in home_data.Enrollments %}
+                            <tr>
+                                <td>
+                                    <strong>{{ item.ClassCode }}</strong><br>
+                                    <small>{{ item.ClassName }}</small>
+                                </td>
+                                <td>{{ item.CourseName }}</td>
+                                <td>{{ item.EnrollmentDate[:10] if item.EnrollmentDate else "—" }}</td>
+                                <td>
+                                    {% set avg = (item.AverageScore or 0)|float %}
+                                    {% if avg >= 8 %}
+                                        <span class="badge good">{{ "{:.1f}".format(avg) }}</span>
+                                    {% elif avg >= 5 %}
+                                        <span class="badge warn">{{ "{:.1f}".format(avg) }}</span>
+                                    {% elif avg > 0 %}
+                                        <span class="badge bad">{{ "{:.1f}".format(avg) }}</span>
+                                    {% else %}
+                                        <span class="badge">—</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {{ "{:,.0f}".format((item.TotalFee or 0)|float) }}<br>
+                                    <small style="color:var(--success)">Đã đóng: {{ "{:,.0f}".format((item.AmountPaid or 0)|float) }}</small>
+                                </td>
+                                <td>
+                                    {% set ts = (item.TuitionStatus or 'N/A')|lower %}
+                                    {% if ts == 'paid' %}
+                                        <span class="badge good">Đã thanh toán</span>
+                                    {% elif ts == 'pending' %}
+                                        <span class="badge warn">Chờ xử lý</span>
+                                    {% elif ts == 'overdue' %}
+                                        <span class="badge bad">Quá hạn</span>
+                                    {% else %}
+                                        <span class="badge">{{ item.TuitionStatus or 'N/A' }}</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            {% else %}
+            <div class="card-body">
+                <p class="empty"><i class="fas fa-inbox" style="font-size:24px;display:block;margin-bottom:8px"></i>Bạn chưa có lớp nào được ghi danh.</p>
+            </div>
+            {% endif %}
+        </div>
+
+    {% else %}
+        <!-- No Profile Warning -->
+        <div class="profile-warning">
+            <i class="fas fa-exclamation-triangle"></i>
+            <h2>Chưa có hồ sơ sinh viên</h2>
+            <p>Tài khoản <strong>{{ current_user.Username }}</strong> đã đăng nhập thành công nhưng chưa được liên kết với hồ sơ sinh viên trong hệ thống. Vui lòng liên hệ quản trị viên để được thiết lập hồ sơ.</p>
+        </div>
+    {% endif %}
+{% endblock %}

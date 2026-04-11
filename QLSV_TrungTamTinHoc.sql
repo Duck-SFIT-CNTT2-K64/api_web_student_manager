@@ -413,8 +413,8 @@ GO
 SET IDENTITY_INSERT Users ON;
 INSERT INTO Users (UserId, RoleId, Username, PasswordHash, FullName, Email, PhoneNumber, Status) VALUES
 (1, 1, N'admin', N'admin@123', N'Bùi Hải Đức', N'duc.bh@itcenter.edu', '0911111111', N'Active'),
-(2, 3, N'teacher01', N'teacher@123', N'Hoàng Quốc Anh', N'giaovu@itcenter.edu', '0922222222', N'Active'),
-(3, 2, N'student01', N'student@123', N'Đinh Quang Hưng', N'ketoan@itcenter.edu', '0933333333', N'Active'),
+(2, 2, N'teacher01', N'teacher@123', N'Hoàng Quốc Anh', N'giaovu@itcenter.edu', '0922222222', N'Active'),
+(3, 3, N'student01', N'student@123', N'Đinh Quang Hưng', N'ketoan@itcenter.edu', '0933333333', N'Active'),
 -- Giảng viên (Mới thêm - Khớp với TeacherId 1 và 2)
 (4, 2, N'hung.dq', N'$2a$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92s.ag/iHjO8MYL/7o7i.', N'Đinh Quang Hưng', N'hung.dq@itcenter.edu', '0944444444', N'Active'),
 (5, 2, N'anh.dh', N'$2a$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92s.ag/iHjO8MYL/7o7i.', N'Hoàng Quốc Anh', N'huy.dh@itcenter.edu', '0955555555', N'Active'),
@@ -441,13 +441,15 @@ INSERT INTO Students (StudentId, UserId, StatusId, StudentCode, FullName, DateOf
 (2, 7, 1, N'SV002', N'Nguyễn Văn A', '2003-05-15', N'Nam', N'456 Hưng Yên', '0977777777', N'a.nv@itcenter.edu'),
 (3, 8, 1, N'SV003', N'Trần Thị B', '2004-02-10', N'Nữ', N'789 Hải Dương', '0988888888', N'b.tt@itcenter.edu'),
 (4, 9, 2, N'SV004', N'Lê Minh C', '2002-11-30', N'Nam', N'101 Nam Định', '0999999999', N'c.lm@itcenter.edu'),
-(5, 10, 1, N'SV005', N'Phạm Hoàng D', '2004-07-07', N'Nữ', N'202 Thái Bình', '0912345678', N'd.ph@itcenter.edu');
+(5, 10, 1, N'SV005', N'Phạm Hoàng D', '2004-07-07', N'Nữ', N'202 Thái Bình', '0912345678', N'd.ph@itcenter.edu'),
+(6, 3, 1, N'SV006', N'Đinh Quang Hưng', '2004-01-10', N'Nam', N'Hưng Yên', '0933333333', N'ketoan@itcenter.edu');
 SET IDENTITY_INSERT Students OFF;
 GO
 
 -- 11. Bảng Teachers (Thông tin chi tiết của Giảng viên)
 SET IDENTITY_INSERT Teachers ON;
 INSERT INTO Teachers (TeacherId, UserId, TeacherCode, FirstName, LastName, Specialization, PhoneNumber, Email) VALUES
+(3, 2, N'GV003', N'Quốc Anh', N'Hoàng', N'Tin học văn phòng, Cơ sở dữ liệu', '0922222222', N'giaovu@itcenter.edu'),
 (1, 4, N'GV001', N'Quang Hưng', N'Đinh', N'Lập trình .NET, Web API', '0944444444', N'hung.dq@itcenter.edu'),
 (2, 5, N'GV002', N'Hoàng Huy', N'Đặng', N'Python, AI, SQL Server', '0955555555', N'huy.dh@itcenter.edu');
 SET IDENTITY_INSERT Teachers OFF;

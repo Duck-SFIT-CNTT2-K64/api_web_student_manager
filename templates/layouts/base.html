@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}CLASSES369{% endblock %}</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/app.css') }}">
+    {% block extra_css %}{% endblock %}
+</head>
+<body>
+    <aside class="sidebar" id="sidebar">
+        <div class="sidebar-header">
+            <div class="sidebar-logo">
+                <i class="fas fa-graduation-cap"></i>
+            </div>
+            <div class="sidebar-brand">
+                <h2>CLASSES369</h2>
+                <p>{% block sidebar_subtitle %}Quản lý trung tâm{% endblock %}</p>
+            </div>
+        </div>
+
+        <nav class="sidebar-nav">
+            {% block sidebar_nav %}{% endblock %}
+        </nav>
+
+        <div class="sidebar-footer">
+            <form method="post" action="/logout">
+                <button type="submit" class="sidebar-logout">
+                    <i class="fas fa-sign-out-alt"></i>
+                    <span>Đăng xuất</span>
+                </button>
+            </form>
+        </div>
+    </aside>
+
+    <div class="sidebar-overlay" id="sidebarOverlay"></div>
+
+    <div class="main-wrapper" id="mainWrapper">
+        <header class="topbar">
+            <div class="topbar-left">
+                <button class="topbar-toggle" id="sidebarToggle" type="button" aria-label="Toggle sidebar">
+                    <i class="fas fa-bars"></i>
+                </button>
+                <div class="topbar-title">
+                    {% block topbar_title %}{% endblock %}
+                </div>
+            </div>
+            <div class="topbar-right">
+                {% block topbar_actions %}{% endblock %}
+                <div class="topbar-user">
+                    <div class="topbar-avatar">
+                        <i class="fas fa-user"></i>
+                    </div>
+                    <div class="topbar-user-info">
+                        <span class="topbar-user-name">{{ current_user.FullName or current_user.Username }}</span>
+                        <span class="topbar-user-role">{{ current_user.RoleName }}</span>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <main class="page-content">
+            {% block content %}{% endblock %}
+        </main>
+
+        <footer class="main-footer">
+            <p>&copy; 2024 CLASSES369 &mdash; Hệ thống quản lý trung tâm tin học</p>
+        </footer>
+    </div>
+
+    <script src="{{ url_for('static', filename='js/shell.js') }}"></script>
+    {% block extra_js %}{% endblock %}
+</body>
+</html>

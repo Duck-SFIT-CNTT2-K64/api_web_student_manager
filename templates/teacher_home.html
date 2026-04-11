@@ -1,0 +1,131 @@
+{% extends 'layouts/base.html' %}
+
+{% block title %}Trang chủ Giảng viên | CLASSES369{% endblock %}
+{% block sidebar_subtitle %}Giảng viên{% endblock %}
+
+{% block sidebar_nav %}
+    <a href="/teacher/home" class="nav-item active">
+        <i class="fas fa-home"></i><span>Trang chủ</span>
+    </a>
+    <div class="nav-divider">Giảng dạy</div>
+    <a href="/teacher/home#my-classes" class="nav-item">
+        <i class="fas fa-chalkboard"></i><span>Lớp của tôi</span>
+    </a>
+{% endblock %}
+
+{% block topbar_title %}
+    <h1>Trang chủ Giảng viên</h1>
+{% endblock %}
+
+{% block content %}
+    {% if home_data.Profile %}
+        <!-- Profile + Stats -->
+        <div class="grid two" style="margin-bottom:24px">
+            <div class="card">
+                <div class="card-header">
+                    <h3><i class="fas fa-id-card" style="color:var(--primary);margin-right:8px"></i> Hồ sơ giảng viên</h3>
+                </div>
+                <div class="card-body">
+                    <ul class="info-list">
+                        <li>
+                            <span class="label">Họ tên</span>
+                            <span class="value">{{ home_data.Profile.FullName }}</span>
+                        </li>
+                        <li>
+                            <span class="label">Mã giảng viên</span>
+                            <span class="value">{{ home_data.Profile.TeacherCode }}</span>
+                        </li>
+                        <li>
+                            <span class="label">Chuyên môn</span>
+                            <span class="value">{{ home_data.Profile.Specialization or "Chưa cập nhật" }}</span>
+                        </li>
+                        <li>
+                            <span class="label">Email</span>
+                            <span class="value">{{ home_data.Profile.Email or "—" }}</span>
+                        </li>
+                        <li>
+                            <span class="label">Số điện thoại</span>
+                            <span class="value">{{ home_data.Profile.PhoneNumber or "—" }}</span>
+                        </li>
+                        <li>
+                            <span class="label">Trạng thái tài khoản</span>
+                            <span class="value">
+                                {% if home_data.Profile.AccountStatus == 'active' %}
+                                    <span class="badge good">Hoạt động</span>
+                                {% else %}
+                                    <span class="badge bad">{{ home_data.Profile.AccountStatus }}</span>
+                                {% endif %}
+                            </span>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+
+            <div style="display:grid;gap:16px;align-content:start">
+                <div class="gradient-card gc-blue">
+                    <div class="gc-icon"><i class="fas fa-chalkboard"></i></div>
+                    <div class="gc-info">
+                        <div class="gc-label">Lớp phụ trách</div>
+                        <div class="gc-value">{{ home_data.Totals.TotalClasses or 0 }}</div>
+                    </div>
+                </div>
+                <div class="gradient-card gc-green">
+                    <div class="gc-icon"><i class="fas fa-user-graduate"></i></div>
+                    <div class="gc-info">
+                        <div class="gc-label">Tổng sinh viên</div>
+                        <div class="gc-value">{{ home_data.Totals.TotalStudents or 0 }}</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- My Classes Table -->
+        <div class="card" id="my-classes" style="scroll-margin-top:80px">
+            <div class="card-header">
+                <h3><i class="fas fa-list" style="color:var(--info);margin-right:8px"></i> Lớp được phân công</h3>
+            </div>
+            {% if home_data.Classes %}
+            <div class="card-body-flush">
+                <div class="table-wrap">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Mã lớp</th>
+                                <th>Tên lớp</th>
+                                <th>Khóa học</th>
+                                <th>Sinh viên</th>
+                                <th>Sĩ số tối đa</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for item in home_data.Classes %}
+                            <tr>
+                                <td><strong>{{ item.ClassCode }}</strong></td>
+                                <td>{{ item.ClassName }}</td>
+                                <td>{{ item.CourseName }}</td>
+                                <td>
+                                    <span class="badge info">{{ item.StudentCount or 0 }}</span>
+                                </td>
+                                <td>{{ item.MaxStudents or "—" }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            {% else %}
+            <div class="card-body">
+                <p class="empty"><i class="fas fa-inbox" style="font-size:24px;display:block;margin-bottom:8px"></i>Hiện chưa có lớp nào được phân công.</p>
+            </div>
+            {% endif %}
+        </div>
+
+    {% else %}
+        <!-- No Profile Warning -->
+        <div class="profile-warning">
+            <i class="fas fa-exclamation-triangle"></i>
+            <h2>Chưa có hồ sơ giảng viên</h2>
+            <p>Tài khoản <strong>{{ current_user.Username }}</strong> đã đăng nhập thành công nhưng chưa được liên kết với hồ sơ giảng viên trong hệ thống. Vui lòng liên hệ quản trị viên để được hỗ trợ.</p>
+        </div>
+    {% endif %}
+{% endblock %}

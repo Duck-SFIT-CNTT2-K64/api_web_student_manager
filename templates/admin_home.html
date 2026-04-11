@@ -1,0 +1,159 @@
+{% extends 'layouts/base.html' %}
+
+{% block title %}Tổng quan | CLASSES369 Admin{% endblock %}
+{% block sidebar_subtitle %}Quản trị viên{% endblock %}
+
+{% block sidebar_nav %}
+    <a href="/admin/home" class="nav-item active">
+        <i class="fas fa-tachometer-alt"></i><span>Tổng quan</span>
+    </a>
+    <div class="nav-divider">Quản lý</div>
+    <a href="/dashboard#students" class="nav-item">
+        <i class="fas fa-user-graduate"></i><span>Sinh viên</span>
+    </a>
+    <a href="/dashboard#courses" class="nav-item">
+        <i class="fas fa-book"></i><span>Khóa học</span>
+    </a>
+    <a href="/dashboard#classes" class="nav-item">
+        <i class="fas fa-chalkboard-teacher"></i><span>Lớp học</span>
+    </a>
+    <a href="/dashboard#enrollments" class="nav-item">
+        <i class="fas fa-user-plus"></i><span>Ghi danh</span>
+    </a>
+    <a href="/dashboard#tuitions" class="nav-item">
+        <i class="fas fa-money-bill-wave"></i><span>Học phí</span>
+    </a>
+    <a href="/dashboard#scores" class="nav-item">
+        <i class="fas fa-clipboard-list"></i><span>Điểm số</span>
+    </a>
+    <a href="/dashboard#notifications" class="nav-item">
+        <i class="fas fa-bell"></i><span>Thông báo</span>
+    </a>
+{% endblock %}
+
+{% block topbar_title %}
+    <h1>Tổng quan hệ thống</h1>
+{% endblock %}
+
+{% block topbar_actions %}
+    <a href="/dashboard" class="btn btn-primary" style="font-size:.85rem">
+        <i class="fas fa-th-large"></i> Bảng quản trị
+    </a>
+{% endblock %}
+
+{% block content %}
+    <!-- Gradient Stat Cards -->
+    <div class="stats-row">
+        <div class="gradient-card gc-blue">
+            <div class="gc-icon"><i class="fas fa-user-graduate"></i></div>
+            <div class="gc-info">
+                <div class="gc-label">Tổng sinh viên</div>
+                <div class="gc-value">{{ summary.TotalStudents or 0 }}</div>
+            </div>
+        </div>
+        <div class="gradient-card gc-cyan">
+            <div class="gc-icon"><i class="fas fa-chalkboard-teacher"></i></div>
+            <div class="gc-info">
+                <div class="gc-label">Tổng giảng viên</div>
+                <div class="gc-value">{{ summary.TotalTeachers or 0 }}</div>
+            </div>
+        </div>
+        <div class="gradient-card gc-orange">
+            <div class="gc-icon"><i class="fas fa-school"></i></div>
+            <div class="gc-info">
+                <div class="gc-label">Tổng lớp học</div>
+                <div class="gc-value">{{ summary.TotalClasses or 0 }}</div>
+            </div>
+        </div>
+        <div class="gradient-card gc-green">
+            <div class="gc-icon"><i class="fas fa-book-open"></i></div>
+            <div class="gc-info">
+                <div class="gc-label">Tổng khóa học</div>
+                <div class="gc-value">{{ summary.TotalCourses or 0 }}</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Financial Summary -->
+    <div class="grid two" style="margin-bottom:24px">
+        <div class="card">
+            <div class="card-header">
+                <h3><i class="fas fa-coins" style="color:var(--warning);margin-right:8px"></i> Tài chính</h3>
+            </div>
+            <div class="card-body">
+                <ul class="info-list">
+                    <li>
+                        <span class="label">Doanh thu thu được</span>
+                        <span class="value" style="color:var(--success)">{{ "{:,.0f}".format((summary.TotalRevenue or 0)|float) }} VNĐ</span>
+                    </li>
+                    <li>
+                        <span class="label">Công nợ còn lại</span>
+                        <span class="value" style="color:var(--danger)">{{ "{:,.0f}".format((summary.OutstandingTuition or 0)|float) }} VNĐ</span>
+                    </li>
+                    <li>
+                        <span class="label">Học phí đã thanh toán</span>
+                        <span class="value"><span class="badge good">{{ summary.PaidTuitionCount or 0 }}</span></span>
+                    </li>
+                    <li>
+                        <span class="label">Học phí chờ xử lý</span>
+                        <span class="value"><span class="badge warn">{{ summary.PendingTuitionCount or 0 }}</span></span>
+                    </li>
+                    <li>
+                        <span class="label">Học phí quá hạn</span>
+                        <span class="value"><span class="badge bad">{{ summary.OverdueTuitionCount or 0 }}</span></span>
+                    </li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-header">
+                <h3><i class="fas fa-trophy" style="color:var(--primary);margin-right:8px"></i> Khóa học nổi bật</h3>
+            </div>
+            <div class="card-body">
+                {% if summary.TopCourses %}
+                <div class="rank-list">
+                    {% for item in summary.TopCourses %}
+                    <div class="rank-item">
+                        <span>{{ loop.index }}</span>
+                        <div>
+                            <strong>{{ item.CourseName }}</strong>
+                            <small>{{ item.EnrollmentCount }} lượt ghi danh</small>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <p class="empty">Chưa có dữ liệu ghi danh.</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Recent Notifications -->
+    <div class="card">
+        <div class="card-header">
+            <h3><i class="fas fa-bell" style="color:var(--info);margin-right:8px"></i> Thông báo gần đây</h3>
+            <a href="/dashboard#notifications" class="btn btn-outline" style="font-size:.8rem">
+                <i class="fas fa-arrow-right"></i> Xem tất cả
+            </a>
+        </div>
+        <div class="card-body">
+            {% if summary.RecentNotifications %}
+            <div class="rank-list">
+                {% for item in summary.RecentNotifications %}
+                <div class="rank-item">
+                    <span><i class="fas fa-bullhorn"></i></span>
+                    <div>
+                        <strong>{{ item.Title }}</strong>
+                        <small>{{ item.CreatedDate[:10] if item.CreatedDate else "" }} &middot; {{ item.RecipientCount }} người nhận</small>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <p class="empty">Chưa có thông báo nào.</p>
+            {% endif %}
+        </div>
+    </div>
+{% endblock %}
