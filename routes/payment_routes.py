@@ -1,7 +1,7 @@
 import pyodbc
 from flask import Blueprint, jsonify, request
 
-from models.payment_model import create_payment
+from models.payment_model import create_payment, get_receipts
 
 payment_bp = Blueprint("payments", __name__)
 
@@ -22,6 +22,18 @@ def add_payment():
                 "details": str(exc),
             }
         ), 400
+    except pyodbc.Error as exc:
+        return jsonify({"success": False, "error": "Database error.", "details": str(exc)}), 500
+    except Exception as exc:
+        return jsonify({"success": False, "error": "Unexpected server error.", "details": str(exc)}), 500
+
+
+@payment_bp.get("/receipts")
+def list_receipts():
+    try:
+        tuition_id = request.args.get("tuitionId", type=int)
+        receipts = get_receipts(tuition_id)
+        return jsonify({"success": True, "data": receipts}), 200
     except pyodbc.Error as exc:
         return jsonify({"success": False, "error": "Database error.", "details": str(exc)}), 500
     except Exception as exc:

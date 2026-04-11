@@ -7,7 +7,7 @@ import pyodbc
 def _build_connection_string() -> str:
     driver = os.getenv("DB_DRIVER", "ODBC Driver 17 for SQL Server")
     server = os.getenv("DB_SERVER", "DUCKCYZZZ\\SQLEXPRESS")
-    database = os.getenv("DB_NAME", "QLSV_TrungTamTinHoc_")
+    database = os.getenv("DB_NAME", "QLSV_TrungTamTinHoc")
 
     trusted_connection = os.getenv("DB_TRUSTED_CONNECTION", "yes").lower()
     user = os.getenv("DB_USER", "")

@@ -1,0 +1,351 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Classes369 | Quản lý trung tâm tin học</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}" />
+</head>
+<body>
+    <aside class="sidebar">
+        <div class="brand">
+            <span class="brand-mark"><i class="fas fa-graduation-cap"></i></span>
+            <div>
+                <strong>CLASSES369</strong>
+                <small>Quản lý trung tâm</small>
+            </div>
+        </div>
+        <nav class="side-nav" aria-label="Điều hướng chính">
+            <a href="#overview" class="active"><i class="fas fa-chart-line"></i> Tổng quan</a>
+            <a href="#students"><i class="fas fa-user-graduate"></i> Sinh viên</a>
+            <a href="#courses"><i class="fas fa-book"></i> Khóa học</a>
+            <a href="#classes"><i class="fas fa-chalkboard-teacher"></i> Lớp học</a>
+            <a href="#enrollments"><i class="fas fa-user-plus"></i> Ghi danh</a>
+            <a href="#tuitions"><i class="fas fa-money-bill-wave"></i> Học phí</a>
+            <a href="#scores"><i class="fas fa-clipboard-list"></i> Điểm số</a>
+            <a href="#notifications"><i class="fas fa-bell"></i> Thông báo</a>
+        </nav>
+    </aside>
+
+    <main class="app-shell">
+        <header class="topbar">
+            <div>
+                <p class="eyebrow">Student Management API</p>
+                <h1>Quản lý sinh viên theo cơ sở dữ liệu mới</h1>
+                <p class="subtitle">Dữ liệu lấy trực tiếp từ SQL Server qua các REST API của Flask.</p>
+            </div>
+            <button id="refreshAll" class="btn btn-primary"><i class="fas fa-rotate"></i> Tải lại dữ liệu</button>
+        </header>
+
+        <p id="globalMessage" class="message" role="status"></p>
+
+        <section id="overview" class="section">
+            <div class="section-heading">
+                <div>
+                    <h2>Tổng quan</h2>
+                    <p>Tình hình đào tạo, ghi danh và học phí hiện tại.</p>
+                </div>
+            </div>
+            <div id="statsGrid" class="stats-grid"></div>
+            <div class="grid two">
+                <article class="panel">
+                    <h3>Khóa học có ghi danh cao</h3>
+                    <div id="topCoursesList" class="rank-list"></div>
+                </article>
+                <article class="panel">
+                    <h3>Thông báo gần đây</h3>
+                    <div id="recentNotificationsList" class="rank-list"></div>
+                </article>
+            </div>
+        </section>
+
+        <section id="students" class="section">
+            <div class="section-heading">
+                <div>
+                    <h2>Sinh viên</h2>
+                    <p>Tạo tài khoản sinh viên và quản lý hồ sơ liên kết với bảng Users.</p>
+                </div>
+            </div>
+            <div class="grid form-and-table">
+                <article class="panel">
+                    <h3>Thêm sinh viên</h3>
+                    <form id="studentForm" class="form-grid">
+                        <label>Họ tên <input name="FullName" required /></label>
+                        <label>Email <input name="Email" type="email" required /></label>
+                        <label>Số điện thoại <input name="PhoneNumber" /></label>
+                        <label>Ngày sinh <input name="DateOfBirth" type="date" /></label>
+                        <label>Giới tính
+                            <select name="Gender">
+                                <option value="">Chọn giới tính</option>
+                                <option value="Nam">Nam</option>
+                                <option value="Nữ">Nữ</option>
+                                <option value="Khác">Khác</option>
+                            </select>
+                        </label>
+                        <label>Địa chỉ <textarea name="Address" rows="3"></textarea></label>
+                        <button class="btn btn-primary" type="submit">Lưu sinh viên</button>
+                    </form>
+                    <p id="studentMessage" class="message"></p>
+                </article>
+                <article class="panel table-panel">
+                    <div class="table-header">
+                        <h3>Danh sách sinh viên</h3>
+                        <input id="studentSearch" class="search-input" placeholder="Tìm mã, tên, email..." />
+                    </div>
+                    <div class="table-wrap">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Mã SV</th>
+                                    <th>Họ tên</th>
+                                    <th>Email</th>
+                                    <th>Điện thoại</th>
+                                    <th>Trạng thái</th>
+                                    <th></th>
+                                </tr>
+                            </thead>
+                            <tbody id="studentsTableBody"></tbody>
+                        </table>
+                    </div>
+                </article>
+            </div>
+        </section>
+
+        <section id="courses" class="section">
+            <div class="section-heading">
+                <div>
+                    <h2>Khóa học</h2>
+                    <p>Quản lý danh mục khóa học, học phí và số tín chỉ.</p>
+                </div>
+            </div>
+            <div class="grid form-and-table">
+                <article class="panel">
+                    <h3>Thêm khóa học</h3>
+                    <form id="courseForm" class="form-grid">
+                        <label>Mã khóa <input name="CourseCode" required /></label>
+                        <label>Tên khóa <input name="CourseName" required /></label>
+                        <label>Thời lượng <input name="Duration" placeholder="Ví dụ: 3 tháng" /></label>
+                        <label>Học phí <input name="TuitionFee" type="number" min="0" step="1000" value="0" /></label>
+                        <label>Tín chỉ <input name="Credits" type="number" min="0" /></label>
+                        <label>Mô tả <textarea name="Description" rows="3"></textarea></label>
+                        <button class="btn btn-primary" type="submit">Lưu khóa học</button>
+                    </form>
+                    <p id="courseMessage" class="message"></p>
+                </article>
+                <article class="panel table-panel">
+                    <div class="table-header">
+                        <h3>Danh sách khóa học</h3>
+                        <input id="courseSearch" class="search-input" placeholder="Tìm khóa học..." />
+                    </div>
+                    <div class="table-wrap">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Mã</th>
+                                    <th>Tên khóa</th>
+                                    <th>Thời lượng</th>
+                                    <th>Học phí</th>
+                                    <th>Lớp/HV</th>
+                                    <th></th>
+                                </tr>
+                            </thead>
+                            <tbody id="coursesTableBody"></tbody>
+                        </table>
+                    </div>
+                </article>
+            </div>
+        </section>
+
+        <section id="classes" class="section">
+            <div class="section-heading">
+                <div>
+                    <h2>Lớp học</h2>
+                    <p>Phân lớp theo khóa học, giảng viên và sức chứa.</p>
+                </div>
+            </div>
+            <div class="grid form-and-table">
+                <article class="panel">
+                    <h3>Tạo lớp</h3>
+                    <form id="classForm" class="form-grid">
+                        <label>Mã lớp <input name="ClassCode" required /></label>
+                        <label>Tên lớp <input name="ClassName" required /></label>
+                        <label>Khóa học <select name="CourseId" id="classCourseSelect" required></select></label>
+                        <label>Giảng viên <select name="TeacherId" id="classTeacherSelect"></select></label>
+                        <label>Sĩ số tối đa <input name="MaxStudents" type="number" min="1" value="30" /></label>
+                        <button class="btn btn-primary" type="submit">Lưu lớp</button>
+                    </form>
+                    <p id="classMessage" class="message"></p>
+                </article>
+                <article class="panel table-panel">
+                    <h3>Danh sách lớp</h3>
+                    <div class="table-wrap">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Mã lớp</th>
+                                    <th>Tên lớp</th>
+                                    <th>Khóa</th>
+                                    <th>Giảng viên</th>
+                                    <th>Sĩ số</th>
+                                    <th></th>
+                                </tr>
+                            </thead>
+                            <tbody id="classesTableBody"></tbody>
+                        </table>
+                    </div>
+                </article>
+            </div>
+        </section>
+
+        <section id="enrollments" class="section">
+            <div class="section-heading">
+                <div>
+                    <h2>Ghi danh</h2>
+                    <p>Ghi danh sinh viên vào lớp và tự tạo khoản học phí tương ứng.</p>
+                </div>
+            </div>
+            <div class="grid form-and-table">
+                <article class="panel">
+                    <h3>Ghi danh mới</h3>
+                    <form id="enrollmentForm" class="form-grid">
+                        <label>Sinh viên <select name="StudentId" id="enrollmentStudentSelect" required></select></label>
+                        <label>Lớp <select name="ClassId" id="enrollmentClassSelect" required></select></label>
+                        <label>Trạng thái <input name="Status" value="Enrolled" /></label>
+                        <button class="btn btn-primary" type="submit">Ghi danh</button>
+                    </form>
+                    <p id="enrollmentMessage" class="message"></p>
+                </article>
+                <article class="panel table-panel">
+                    <h3>Danh sách ghi danh</h3>
+                    <div class="table-wrap">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Sinh viên</th>
+                                    <th>Lớp</th>
+                                    <th>Khóa</th>
+                                    <th>Ngày ghi danh</th>
+                                    <th>Học phí</th>
+                                </tr>
+                            </thead>
+                            <tbody id="enrollmentsTableBody"></tbody>
+                        </table>
+                    </div>
+                </article>
+            </div>
+        </section>
+
+        <section id="tuitions" class="section">
+            <div class="section-heading">
+                <div>
+                    <h2>Học phí</h2>
+                    <p>Theo dõi công nợ và ghi nhận biên lai thanh toán.</p>
+                </div>
+            </div>
+            <div class="grid form-and-table">
+                <article class="panel">
+                    <h3>Ghi nhận thanh toán</h3>
+                    <form id="paymentForm" class="form-grid">
+                        <label>Khoản học phí <select name="TuitionId" id="paymentTuitionSelect" required></select></label>
+                        <label>Số tiền <input name="Amount" type="number" min="1" step="1000" required /></label>
+                        <label>Ngày thu <input name="PaymentDate" type="date" /></label>
+                        <label>Ghi chú <textarea name="Note" rows="3"></textarea></label>
+                        <button class="btn btn-primary" type="submit">Lưu thanh toán</button>
+                    </form>
+                    <p id="paymentMessage" class="message"></p>
+                </article>
+                <article class="panel table-panel">
+                    <h3>Danh sách học phí</h3>
+                    <div class="table-wrap">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Sinh viên</th>
+                                    <th>Lớp</th>
+                                    <th>Tổng phí</th>
+                                    <th>Đã đóng</th>
+                                    <th>Còn lại</th>
+                                    <th>Trạng thái</th>
+                                </tr>
+                            </thead>
+                            <tbody id="tuitionsTableBody"></tbody>
+                        </table>
+                    </div>
+                </article>
+            </div>
+        </section>
+
+        <section id="scores" class="section">
+            <div class="section-heading">
+                <div>
+                    <h2>Điểm số</h2>
+                    <p>Nhập điểm theo loại điểm và bản ghi ghi danh.</p>
+                </div>
+            </div>
+            <div class="grid form-and-table">
+                <article class="panel">
+                    <h3>Thêm điểm</h3>
+                    <form id="scoreForm" class="form-grid">
+                        <label>Ghi danh <select name="EnrollmentId" id="scoreEnrollmentSelect" required></select></label>
+                        <label>Loại điểm <select name="ScoreTypeId" id="scoreTypeSelect" required></select></label>
+                        <label>Điểm <input name="ScoreValue" type="number" min="0" max="10" step="0.1" required /></label>
+                        <button class="btn btn-primary" type="submit">Lưu điểm</button>
+                    </form>
+                    <p id="scoreMessage" class="message"></p>
+                </article>
+                <article class="panel table-panel">
+                    <h3>Bảng điểm</h3>
+                    <div class="table-wrap">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Sinh viên</th>
+                                    <th>Lớp</th>
+                                    <th>Loại điểm</th>
+                                    <th>Điểm</th>
+                                </tr>
+                            </thead>
+                            <tbody id="scoresTableBody"></tbody>
+                        </table>
+                    </div>
+                </article>
+            </div>
+        </section>
+
+        <section id="notifications" class="section">
+            <div class="section-heading">
+                <div>
+                    <h2>Thông báo</h2>
+                    <p>Tạo thông báo gửi tới toàn hệ thống, sinh viên hoặc giảng viên.</p>
+                </div>
+            </div>
+            <div class="grid form-and-table">
+                <article class="panel">
+                    <h3>Tạo thông báo</h3>
+                    <form id="notificationForm" class="form-grid">
+                        <label>Tiêu đề <input name="Title" required /></label>
+                        <label>Nội dung <textarea name="Content" rows="4"></textarea></label>
+                        <label>Đối tượng
+                            <select name="Audience">
+                                <option value="all">Tất cả</option>
+                                <option value="students">Sinh viên</option>
+                                <option value="teachers">Giảng viên</option>
+                                <option value="admins">Quản trị viên</option>
+                            </select>
+                        </label>
+                        <button class="btn btn-primary" type="submit">Gửi thông báo</button>
+                    </form>
+                    <p id="notificationMessage" class="message"></p>
+                </article>
+                <article class="panel table-panel">
+                    <h3>Thông báo đã tạo</h3>
+                    <div id="notificationsList" class="notification-list"></div>
+                </article>
+            </div>
+        </section>
+    </main>
+
+    <script src="{{ url_for('static', filename='js/dashboard.js') }}"></script>
+</body>
+</html>

@@ -6,6 +6,7 @@ from models.student_model import (
     delete_student_by_id,
     get_all_students,
     get_student_by_id,
+    get_student_statuses,
     update_student,
 )
 
@@ -17,6 +18,17 @@ def list_students():
     try:
         students = get_all_students()
         return jsonify({"success": True, "data": students}), 200
+    except pyodbc.Error as exc:
+        return jsonify({"success": False, "error": "Database error.", "details": str(exc)}), 500
+    except Exception as exc:
+              return jsonify({"success": False, "error": "Unexpected server error.", "details": str(exc)}), 500
+
+
+@student_bp.get("/statuses")
+def list_student_statuses():
+    try:
+        statuses = get_student_statuses()
+        return jsonify({"success": True, "data": statuses}), 200
     except pyodbc.Error as exc:
         return jsonify({"success": False, "error": "Database error.", "details": str(exc)}), 500
     except Exception as exc:

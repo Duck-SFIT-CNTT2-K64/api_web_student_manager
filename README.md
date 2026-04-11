@@ -1,173 +1,100 @@
-# Student Management System (Flask + SQL Server + Vanilla JS)
+# Classes369 Student Management API
 
-A full-stack Student Management System using:
-- Backend: Flask REST API
-- Database: SQL Server (pyodbc)
-- Frontend: HTML + CSS + JavaScript (no framework)
+Flask + SQL Server project for managing the latest `QLSV_TrungTamTinHoc` database schema.
 
-## 1) Project Structure
+## What This Version Covers
 
-```
+- Dashboard page at `/dashboard` with live data from REST APIs.
+- Students linked to `Users` and `StudentStatuses`.
+- Teachers, courses, classes, class capacity, and enrollments.
+- Tuition tracking through `Tuitions` and payment receipts through `Receipts`.
+- Score entry through `ScoreTypes` and `Scores`.
+- Notifications through `Notifications` and `NotificationRecipients`.
+- Report summary endpoint for dashboard totals and top courses.
+
+## Project Structure
+
+```text
 BTL_API/
 ├─ app.py
 ├─ db.py
-├─ requirements.txt
-├─ .env.example
-├─ routes/
-│  ├─ page_routes.py
-│  ├─ student_routes.py
-│  ├─ course_routes.py
-│  ├─ class_routes.py
-│  ├─ enrollment_routes.py
-│  ├─ payment_routes.py
-│  └─ score_routes.py
+├─ QLSV_TrungTamTinHoc.sql
 ├─ models/
-│  ├─ helpers.py
-│  ├─ student_model.py
-│  ├─ course_model.py
-│  ├─ class_model.py
-│  ├─ enrollment_model.py
-│  ├─ payment_model.py
-│  └─ score_model.py
+├─ routes/
 ├─ templates/
-│  ├─ students.html
-│  ├─ classes.html
-│  └─ enrollment.html
-├─ static/
-│  ├─ css/style.css
-│  └─ js/
-│     ├─ students.js
-│     ├─ classes.js
-│     └─ enrollment.js
-└─ QLSV_TrungTamTinHoc_.sql
+│  └─ dashboard.html
+└─ static/
+   ├─ css/style.css
+   └─ js/dashboard.js
 ```
 
-## 2) Prerequisites
-
-1. Python 3.10+
-2. SQL Server
-3. ODBC Driver 17 for SQL Server (or newer)
-
-## 3) Database Setup
+## Database Setup
 
 1. Open SQL Server Management Studio.
-2. Run `QLSV_TrungTamTinHoc_.sql` to create database and tables.
-3. Run `seed_sample_data.sql` to insert sample `Teachers`, `Courses`, and `Classes` data.
+2. Run `QLSV_TrungTamTinHoc.sql`.
+3. Confirm the database name is `QLSV_TrungTamTinHoc`.
 
-## 4) Backend Setup
+The project no longer targets the older `QLSV_TrungTamTinHoc_` schema.
 
-1. Create virtual environment and activate it:
+## Environment
 
-   Windows PowerShell:
-   ```powershell
-   python -m venv .venv
-   .\.venv\Scripts\Activate.ps1
-   ```
+Create a virtual environment and install dependencies:
 
-2. Install dependencies:
+```powershell
+python -m venv .venv
+.\.venv\Scripts\Activate.ps1
+pip install -r requirements.txt
+```
 
-   ```powershell
-   pip install -r requirements.txt
-   ```
+Configure SQL Server connection variables:
 
-3. Configure database environment variables (example):
+```powershell
+$env:DB_DRIVER="ODBC Driver 17 for SQL Server"
+$env:DB_SERVER="localhost"
+$env:DB_NAME="QLSV_TrungTamTinHoc"
+$env:DB_TRUSTED_CONNECTION="yes"
+```
 
-   ```powershell
-   $env:DB_DRIVER="ODBC Driver 17 for SQL Server"
-   $env:DB_SERVER="localhost"
-   $env:DB_NAME="QLSV_TrungTamTinHoc_"
-   $env:DB_TRUSTED_CONNECTION="yes"
-   ```
+For SQL Server authentication:
 
-   If using SQL Server authentication:
-   ```powershell
-   $env:DB_TRUSTED_CONNECTION="no"
-   $env:DB_USER="sa"
-   $env:DB_PASSWORD="your_password"
-   ```
+```powershell
+$env:DB_TRUSTED_CONNECTION="no"
+$env:DB_USER="sa"
+$env:DB_PASSWORD="your_password"
+```
 
-4. Run Flask app:
+## Run
 
-   ```powershell
-   python app.py
-   ```
+```powershell
+python app.py
+```
 
-5. Open browser:
-   - http://127.0.0.1:5000/students-page
-   - http://127.0.0.1:5000/classes-page
-   - http://127.0.0.1:5000/enrollment-page
+Open:
 
-## 5) API Endpoints
+- `http://127.0.0.1:5000/dashboard`
+- `http://127.0.0.1:5000/api/health`
 
-### Students (CRUD)
-- `GET /api/students`
-- `GET /api/students/{id}`
-- `POST /api/students`
-- `PUT /api/students/{id}`
-- `DELETE /api/students/{id}`
+## API Groups
 
-### Courses
-- `GET /api/courses`
-
-### Classes (JOIN with teacher + course)
-- `GET /api/classes`
-
-### Enrollments
-- `GET /api/enrollments` (JOIN enrollment info)
-- `POST /api/enrollments`
-
-### Payments
+- `GET/POST/PUT/DELETE /api/students`
+- `GET /api/students/statuses`
+- `GET /api/teachers`
+- `GET/POST/PUT/DELETE /api/courses`
+- `GET/POST/PUT/DELETE /api/classes`
+- `GET /api/classes/schedules`
+- `GET /api/classes/rooms`
+- `GET/POST /api/enrollments`
+- `GET /api/tuitions`
 - `POST /api/payments`
+- `GET /api/payments/receipts`
+- `GET/POST /api/scores`
+- `GET /api/scores/types`
+- `GET/POST /api/notifications`
+- `GET /api/reports/summary`
 
-### Scores
-- `POST /api/scores`
+## Notes
 
-## 6) Sample Postman Requests
-
-### 6.1 Add Student
-**POST** `http://127.0.0.1:5000/api/students`
-```json
-{
-  "FullName": "Nguyen Van A",
-  "Email": "vana@example.com",
-  "Phone": "0901234567",
-  "DateOfBirth": "2005-04-01"
-}
-```
-
-### 6.2 Enroll Student To Class
-**POST** `http://127.0.0.1:5000/api/enrollments`
-```json
-{
-  "StudentId": 1,
-  "ClassId": 1,
-  "Status": "Đang học"
-}
-```
-
-### 6.3 Make Payment
-**POST** `http://127.0.0.1:5000/api/payments`
-```json
-{
-  "StudentId": 1,
-  "Amount": 2500000,
-  "Method": "Bank Transfer"
-}
-```
-
-### 6.4 Add Score
-**POST** `http://127.0.0.1:5000/api/scores`
-```json
-{
-  "EnrollmentId": 1,
-  "Score": 8.5
-}
-```
-
-## 7) Notes
-
-- All APIs return JSON with a `success` flag.
-- Each route uses `try/except` for validation and database error handling.
-- JOIN queries are implemented for:
-  - Classes with `TeacherName` and `CourseName`
-  - Enrollments with student/class/course/teacher info
+- Creating a student also creates the linked `Users` row with role `Student`.
+- Creating an enrollment also creates a `Tuitions` row using the class course fee.
+- Recording a payment updates `Tuitions.AmountPaid`, recalculates tuition status, and inserts a `Receipts` row.
+- Password handling is intentionally kept compatible with the supplied database sample. Add hashing before production use.

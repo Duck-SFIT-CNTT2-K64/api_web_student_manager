@@ -1,49 +1,45 @@
 import pyodbc
 from flask import Blueprint, jsonify, request
 
-from models.score_model import create_score, get_all_scores, get_score_types
+from models.notification_model import create_notification, get_all_notifications, get_notification_by_id
 
-score_bp = Blueprint("scores", __name__)
+notification_bp = Blueprint("notifications", __name__)
 
 
-@score_bp.get("")
-def list_scores():
+@notification_bp.get("")
+def list_notifications():
     try:
-        scores = get_all_scores()
-        return jsonify({"success": True, "data": scores}), 200
+        notifications = get_all_notifications()
+        return jsonify({"success": True, "data": notifications}), 200
     except pyodbc.Error as exc:
         return jsonify({"success": False, "error": "Database error.", "details": str(exc)}), 500
     except Exception as exc:
         return jsonify({"success": False, "error": "Unexpected server error.", "details": str(exc)}), 500
 
 
-@score_bp.get("/types")
-def list_score_types():
+@notification_bp.get("/<int:notification_id>")
+def get_notification(notification_id: int):
     try:
-        score_types = get_score_types()
-        return jsonify({"success": True, "data": score_types}), 200
+        notification = get_notification_by_id(notification_id)
+        if not notification:
+            return jsonify({"success": False, "error": "Notification not found."}), 404
+        return jsonify({"success": True, "data": notification}), 200
     except pyodbc.Error as exc:
         return jsonify({"success": False, "error": "Database error.", "details": str(exc)}), 500
     except Exception as exc:
         return jsonify({"success": False, "error": "Unexpected server error.", "details": str(exc)}), 500
 
 
-@score_bp.post("")
-def add_score():
+@notification_bp.post("")
+def add_notification():
     try:
         payload = request.get_json(silent=True) or {}
-        score = create_score(payload)
-        return jsonify({"success": True, "message": "Score created.", "data": score}), 201
+        notification = create_notification(payload)
+        return jsonify({"success": True, "message": "Notification created.", "data": notification}), 201
     except ValueError as exc:
         return jsonify({"success": False, "error": str(exc)}), 400
     except pyodbc.IntegrityError as exc:
-        return jsonify(
-            {
-                "success": False,
-                "error": "Constraint violation (check EnrollmentId exists).",
-                "details": str(exc),
-            }
-        ), 400
+        return jsonify({"success": False, "error": "Constraint violation.", "details": str(exc)}), 400
     except pyodbc.Error as exc:
         return jsonify({"success": False, "error": "Database error.", "details": str(exc)}), 500
     except Exception as exc:
