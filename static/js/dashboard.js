@@ -315,6 +315,8 @@ function renderOptions() {
         "TuitionId",
         function (item) { return item.StudentCode + " - " + item.ClassName + " còn " + formatMoney(item.RemainingAmount); }
     );
+
+    syncPaymentAmountLimit();
 }
 
 function renderAll() {
@@ -349,7 +351,13 @@ function bindForms() {
         event.preventDefault();
         var form = event.currentTarget;
         try {
-            await sendJson("/api/students", "POST", readForm(form));
+            var studentPayload = readForm(form);
+            var studentValidationError = validateStudentPayload(studentPayload);
+            if (studentValidationError) {
+                throw new Error(studentValidationError);
+            }
+
+            await sendJson("/api/students", "POST", studentPayload);
             form.reset();
             setMessage(document.getElementById("studentMessage"), "Đã thêm sinh viên.", "success");
             await loadAll();
@@ -377,6 +385,11 @@ function bindForms() {
         var form = event.currentTarget;
         try {
             var payload = setNumeric(readForm(form), ["CourseId", "TeacherId", "MaxStudents"]);
+            var classValidationError = validateClassPayload(payload);
+            if (classValidationError) {
+                throw new Error(classValidationError);
+            }
+
             await sendJson("/api/classes", "POST", payload);
             form.reset();
             setMessage(document.getElementById("classMessage"), "Đã tạo lớp.", "success");
@@ -391,6 +404,11 @@ function bindForms() {
         var form = event.currentTarget;
         try {
             var payload = setNumeric(readForm(form), ["StudentId", "ClassId"]);
+            var enrollmentValidationError = validateEnrollmentPayload(payload);
+            if (enrollmentValidationError) {
+                throw new Error(enrollmentValidationError);
+            }
+
             await sendJson("/api/enrollments", "POST", payload);
             form.reset();
             setMessage(document.getElementById("enrollmentMessage"), "Đã ghi danh và tạo học phí.", "success");
@@ -405,6 +423,11 @@ function bindForms() {
         var form = event.currentTarget;
         try {
             var payload = setNumeric(readForm(form), ["TuitionId", "Amount"]);
+            var paymentValidationError = validatePaymentPayload(payload);
+            if (paymentValidationError) {
+                throw new Error(paymentValidationError);
+            }
+
             await sendJson("/api/payments", "POST", payload);
             form.reset();
             setDefaultPaymentDate();
@@ -489,12 +512,164 @@ function bindSearch() {
 
 function bindNavigation() {
     var navItems = document.querySelectorAll(".sidebar-nav .nav-item");
+    if (!navItems.length) return;
+
+    function normalizeDashboardHash(hash) {
+        var fallback = "#overview";
+        if (!hash || !hash.startsWith("#")) {
+            return fallback;
+        }
+        if (!document.querySelector(hash)) {
+            return fallback;
+        }
+        return hash;
+    }
+
+    function getNormalizedHashFromHref(href) {
+        if (!href) return "";
+        if (href.startsWith("#")) return href;
+        if (href.startsWith("/dashboard#")) return "#" + href.split("#")[1];
+        return "";
+    }
+
+    function applyDashboardActiveState() {
+        var activeHash = normalizeDashboardHash(window.location.hash || "#overview");
+
+        navItems.forEach(function (item) {
+            var href = item.getAttribute("href") || "";
+            var itemHash = getNormalizedHashFromHref(href);
+            item.classList.remove("active");
+            if (itemHash && itemHash === activeHash) {
+                item.classList.add("active");
+            }
+        });
+    }
+
     navItems.forEach(function (link) {
         link.addEventListener("click", function () {
-            navItems.forEach(function (item) { item.classList.remove("active"); });
-            link.classList.add("active");
+            var href = link.getAttribute("href") || "";
+            var itemHash = getNormalizedHashFromHref(href);
+            if (itemHash) {
+                window.setTimeout(applyDashboardActiveState, 0);
+            }
         });
     });
+
+    if (!window.location.hash || !document.querySelector(window.location.hash)) {
+        history.replaceState(null, "", "#overview");
+    }
+
+    window.addEventListener("hashchange", applyDashboardActiveState);
+    applyDashboardActiveState();
+}
+
+function validateStudentPayload(payload) {
+    var email = String(payload.Email || "").trim().toLowerCase();
+    if (!email) {
+        return "Email là bắt buộc.";
+    }
+
+    var exists = state.students.some(function (student) {
+        return String(student.Email || "").trim().toLowerCase() === email;
+    });
+
+    if (exists) {
+        return "Email đã tồn tại trong danh sách sinh viên.";
+    }
+
+    return "";
+}
+
+function validateClassPayload(payload) {
+    var classCode = String(payload.ClassCode || "").trim().toLowerCase();
+    var className = String(payload.ClassName || "").trim();
+    if (!classCode) {
+        return "Mã lớp là bắt buộc.";
+    }
+
+    if (classCode.length > 20) {
+        return "Mã lớp không được vượt quá 20 ký tự.";
+    }
+
+    if (!className) {
+        return "Tên lớp là bắt buộc.";
+    }
+
+    if (className.length > 100) {
+        return "Tên lớp không được vượt quá 100 ký tự.";
+    }
+
+    var exists = state.classes.some(function (item) {
+        return String(item.ClassCode || "").trim().toLowerCase() === classCode;
+    });
+
+    if (exists) {
+        return "Mã lớp đã tồn tại. Vui lòng dùng mã lớp khác.";
+    }
+
+    return "";
+}
+
+function validateEnrollmentPayload(payload) {
+    var studentId = Number(payload.StudentId || 0);
+    var classId = Number(payload.ClassId || 0);
+    if (!studentId || !classId) {
+        return "Vui lòng chọn sinh viên và lớp hợp lệ.";
+    }
+
+    var exists = state.enrollments.some(function (item) {
+        return Number(item.StudentId) === studentId && Number(item.ClassId) === classId;
+    });
+
+    if (exists) {
+        return "Sinh viên đã ghi danh lớp này.";
+    }
+
+    return "";
+}
+
+function validatePaymentPayload(payload) {
+    var tuitionId = Number(payload.TuitionId || 0);
+    var amount = Number(payload.Amount || 0);
+    if (!tuitionId || !amount) {
+        return "Vui lòng chọn khoản học phí và nhập số tiền hợp lệ.";
+    }
+
+    var tuition = state.tuitions.find(function (item) {
+        return Number(item.TuitionId) === tuitionId;
+    });
+
+    if (!tuition) {
+        return "Khoản học phí không tồn tại hoặc đã thanh toán đủ.";
+    }
+
+    var remaining = Number(tuition.RemainingAmount || 0);
+    if (amount > remaining) {
+        return "Số tiền nhập vượt quá số còn lại (" + formatMoney(remaining) + ").";
+    }
+
+    return "";
+}
+
+function syncPaymentAmountLimit() {
+    var select = document.getElementById("paymentTuitionSelect");
+    var amountInput = document.querySelector("#paymentForm input[name='Amount']");
+    if (!select || !amountInput) return;
+
+    var tuitionId = Number(select.value || 0);
+    var tuition = state.tuitions.find(function (item) {
+        return Number(item.TuitionId) === tuitionId;
+    });
+
+    if (!tuition) {
+        amountInput.removeAttribute("max");
+        amountInput.placeholder = "Nhập số tiền";
+        return;
+    }
+
+    var remaining = Math.max(0, Number(tuition.RemainingAmount || 0));
+    amountInput.max = String(remaining);
+    amountInput.placeholder = "Tối đa " + formatMoney(remaining);
 }
 
 function setDefaultPaymentDate() {
@@ -513,6 +688,11 @@ document.addEventListener("DOMContentLoaded", function () {
 
     var refreshBtn = document.getElementById("refreshAll");
     if (refreshBtn) refreshBtn.addEventListener("click", loadAll);
+
+    var paymentTuitionSelect = document.getElementById("paymentTuitionSelect");
+    if (paymentTuitionSelect) {
+        paymentTuitionSelect.addEventListener("change", syncPaymentAmountLimit);
+    }
 
     loadAll();
 

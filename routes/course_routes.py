@@ -39,7 +39,7 @@ def add_course():
     except ValueError as exc:
         return jsonify({"success": False, "error": str(exc)}), 400
     except pyodbc.IntegrityError as exc:
-        return jsonify({"success": False, "error": "Constraint violation.", "details": str(exc)}), 400
+        return jsonify({"success": False, "error": "Dữ liệu khóa học bị trùng hoặc không hợp lệ.", "details": str(exc)}), 400
     except pyodbc.Error as exc:
         return jsonify({"success": False, "error": "Database error.", "details": str(exc)}), 500
     except Exception as exc:
@@ -57,7 +57,7 @@ def edit_course(course_id: int):
     except ValueError as exc:
         return jsonify({"success": False, "error": str(exc)}), 400
     except pyodbc.IntegrityError as exc:
-        return jsonify({"success": False, "error": "Constraint violation.", "details": str(exc)}), 400
+        return jsonify({"success": False, "error": "Dữ liệu cập nhật khóa học không hợp lệ.", "details": str(exc)}), 400
     except pyodbc.Error as exc:
         return jsonify({"success": False, "error": "Database error.", "details": str(exc)}), 500
     except Exception as exc:

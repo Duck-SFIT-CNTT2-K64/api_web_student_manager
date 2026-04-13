@@ -85,6 +85,42 @@ def _make_unique_username(cursor, desired: str) -> str:
         username = f"{base[:50 - len(suffix_text) - 1]}_{suffix_text}"
 
 
+def _student_code_exists(cursor, student_code: str, exclude_student_id: Optional[int] = None) -> bool:
+    if exclude_student_id is None:
+        cursor.execute("SELECT TOP 1 StudentId FROM Students WHERE StudentCode = ?", student_code)
+    else:
+        cursor.execute(
+            "SELECT TOP 1 StudentId FROM Students WHERE StudentCode = ? AND StudentId <> ?",
+            student_code,
+            int(exclude_student_id),
+        )
+    return cursor.fetchone() is not None
+
+
+def _email_exists_in_users(cursor, email: str, exclude_user_id: Optional[int] = None) -> bool:
+    if exclude_user_id is None:
+        cursor.execute("SELECT TOP 1 UserId FROM Users WHERE Email = ?", email)
+    else:
+        cursor.execute(
+            "SELECT TOP 1 UserId FROM Users WHERE Email = ? AND UserId <> ?",
+            email,
+            int(exclude_user_id),
+        )
+    return cursor.fetchone() is not None
+
+
+def _username_exists(cursor, username: str, exclude_user_id: Optional[int] = None) -> bool:
+    if exclude_user_id is None:
+        cursor.execute("SELECT TOP 1 UserId FROM Users WHERE Username = ?", username)
+    else:
+        cursor.execute(
+            "SELECT TOP 1 UserId FROM Users WHERE Username = ? AND UserId <> ?",
+            username,
+            int(exclude_user_id),
+        )
+    return cursor.fetchone() is not None
+
+
 def create_student(payload: Dict[str, Any]) -> Dict[str, Any]:
     full_name = (payload.get("FullName") or "").strip()
     if not full_name:
@@ -100,14 +136,31 @@ def create_student(payload: Dict[str, Any]) -> Dict[str, Any]:
     address = payload.get("Address") or None
     password = payload.get("Password") or "123456"
     account_status = payload.get("AccountStatus") or "Active"
+    requested_username = (payload.get("Username") or "").strip()
+    student_code = (payload.get("StudentCode") or "")[:20]
 
     with get_db_connection() as connection:
         cursor = connection.cursor()
         try:
             role_id = _get_role_id(cursor, "Student")
             status_id = payload.get("StatusId") or _get_default_status_id(cursor)
-            username_seed = payload.get("Username") or email.split("@")[0] or full_name
-            username = _make_unique_username(cursor, username_seed)
+            if _email_exists_in_users(cursor, email):
+                raise ValueError("Email đã tồn tại trong hệ thống. Vui lòng dùng email khác.")
+
+            if requested_username:
+                if _username_exists(cursor, requested_username):
+                    raise ValueError("Username đã tồn tại. Vui lòng dùng username khác.")
+                username = requested_username
+            else:
+                username_seed = email.split("@")[0] or full_name
+                username = _make_unique_username(cursor, username_seed)
+
+            if not student_code:
+                cursor.execute("SELECT ISNULL(MAX(StudentId), 0) + 1 FROM Students")
+                next_student_id = int(cursor.fetchone()[0])
+                student_code = f"SV{next_student_id:06d}"[:20]
+            if _student_code_exists(cursor, student_code):
+                raise ValueError("Mã sinh viên đã tồn tại. Vui lòng nhập mã khác.")
 
             cursor.execute(
                 """
@@ -125,7 +178,6 @@ def create_student(payload: Dict[str, Any]) -> Dict[str, Any]:
             )
             user_id = int(cursor.fetchone()[0])
 
-            student_code = (payload.get("StudentCode") or f"SV{user_id:06d}")[:20]
             cursor.execute(
                 """
                 INSERT INTO Students
@@ -178,6 +230,15 @@ def update_student(student_id: int, payload: Dict[str, Any]) -> Optional[Dict[st
         address = payload.get("Address", existing_student["Address"])
         account_status = payload.get("AccountStatus", existing_student["AccountStatus"])
         username = payload.get("Username", existing_student["Username"])
+
+        if _student_code_exists(cursor, student_code, student_id):
+            raise ValueError("Mã sinh viên đã tồn tại ở bản ghi khác.")
+
+        if _email_exists_in_users(cursor, email, int(existing_student["UserId"])):
+            raise ValueError("Email đã tồn tại ở tài khoản khác.")
+
+        if username and _username_exists(cursor, username, int(existing_student["UserId"])):
+            raise ValueError("Username đã tồn tại ở tài khoản khác.")
 
         try:
             cursor.execute(

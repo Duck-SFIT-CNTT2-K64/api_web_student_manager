@@ -97,33 +97,87 @@ def get_class_by_id(class_id: int) -> Optional[Dict[str, Any]]:
         return row_to_dict(cursor, row) if row else None
 
 
+def _class_code_exists(cursor, class_code: str, exclude_class_id: Optional[int] = None) -> bool:
+    if exclude_class_id is None:
+        cursor.execute("SELECT TOP 1 ClassId FROM Classes WHERE ClassCode = ?", class_code)
+    else:
+        cursor.execute(
+            "SELECT TOP 1 ClassId FROM Classes WHERE ClassCode = ? AND ClassId <> ?",
+            class_code,
+            int(exclude_class_id),
+        )
+    return cursor.fetchone() is not None
+
+
+def _course_exists(cursor, course_id: int) -> bool:
+    cursor.execute("SELECT TOP 1 CourseId FROM Courses WHERE CourseId = ?", int(course_id))
+    return cursor.fetchone() is not None
+
+
+def _teacher_exists(cursor, teacher_id: int) -> bool:
+    cursor.execute("SELECT TOP 1 TeacherId FROM Teachers WHERE TeacherId = ?", int(teacher_id))
+    return cursor.fetchone() is not None
+
+
 def create_class(payload: Dict[str, Any]) -> Dict[str, Any]:
     class_code = (payload.get("ClassCode") or "").strip()
     class_name = (payload.get("ClassName") or "").strip()
     course_id = payload.get("CourseId")
     if not class_code:
         raise ValueError("ClassCode is required.")
+    if len(class_code) > 20:
+        raise ValueError("Mã lớp không được vượt quá 20 ký tự.")
     if not class_name:
         raise ValueError("ClassName is required.")
+    if len(class_name) > 100:
+        raise ValueError("Tên lớp không được vượt quá 100 ký tự.")
     if course_id is None:
         raise ValueError("CourseId is required.")
 
+    try:
+        course_id_int = int(course_id)
+    except (TypeError, ValueError) as exc:
+        raise ValueError("CourseId không hợp lệ.") from exc
+
     teacher_id = payload.get("TeacherId") or None
+    teacher_id_int = None
+    if teacher_id not in (None, ""):
+        try:
+            teacher_id_int = int(teacher_id)
+        except (TypeError, ValueError) as exc:
+            raise ValueError("TeacherId không hợp lệ.") from exc
+
     max_students = payload.get("MaxStudents") or None
+    max_students_int = None
+    if max_students not in (None, ""):
+        try:
+            max_students_int = int(max_students)
+        except (TypeError, ValueError) as exc:
+            raise ValueError("Sĩ số tối đa không hợp lệ.") from exc
+        if max_students_int <= 0:
+            raise ValueError("Sĩ số tối đa phải lớn hơn 0.")
 
     with get_db_connection() as connection:
         cursor = connection.cursor()
+
+        if _class_code_exists(cursor, class_code):
+            raise ValueError("Mã lớp đã tồn tại.")
+        if not _course_exists(cursor, course_id_int):
+            raise ValueError("Khóa học không tồn tại.")
+        if teacher_id_int is not None and not _teacher_exists(cursor, teacher_id_int):
+            raise ValueError("Giảng viên không tồn tại.")
+
         cursor.execute(
             """
             INSERT INTO Classes (CourseId, TeacherId, ClassCode, ClassName, MaxStudents)
             OUTPUT INSERTED.ClassId
             VALUES (?, ?, ?, ?, ?)
             """,
-            int(course_id),
-            int(teacher_id) if teacher_id else None,
+            course_id_int,
+            teacher_id_int,
             class_code,
             class_name,
-            int(max_students) if max_students else None,
+            max_students_int,
         )
         class_id = int(cursor.fetchone()[0])
         connection.commit()
@@ -139,22 +193,59 @@ def update_class(class_id: int, payload: Dict[str, Any]) -> Optional[Dict[str, A
     class_name = (payload.get("ClassName", existing["ClassName"]) or "").strip()
     if not class_code:
         raise ValueError("ClassCode cannot be empty.")
+    if len(class_code) > 20:
+        raise ValueError("Mã lớp không được vượt quá 20 ký tự.")
     if not class_name:
         raise ValueError("ClassName cannot be empty.")
+    if len(class_name) > 100:
+        raise ValueError("Tên lớp không được vượt quá 100 ký tự.")
+
+    course_id = payload.get("CourseId", existing["CourseId"])
+    teacher_id = payload.get("TeacherId", existing["TeacherId"])
+    max_students = payload.get("MaxStudents", existing["MaxStudents"])
+
+    try:
+        course_id_int = int(course_id)
+    except (TypeError, ValueError) as exc:
+        raise ValueError("CourseId không hợp lệ.") from exc
+
+    teacher_id_int = None
+    if teacher_id not in (None, ""):
+        try:
+            teacher_id_int = int(teacher_id)
+        except (TypeError, ValueError) as exc:
+            raise ValueError("TeacherId không hợp lệ.") from exc
+
+    max_students_int = None
+    if max_students not in (None, ""):
+        try:
+            max_students_int = int(max_students)
+        except (TypeError, ValueError) as exc:
+            raise ValueError("Sĩ số tối đa không hợp lệ.") from exc
+        if max_students_int <= 0:
+            raise ValueError("Sĩ số tối đa phải lớn hơn 0.")
 
     with get_db_connection() as connection:
         cursor = connection.cursor()
+
+        if _class_code_exists(cursor, class_code, class_id):
+            raise ValueError("Mã lớp đã tồn tại ở bản ghi khác.")
+        if not _course_exists(cursor, course_id_int):
+            raise ValueError("Khóa học không tồn tại.")
+        if teacher_id_int is not None and not _teacher_exists(cursor, teacher_id_int):
+            raise ValueError("Giảng viên không tồn tại.")
+
         cursor.execute(
             """
             UPDATE Classes
             SET CourseId = ?, TeacherId = ?, ClassCode = ?, ClassName = ?, MaxStudents = ?
             WHERE ClassId = ?
             """,
-            payload.get("CourseId", existing["CourseId"]),
-            payload.get("TeacherId", existing["TeacherId"]),
+            course_id_int,
+            teacher_id_int,
             class_code,
             class_name,
-            payload.get("MaxStudents", existing["MaxStudents"]),
+            max_students_int,
             class_id,
         )
         connection.commit()

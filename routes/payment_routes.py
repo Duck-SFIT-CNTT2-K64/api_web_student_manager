@@ -18,7 +18,7 @@ def add_payment():
         return jsonify(
             {
                 "success": False,
-                "error": "Constraint violation (check StudentId exists).",
+                "error": "Thanh toán không hợp lệ (kiểm tra khoản học phí và người thu).",
                 "details": str(exc),
             }
         ), 400

@@ -29,7 +29,7 @@ def add_enrollment():
         return jsonify(
             {
                 "success": False,
-                "error": "Constraint violation (check StudentId/ClassId validity or duplicate enrollment).",
+                "error": "Ghi danh không hợp lệ (trùng ghi danh hoặc sai dữ liệu lớp/sinh viên).",
                 "details": str(exc),
             }
         ), 400

@@ -53,12 +53,34 @@ def create_enrollment(payload: Dict[str, Any]) -> Dict[str, Any]:
     if class_id is None:
         raise ValueError("ClassId is required.")
 
+    try:
+        student_id_int = int(student_id)
+    except (TypeError, ValueError) as exc:
+        raise ValueError("StudentId không hợp lệ.") from exc
+
+    try:
+        class_id_int = int(class_id)
+    except (TypeError, ValueError) as exc:
+        raise ValueError("ClassId không hợp lệ.") from exc
+
     enrollment_date = payload.get("EnrollmentDate") or payload.get("EnrollDate") or None
     status = payload.get("Status") or "Enrolled"
 
     with get_db_connection() as connection:
         cursor = connection.cursor()
         try:
+            cursor.execute("SELECT TOP 1 StudentId FROM Students WHERE StudentId = ?", student_id_int)
+            if not cursor.fetchone():
+                raise ValueError("Sinh viên không tồn tại.")
+
+            cursor.execute(
+                "SELECT TOP 1 EnrollmentId FROM Enrollments WHERE StudentId = ? AND ClassId = ?",
+                student_id_int,
+                class_id_int,
+            )
+            if cursor.fetchone():
+                raise ValueError("Sinh viên đã ghi danh lớp này.")
+
             cursor.execute(
                 """
                 SELECT
@@ -71,16 +93,16 @@ def create_enrollment(payload: Dict[str, Any]) -> Dict[str, Any]:
                 WHERE c.ClassId = ?
                 GROUP BY c.MaxStudents, co.TuitionFee
                 """,
-                int(class_id),
+                class_id_int,
             )
             class_row = cursor.fetchone()
             if not class_row:
-                raise ValueError("ClassId does not exist.")
+                raise ValueError("Lớp học không tồn tại.")
 
             max_students = class_row[0]
             current_count = class_row[2]
             if max_students is not None and current_count >= max_students:
-                raise ValueError("Class is full.")
+                raise ValueError("Lớp đã đủ sĩ số.")
 
             cursor.execute(
                 """
@@ -88,8 +110,8 @@ def create_enrollment(payload: Dict[str, Any]) -> Dict[str, Any]:
                 OUTPUT INSERTED.EnrollmentId
                 VALUES (?, ?, COALESCE(?, GETDATE()), COALESCE(?, N'Enrolled'))
                 """,
-                int(student_id),
-                int(class_id),
+                student_id_int,
+                class_id_int,
                 enrollment_date,
                 status,
             )

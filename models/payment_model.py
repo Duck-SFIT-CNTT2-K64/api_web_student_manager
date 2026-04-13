@@ -1,4 +1,5 @@
 from datetime import datetime
+from decimal import Decimal, InvalidOperation
 from typing import Any, Dict, List
 
 from db import get_db_connection
@@ -97,12 +98,12 @@ def record_tuition_payment(payload: Dict[str, Any]) -> Dict[str, Any]:
         raise ValueError("Amount is required.")
 
     try:
-        amount = float(amount)
-    except (TypeError, ValueError) as exc:
-        raise ValueError("Amount must be a number.") from exc
+        amount = Decimal(str(amount))
+    except (TypeError, ValueError, InvalidOperation) as exc:
+        raise ValueError("Số tiền thanh toán không hợp lệ.") from exc
 
     if amount <= 0:
-        raise ValueError("Amount must be greater than 0.")
+        raise ValueError("Số tiền thanh toán phải lớn hơn 0.")
 
     payment_date = payload.get("PaymentDate") or None
     note = payload.get("Note") or payload.get("Method") or None
@@ -121,13 +122,13 @@ def record_tuition_payment(payload: Dict[str, Any]) -> Dict[str, Any]:
             )
             tuition = cursor.fetchone()
             if not tuition:
-                raise ValueError("TuitionId does not exist.")
+                raise ValueError("Khoản học phí không tồn tại.")
 
-            total_fee = float(tuition[0])
-            amount_paid = float(tuition[1])
+            total_fee = Decimal(str(tuition[0] or 0))
+            amount_paid = Decimal(str(tuition[1] or 0))
             remaining = total_fee - amount_paid
             if amount > remaining:
-                raise ValueError(f"Amount exceeds remaining tuition ({remaining:,.0f}).")
+                raise ValueError(f"Số tiền thanh toán vượt số còn lại ({remaining:,.0f} VND).")
 
             new_paid = min(total_fee, amount_paid + amount)
             due_date = tuition[2]

@@ -21,7 +21,7 @@ def list_students():
     except pyodbc.Error as exc:
         return jsonify({"success": False, "error": "Database error.", "details": str(exc)}), 500
     except Exception as exc:
-              return jsonify({"success": False, "error": "Unexpected server error.", "details": str(exc)}), 500
+        return jsonify({"success": False, "error": "Unexpected server error.", "details": str(exc)}), 500
 
 
 @student_bp.get("/statuses")
@@ -60,7 +60,7 @@ def add_student():
         return jsonify(
             {
                 "success": False,
-                "error": "Constraint violation (check unique email or required foreign keys).",
+                "error": "Dữ liệu bị trùng hoặc không hợp lệ (email/mã sinh viên).",
                 "details": str(exc),
             }
         ), 400
@@ -84,7 +84,7 @@ def edit_student(student_id: int):
         return jsonify(
             {
                 "success": False,
-                "error": "Constraint violation (check unique email or required foreign keys).",
+                "error": "Dữ liệu bị trùng hoặc không hợp lệ khi cập nhật sinh viên.",
                 "details": str(exc),
             }
         ), 400
