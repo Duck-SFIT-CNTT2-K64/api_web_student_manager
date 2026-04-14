@@ -22,6 +22,10 @@ def create_app() -> Flask:
     app.config["SESSION_COOKIE_HTTPONLY"] = True
     app.config["SESSION_COOKIE_SAMESITE"] = "Lax"
 
+    # Dev config tắt cache (Sửa lỗi 304 khi code frontend không nhận cập nhật)
+    app.config["TEMPLATES_AUTO_RELOAD"] = True
+    app.config["SEND_FILE_MAX_AGE_DEFAULT"] = 0
+
     # Frontend pages
     app.register_blueprint(auth_bp)
     app.register_blueprint(page_bp)
