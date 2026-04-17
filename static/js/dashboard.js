@@ -4,11 +4,13 @@ const state = {
     teachers: [],
     courses: [],
     classes: [],
+    rooms: [],
     enrollments: [],
     tuitions: [],
     scores: [],
     scoreTypes: [],
     notifications: [],
+    users: [],
 };
 
 const endpoints = {
@@ -17,11 +19,13 @@ const endpoints = {
     teachers: "/api/teachers",
     courses: "/api/courses",
     classes: "/api/classes",
+    rooms: "/api/rooms",
     enrollments: "/api/enrollments",
     tuitions: "/api/tuitions",
     scores: "/api/scores",
     scoreTypes: "/api/scores/types",
     notifications: "/api/notifications",
+    users: "/api/users",
 };
 
 const globalMessage = document.getElementById("globalMessage");
@@ -50,6 +54,58 @@ function setMessage(element, text, type) {
     element.textContent = text || "";
     element.classList.remove("success", "error");
     if (type) element.classList.add(type);
+}
+
+function showCredentialModal(teacherName, username, password) {
+    // Xóa modal cũ nếu có
+    var old = document.getElementById("credentialModal");
+    if (old) old.remove();
+
+    var modal = document.createElement("div");
+    modal.id = "credentialModal";
+    modal.style.cssText = [
+        "position:fixed", "inset:0", "z-index:9999",
+        "display:flex", "align-items:center", "justify-content:center",
+        "background:rgba(0,0,0,.55)", "backdrop-filter:blur(4px)",
+        "animation:fadeIn .2s ease"
+    ].join(";");
+
+    modal.innerHTML =
+        '<div style="background:var(--surface,#1e2433);border:1px solid var(--border,#2d3550);border-radius:16px;padding:32px 36px;max-width:420px;width:90%;box-shadow:0 24px 60px rgba(0,0,0,.5);position:relative">' +
+        '<div style="display:flex;align-items:center;gap:12px;margin-bottom:20px">' +
+        '<span style="font-size:2rem">\uD83C\uDF93</span>' +
+        '<div><strong style="font-size:1.05rem;color:var(--text,#e2e8f0)">Tài khoản đăng nhập</strong>' +
+        '<br><small style="color:var(--text-muted,#94a3b8)">' + escapeHtml(teacherName) + '</small></div>' +
+        '</div>' +
+        '<div style="background:var(--surface-alt,#151929);border-radius:10px;padding:16px 18px;margin-bottom:20px;font-family:monospace;font-size:.95rem">' +
+        '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">' +
+        '<span style="color:var(--text-muted,#94a3b8);font-size:.8rem">USERNAME</span>' +
+        '<strong id="credUsername" style="color:var(--primary,#6366f1);letter-spacing:.5px">' + escapeHtml(username) + '</strong>' +
+        '</div>' +
+        '<div style="display:flex;justify-content:space-between;align-items:center">' +
+        '<span style="color:var(--text-muted,#94a3b8);font-size:.8rem">MẬT KHẨU</span>' +
+        '<strong id="credPassword" style="color:var(--success,#22c55e);letter-spacing:.5px">' + escapeHtml(password) + '</strong>' +
+        '</div>' +
+        '</div>' +
+        '<p style="font-size:.8rem;color:var(--text-muted,#94a3b8);margin-bottom:18px">\u26a0\uFE0F Sao chép và gửi cho giảng viên. Thông tin này không hiển thị lại.</p>' +
+        '<div style="display:flex;gap:10px">' +
+        '<button id="credCopyBtn" style="flex:1;padding:9px 0;border-radius:8px;border:none;background:var(--primary,#6366f1);color:#fff;cursor:pointer;font-size:.9rem"><i class="fas fa-copy"></i> Sao chép</button>' +
+        '<button id="credCloseBtn" style="flex:1;padding:9px 0;border-radius:8px;border:1px solid var(--border,#2d3550);background:transparent;color:var(--text,#e2e8f0);cursor:pointer;font-size:.9rem">\u0110óng</button>' +
+        '</div>' +
+        '</div>';
+
+    document.body.appendChild(modal);
+
+    document.getElementById("credCopyBtn").addEventListener("click", function () {
+        var text = "Username: " + username + "\n" + "Mật khẩu: " + password;
+        navigator.clipboard.writeText(text).then(function () {
+            document.getElementById("credCopyBtn").textContent = "\u2713 Đã sao chép!";
+        });
+    });
+
+    function closeModal() { modal.remove(); }
+    document.getElementById("credCloseBtn").addEventListener("click", closeModal);
+    modal.addEventListener("click", function (e) { if (e.target === modal) closeModal(); });
 }
 
 async function parseResponse(response) {
@@ -122,6 +178,27 @@ function fillSelect(select, items, valueKey, labelBuilder, includeEmpty) {
     });
 }
 
+function setFormEditMode(formId, titleId, editTitle, submitText) {
+    var form = document.getElementById(formId);
+    if (!form) return;
+    document.getElementById(titleId).textContent = editTitle;
+    form.querySelector(".submit-btn span").textContent = submitText;
+    form.querySelector(".cancel-btn").style.display = "inline-flex";
+}
+
+function resetFormState(formId, titleId, baseTitle, submitText) {
+    var form = document.getElementById(formId);
+    if (!form) return;
+    form.reset();
+    if (form.elements["EditId"]) form.elements["EditId"].value = "";
+    document.getElementById(titleId).textContent = baseTitle;
+    form.querySelector(".submit-btn span").textContent = submitText;
+    form.querySelector(".cancel-btn").style.display = "none";
+    if (formId === "teacherForm" && form.elements["Password"]) {
+        form.elements["Password"].placeholder = "Mặc định: Teacher@123";
+    }
+}
+
 function renderStats() {
     var statsGrid = document.getElementById("statsGrid");
     var s = state.summary || {};
@@ -166,13 +243,21 @@ function renderStudents() {
     tbody.innerHTML =
         state.students
             .map(function (student) {
+                //kiem tra xem sinh vien da co UserId chua
+                var btnGenerateAccount = !student.UserId
+                    ? '<button class="btn-icon" style="color:var(--primary)" title="Cấp tài khoản tự động" data-generate-account="' + student.StudentId + '"><i class="fas fa-user-plus"></i></button> '
+                    : '<span title="Đã có tài khoản" style="color:var(--success);display:inline-block;padding:6px;font-size:.9rem"><i class="fas fa-check-circle"></i></span> ';
                 return '<tr data-search="' + escapeHtml((student.StudentCode + " " + student.FullName + " " + student.Email).toLowerCase()) + '">' +
                     "<td><strong>" + escapeHtml(student.StudentCode) + "</strong></td>" +
                     "<td>" + escapeHtml(student.FullName) + "</td>" +
                     "<td>" + escapeHtml(student.Email) + "</td>" +
                     "<td>" + escapeHtml(student.PhoneNumber) + "</td>" +
                     "<td>" + badge(student.StatusName || student.AccountStatus) + "</td>" +
-                    '<td><button class="btn-icon del" title="Xóa" data-delete-student="' + student.StudentId + '"><i class="fas fa-trash-alt"></i></button></td></tr>';
+                    "<td>" + btnGenerateAccount + "</td>" +
+                    '<td style="white-space:nowrap">' +
+                    '<button class="btn-icon edit" title="Sửa" data-edit-student="' + student.StudentId + '"><i class="fas fa-edit"></i></button> ' +
+                    '<button class="btn-icon del" title="Xóa" data-delete-student="' + student.StudentId + '"><i class="fas fa-trash-alt"></i></button>' +
+                    '</td></tr>';
             })
             .join("") || '<tr><td colspan="6" class="empty">Chưa có sinh viên.</td></tr>';
 }
@@ -188,7 +273,10 @@ function renderCourses() {
                     "<td>" + escapeHtml(course.Duration) + "</td>" +
                     "<td>" + formatMoney(course.TuitionFee) + "</td>" +
                     "<td>" + escapeHtml(course.ClassCount) + " lớp / " + escapeHtml(course.EnrollmentCount) + " HV</td>" +
-                    '<td><button class="btn-icon del" title="Xóa" data-delete-course="' + course.CourseId + '"><i class="fas fa-trash-alt"></i></button></td></tr>';
+                    '<td style="white-space:nowrap">' +
+                    '<button class="btn-icon edit" title="Sửa" data-edit-course="' + course.CourseId + '"><i class="fas fa-edit"></i></button> ' +
+                    '<button class="btn-icon del" title="Xóa" data-delete-course="' + course.CourseId + '"><i class="fas fa-trash-alt"></i></button>' +
+                    '</td></tr>';
             })
             .join("") || '<tr><td colspan="6" class="empty">Chưa có khóa học.</td></tr>';
 }
@@ -198,15 +286,35 @@ function renderClasses() {
     tbody.innerHTML =
         state.classes
             .map(function (item) {
-                return "<tr>" +
+                return '<tr data-search="' + escapeHtml((item.ClassCode + " " + item.ClassName + " " + item.CourseName + " " + (item.TeacherName || "")).toLowerCase()) + '">' +
                     "<td><strong>" + escapeHtml(item.ClassCode) + "</strong></td>" +
                     "<td>" + escapeHtml(item.ClassName) + "</td>" +
                     "<td>" + escapeHtml(item.CourseName) + "</td>" +
                     "<td>" + escapeHtml(item.TeacherName || "Chưa phân công") + "</td>" +
                     "<td>" + escapeHtml(item.EnrollmentCount) + " / " + escapeHtml(item.MaxStudents || "∞") + "</td>" +
-                    '<td><button class="btn-icon del" title="Xóa" data-delete-class="' + item.ClassId + '"><i class="fas fa-trash-alt"></i></button></td></tr>';
+                    '<td style="white-space:nowrap">' +
+                    '<button class="btn-icon edit" title="Sửa" data-edit-class="' + item.ClassId + '"><i class="fas fa-edit"></i></button> ' +
+                    '<button class="btn-icon del" title="Xóa" data-delete-class="' + item.ClassId + '"><i class="fas fa-trash-alt"></i></button>' +
+                    '</td></tr>';
             })
             .join("") || '<tr><td colspan="6" class="empty">Chưa có lớp học.</td></tr>';
+}
+
+function renderRooms() {
+    var tbody = document.getElementById("roomsTableBody");
+    if (!tbody) return;
+    tbody.innerHTML =
+        state.rooms
+            .map(function (r) {
+                return '<tr data-search="' + escapeHtml(r.RoomName).toLowerCase() + '">' +
+                    "<td><strong>" + escapeHtml(r.RoomName) + "</strong></td>" +
+                    "<td>" + (r.Capacity || 0) + " chỗ</td>" +
+                    '<td style="white-space:nowrap">' +
+                    '<button class="btn-icon edit" title="Sửa" data-edit-room="' + r.RoomId + '"><i class="fas fa-edit"></i></button> ' +
+                    '<button class="btn-icon del" title="Xóa" data-delete-room="' + r.RoomId + '"><i class="fas fa-trash-alt"></i></button>' +
+                    '</td></tr>';
+            })
+            .join("") || '<tr><td colspan="3" class="empty">Chưa có phòng học.</td></tr>';
 }
 
 function renderEnrollments() {
@@ -248,10 +356,37 @@ function renderScores() {
                 return "<tr>" +
                     "<td>" + escapeHtml(item.StudentName) + "<br><small>" + escapeHtml(item.StudentCode) + "</small></td>" +
                     "<td>" + escapeHtml(item.ClassName) + "</td>" +
+                    "<td>" + escapeHtml(item.CourseName) + "</td>" +
                     "<td>" + escapeHtml(item.ScoreTypeName) + "</td>" +
-                    "<td><strong>" + escapeHtml(item.ScoreValue) + "</strong></td></tr>";
+                    "<td><strong>" + escapeHtml(item.ScoreValue) + "</strong></td>" +
+                    '<td style="white-space:nowrap">' +
+                    '<button class="btn-icon edit" title="Sửa" data-edit-score="' + item.ScoreId + '"><i class="fas fa-edit"></i></button> ' +
+                    '<button class="btn-icon del" title="Xóa" data-delete-score="' + item.ScoreId + '"><i class="fas fa-trash-alt"></i></button>' +
+                    '</td></tr>';
             })
-            .join("") || '<tr><td colspan="4" class="empty">Chưa có điểm.</td></tr>';
+            .join("") || '<tr><td colspan="6" class="empty">Chưa có điểm.</td></tr>';
+}
+
+function renderTeachers() {
+    var tbody = document.getElementById("teachersTableBody");
+    if (!tbody) return;
+    tbody.innerHTML =
+        state.teachers
+            .map(function (t) {
+                var searchText = escapeHtml((t.TeacherCode + " " + t.FullName + " " + t.Email + " " + (t.Specialization || "")).toLowerCase());
+                return '<tr data-search="' + searchText + '">' +
+                    "<td><strong>" + escapeHtml(t.TeacherCode) + "</strong></td>" +
+                    "<td>" + escapeHtml(t.FullName) + "</td>" +
+                    "<td>" + escapeHtml(t.Email) + "</td>" +
+                    "<td>" + escapeHtml(t.Specialization || "—") + "</td>" +
+                    "<td>" + escapeHtml(t.ClassCount || 0) + " lớp / " + escapeHtml(t.StudentCount || 0) + " HV</td>" +
+                    "<td>" + badge(t.AccountStatus) + "</td>" +
+                    '<td style="white-space:nowrap">' +
+                    '<button class="btn-icon edit" title="Sửa" data-edit-teacher="' + t.TeacherId + '"><i class="fas fa-edit"></i></button> ' +
+                    '<button class="btn-icon del" title="Xóa" data-delete-teacher="' + t.TeacherId + '"><i class="fas fa-trash-alt"></i></button>' +
+                    '</td></tr>';
+            })
+            .join("") || '<tr><td colspan="7" class="empty">Chưa có giảng viên.</td></tr>';
 }
 
 function renderNotifications() {
@@ -262,13 +397,40 @@ function renderNotifications() {
                 var read = Number(item.ReadCount || 0);
                 var total = Number(item.RecipientCount || 0);
                 var percent = total > 0 ? Math.round((read * 100) / total) : 0;
-                return '<article class="notice-card"><div>' +
+                return '<article class="notice-card" style="position:relative"><div>' +
                     "<strong>" + escapeHtml(item.Title) + "</strong>" +
                     "<small>" + formatDate(item.CreatedDate) + " · " + escapeHtml(item.CreatorName || "Hệ thống") + "</small></div>" +
                     "<p>" + escapeHtml(item.Content || "") + "</p>" +
-                    "<span>" + read + "/" + total + " đã đọc · " + percent + "%</span></article>";
+                    "<span>" + read + "/" + total + " đã đọc · " + percent + "%</span>" +
+                    '<div style="position:absolute;top:10px;right:10px;display:flex;gap:5px">' +
+                    '<button class="btn-icon edit" title="Sửa" data-edit-notification="' + item.NotificationId + '"><i class="fas fa-edit"></i></button>' +
+                    '<button class="btn-icon del" title="Xóa" data-delete-notification="' + item.NotificationId + '"><i class="fas fa-trash-alt"></i></button>' +
+                    '</div></article>';
             })
             .join("") || '<p class="empty">Chưa có thông báo.</p>';
+}
+
+function renderUsers() {
+    var tbody = document.getElementById("usersTableBody");
+    if (!tbody) return;
+    var roleColors = { "Admin": "#6366f1", "Teacher": "#22c55e", "Student": "#38bdf8" };
+    tbody.innerHTML = state.users.map(function (u) {
+        var isActive = String(u.Status || "").toLowerCase() === "active";
+        var roleColor = roleColors[u.RoleName] || "#94a3b8";
+        var toggleLabel = isActive ? "Khóa" : "Mở";
+        var toggleIcon = isActive ? "fa-lock" : "fa-lock-open";
+        var toggleClass = isActive ? "btn-icon del" : "btn-icon edit";
+        return "<tr>" +
+            "<td><strong>" + escapeHtml(u.Username) + "</strong></td>" +
+            "<td>" + escapeHtml(u.FullName || "—") + "</td>" +
+            "<td style='font-size:.85rem'>" + escapeHtml(u.Email || "—") + "</td>" +
+            "<td><span style='background:" + roleColor + "22;color:" + roleColor + ";padding:3px 10px;border-radius:20px;font-size:.8rem;font-weight:600'>" + escapeHtml(u.RoleName || "—") + "</span></td>" +
+            "<td>" + badge(u.Status) + "</td>" +
+            "<td style='white-space:nowrap'>" +
+            "<button class='btn-icon edit' title='Đổi mật khẩu' data-user-pwd='" + u.UserId + "' data-user-name='" + escapeHtml(u.FullName || u.Username) + "'><i class='fas fa-key'></i></button> " +
+            "<button class='" + toggleClass + "' title='" + toggleLabel + "' data-user-toggle='" + u.UserId + "' data-user-status='" + (isActive ? "Inactive" : "Active") + "'><i class='fas " + toggleIcon + "'></i></button>" +
+            "</td></tr>";
+    }).join("") || '<tr><td colspan="6" class="empty">Chưa có tài khoản.</td></tr>';
 }
 
 function renderOptions() {
@@ -322,12 +484,15 @@ function renderOptions() {
 function renderAll() {
     renderStats();
     renderStudents();
+    renderTeachers();
     renderCourses();
     renderClasses();
+    renderRooms();
     renderEnrollments();
     renderTuitions();
     renderScores();
     renderNotifications();
+    renderUsers();
     renderOptions();
 }
 
@@ -347,59 +512,192 @@ async function loadAll() {
 }
 
 function bindForms() {
-    document.getElementById("studentForm").addEventListener("submit", async function (event) {
+    var studentFormEl = document.getElementById("studentForm");
+    if (studentFormEl) studentFormEl.addEventListener("submit", async function (event) {
         event.preventDefault();
         var form = event.currentTarget;
         try {
             var studentPayload = readForm(form);
-            var studentValidationError = validateStudentPayload(studentPayload);
+            var editId = studentPayload.EditId;
+            delete studentPayload.EditId;
+
+            var studentValidationError = validateStudentPayload(studentPayload, editId);
             if (studentValidationError) {
                 throw new Error(studentValidationError);
             }
 
-            await sendJson("/api/students", "POST", studentPayload);
-            form.reset();
-            setMessage(document.getElementById("studentMessage"), "Đã thêm sinh viên.", "success");
+            if (editId) {
+                await sendJson("/api/students/" + editId, "PUT", studentPayload);
+                setMessage(document.getElementById("studentMessage"), "Đã cập nhật sinh viên.", "success");
+                resetFormState("studentForm", "studentFormTitle", "Thêm sinh viên", "Lưu sinh viên");
+            } else {
+                await sendJson("/api/students", "POST", studentPayload);
+                form.reset();
+                setMessage(document.getElementById("studentMessage"), "Đã thêm sinh viên.", "success");
+            }
             await loadAll();
         } catch (error) {
             setMessage(document.getElementById("studentMessage"), error.message, "error");
         }
     });
 
-    document.getElementById("courseForm").addEventListener("submit", async function (event) {
+    function generateUsername(lastName, firstName) {
+        if (!lastName && !firstName) return "";
+        var normalize = function (str) {
+            return str.normalize("NFD")
+                .replace(/[\u0300-\u036f]/g, "")
+                .replace(/đ/g, "d")
+                .replace(/Đ/g, "D")
+                .toLowerCase();
+        };
+        var words = normalize(lastName).split(/\s+/).filter(Boolean);
+        var initials = words.map(function (w) { return w[0]; }).join('');
+        var fname = normalize(firstName).replace(/\s+/g, '');
+        return initials + fname;
+    }
+
+    var teacherFormEl = document.getElementById("teacherForm");
+    if (teacherFormEl) {
+        var teacherLastNameInput = teacherFormEl.elements["LastName"];
+        var teacherFirstNameInput = teacherFormEl.elements["FirstName"];
+        var teacherUsernameInput = teacherFormEl.elements["Username"];
+
+        var handleTeacherNameChange = function () {
+            var editId = teacherFormEl.elements["EditId"].value;
+            if (!editId) { // Chỉ tự sinh khi tạo mới
+                teacherUsernameInput.value = generateUsername(teacherLastNameInput.value, teacherFirstNameInput.value);
+            }
+        };
+
+        if (teacherLastNameInput) teacherLastNameInput.addEventListener("input", handleTeacherNameChange);
+        if (teacherFirstNameInput) teacherFirstNameInput.addEventListener("input", handleTeacherNameChange);
+
+        teacherFormEl.addEventListener("submit", async function (event) {
+            event.preventDefault();
+            var form = event.currentTarget;
+            try {
+                var payload = readForm(form);
+                var editId = payload.EditId;
+                delete payload.EditId;
+
+                var teacherValidationError = validateTeacherPayload(payload, editId);
+                if (teacherValidationError) {
+                    throw new Error(teacherValidationError);
+                }
+
+                if (editId) {
+                    await sendJson("/api/teachers/" + editId, "PUT", payload);
+                    setMessage(document.getElementById("teacherMessage"), "Đã cập nhật giảng viên.", "success");
+                    resetFormState("teacherForm", "teacherFormTitle", "Thêm giảng viên", "Lưu giảng viên");
+                } else {
+                    var createdTeacher = await sendJson("/api/teachers", "POST", payload);
+                    form.reset();
+                    setMessage(document.getElementById("teacherMessage"), "Đã thêm giảng viên.", "success");
+                    // Hiển thị modal thông tin đăng nhập
+                    var fullName = (payload.LastName || "") + " " + (payload.FirstName || "");
+                    showCredentialModal(
+                        fullName.trim(),
+                        createdTeacher._loginUsername || "(không rõ)",
+                        createdTeacher._loginPassword || "Teacher@123"
+                    );
+                }
+                await loadAll();
+            } catch (error) {
+                setMessage(document.getElementById("teacherMessage"), error.message, "error");
+            }
+        });
+    }
+
+    var courseFormEl = document.getElementById("courseForm");
+    if (courseFormEl) courseFormEl.addEventListener("submit", async function (event) {
         event.preventDefault();
         var form = event.currentTarget;
         try {
-            var payload = setNumeric(readForm(form), ["TuitionFee", "Credits"]);
-            await sendJson("/api/courses", "POST", payload);
-            form.reset();
-            setMessage(document.getElementById("courseMessage"), "Đã thêm khóa học.", "success");
+            var payload = readForm(form);
+            var editId = payload.EditId;
+            delete payload.EditId;
+            setNumeric(payload, ["TuitionFee", "Credits"]);
+
+            var courseValidationError = validateCoursePayload(payload, editId);
+            if (courseValidationError) {
+                throw new Error(courseValidationError);
+            }
+
+            if (editId) {
+                await sendJson("/api/courses/" + editId, "PUT", payload);
+                setMessage(document.getElementById("courseMessage"), "Đã cập nhật khóa học.", "success");
+                resetFormState("courseForm", "courseFormTitle", "Thêm khóa học", "Lưu khóa học");
+            } else {
+                await sendJson("/api/courses", "POST", payload);
+                form.reset();
+                setMessage(document.getElementById("courseMessage"), "Đã thêm khóa học.", "success");
+            }
             await loadAll();
         } catch (error) {
             setMessage(document.getElementById("courseMessage"), error.message, "error");
         }
     });
 
-    document.getElementById("classForm").addEventListener("submit", async function (event) {
+    var classFormEl = document.getElementById("classForm");
+    if (classFormEl) classFormEl.addEventListener("submit", async function (event) {
         event.preventDefault();
         var form = event.currentTarget;
         try {
-            var payload = setNumeric(readForm(form), ["CourseId", "TeacherId", "MaxStudents"]);
-            var classValidationError = validateClassPayload(payload);
+            var payload = readForm(form);
+            var editId = payload.EditId;
+            delete payload.EditId;
+            setNumeric(payload, ["CourseId", "TeacherId", "MaxStudents"]);
+
+            var classValidationError = validateClassPayload(payload, editId);
             if (classValidationError) {
                 throw new Error(classValidationError);
             }
 
-            await sendJson("/api/classes", "POST", payload);
-            form.reset();
-            setMessage(document.getElementById("classMessage"), "Đã tạo lớp.", "success");
+            if (editId) {
+                await sendJson("/api/classes/" + editId, "PUT", payload);
+                setMessage(document.getElementById("classMessage"), "Đã cập nhật lớp học.", "success");
+                resetFormState("classForm", "classFormTitle", "Tạo lớp", "Lưu lớp");
+            } else {
+                await sendJson("/api/classes", "POST", payload);
+                form.reset();
+                setMessage(document.getElementById("classMessage"), "Đã tạo lớp.", "success");
+            }
             await loadAll();
         } catch (error) {
             setMessage(document.getElementById("classMessage"), error.message, "error");
         }
     });
 
-    document.getElementById("enrollmentForm").addEventListener("submit", async function (event) {
+    var roomFormEl = document.getElementById("roomForm");
+    if (roomFormEl) roomFormEl.addEventListener("submit", async function (event) {
+        event.preventDefault();
+        var form = event.currentTarget;
+        try {
+            var payload = readForm(form);
+            payload = setNumeric(payload, ["Capacity"]);
+            var editId = payload.EditId;
+            delete payload.EditId;
+
+            if (!payload.RoomName) throw new Error("Tên phòng là bắt buộc.");
+            if (payload.Capacity <= 0) throw new Error("Sức chứa phải lớn hơn 0.");
+
+            if (editId) {
+                await sendJson("/api/rooms/" + editId, "PUT", payload);
+                setMessage(document.getElementById("roomMessage"), "Đã cập nhật phòng.", "success");
+                resetFormState("roomForm", "roomFormTitle", "Thêm phòng học", "Lưu phòng");
+            } else {
+                await sendJson("/api/rooms", "POST", payload);
+                form.reset();
+                setMessage(document.getElementById("roomMessage"), "Đã thêm phòng học.", "success");
+            }
+            await loadAll();
+        } catch (error) {
+            setMessage(document.getElementById("roomMessage"), error.message, "error");
+        }
+    });
+
+    var enrollmentFormEl = document.getElementById("enrollmentForm");
+    if (enrollmentFormEl) enrollmentFormEl.addEventListener("submit", async function (event) {
         event.preventDefault();
         var form = event.currentTarget;
         try {
@@ -418,7 +716,8 @@ function bindForms() {
         }
     });
 
-    document.getElementById("paymentForm").addEventListener("submit", async function (event) {
+    var paymentFormEl = document.getElementById("paymentForm");
+    if (paymentFormEl) paymentFormEl.addEventListener("submit", async function (event) {
         event.preventDefault();
         var form = event.currentTarget;
         try {
@@ -438,27 +737,63 @@ function bindForms() {
         }
     });
 
-    document.getElementById("scoreForm").addEventListener("submit", async function (event) {
+    var scoreFormEl = document.getElementById("scoreForm");
+    if (scoreFormEl) scoreFormEl.addEventListener("submit", async function (event) {
         event.preventDefault();
         var form = event.currentTarget;
         try {
-            var payload = setNumeric(readForm(form), ["EnrollmentId", "ScoreTypeId", "ScoreValue"]);
-            await sendJson("/api/scores", "POST", payload);
-            form.reset();
-            setMessage(document.getElementById("scoreMessage"), "Đã lưu điểm.", "success");
+            // Because EnrollmentId might be disabled during edit and readForm ignores disabled fields, we collect it manually if editId is present
+            var payload = readForm(form);
+            if (form.elements["EnrollmentId"].disabled) {
+                payload["EnrollmentId"] = form.elements["EnrollmentId"].value;
+            }
+            payload = setNumeric(payload, ["EnrollmentId", "ScoreTypeId", "ScoreValue"]);
+            var editId = payload.EditId;
+            delete payload.EditId;
+
+            var scoreError = validateScorePayload(payload);
+            if (scoreError) {
+                throw new Error(scoreError);
+            }
+            if (editId) {
+                await sendJson("/api/scores/" + editId, "PUT", payload);
+                setMessage(document.getElementById("scoreMessage"), "Đã cập nhật điểm.", "success");
+                form.elements["EnrollmentId"].disabled = false;
+                resetFormState("scoreForm", "scoreFormTitle", "Thêm điểm", "Lưu điểm");
+            } else {
+                await sendJson("/api/scores", "POST", payload);
+                form.reset();
+                setMessage(document.getElementById("scoreMessage"), "Đã lưu điểm.", "success");
+            }
             await loadAll();
         } catch (error) {
             setMessage(document.getElementById("scoreMessage"), error.message, "error");
         }
     });
 
-    document.getElementById("notificationForm").addEventListener("submit", async function (event) {
+    var notificationFormEl = document.getElementById("notificationForm");
+    if (notificationFormEl) notificationFormEl.addEventListener("submit", async function (event) {
         event.preventDefault();
         var form = event.currentTarget;
         try {
-            await sendJson("/api/notifications", "POST", readForm(form));
-            form.reset();
-            setMessage(document.getElementById("notificationMessage"), "Đã tạo thông báo.", "success");
+            var payload = readForm(form);
+            var notificationValidationError = validateNotificationPayload(payload);
+            if (notificationValidationError) {
+                throw new Error(notificationValidationError);
+            }
+            var editId = payload.EditId;
+            delete payload.EditId;
+
+            if (editId) {
+                await sendJson("/api/notifications/" + editId, "PUT", payload);
+                setMessage(document.getElementById("notificationMessage"), "Đã cập nhật thông báo.", "success");
+                resetFormState("notificationForm", "notificationFormTitle", "Tạo thông báo", "Gửi thông báo");
+                form.elements["Audience"].disabled = false;
+            } else {
+                await sendJson("/api/notifications", "POST", payload);
+                form.reset();
+                setMessage(document.getElementById("notificationMessage"), "Đã tạo thông báo.", "success");
+            }
             await loadAll();
         } catch (error) {
             setMessage(document.getElementById("notificationMessage"), error.message, "error");
@@ -469,16 +804,23 @@ function bindForms() {
 function bindDeletes() {
     document.body.addEventListener("click", async function (event) {
         var studentButton = event.target.closest("[data-delete-student]");
+        var teacherButton = event.target.closest("[data-delete-teacher]");
         var courseButton = event.target.closest("[data-delete-course]");
         var classButton = event.target.closest("[data-delete-class]");
-        var target = studentButton || courseButton || classButton;
+        var roomButton = event.target.closest("[data-delete-room]");
+        var scoreButton = event.target.closest("[data-delete-score]");
+        var notifButton = event.target.closest("[data-delete-notification]");
+        var target = studentButton || teacherButton || courseButton || classButton || roomButton || scoreButton || notifButton;
         if (!target) return;
 
-        var config = studentButton
-            ? ["/api/students/", studentButton.dataset.deleteStudent, "sinh viên"]
-            : courseButton
-                ? ["/api/courses/", courseButton.dataset.deleteCourse, "khóa học"]
-                : ["/api/classes/", classButton.dataset.deleteClass, "lớp học"];
+        var config;
+        if (studentButton) config = ["/api/students/", studentButton.dataset.deleteStudent, "sinh viên"];
+        else if (teacherButton) config = ["/api/teachers/", teacherButton.dataset.deleteTeacher, "giảng viên"];
+        else if (courseButton) config = ["/api/courses/", courseButton.dataset.deleteCourse, "khóa học"];
+        else if (classButton) config = ["/api/classes/", classButton.dataset.deleteClass, "lớp học"];
+        else if (roomButton) config = ["/api/rooms/", roomButton.dataset.deleteRoom, "phòng học"];
+        else if (scoreButton) config = ["/api/scores/", scoreButton.dataset.deleteScore, "điểm số"];
+        else if (notifButton) config = ["/api/notifications/", notifButton.dataset.deleteNotification, "thông báo"];
 
         if (!window.confirm("Xóa " + config[2] + " này?")) return;
 
@@ -492,10 +834,190 @@ function bindDeletes() {
     });
 }
 
+function bindEdits() {
+    document.body.addEventListener("click", function (event) {
+        var studentBtn = event.target.closest("[data-edit-student]");
+        var courseBtn = event.target.closest("[data-edit-course]");
+        var classBtn = event.target.closest("[data-edit-class]");
+
+        if (studentBtn) {
+            var id = Number(studentBtn.dataset.editStudent);
+            var student = state.students.find(function (s) { return s.StudentId === id; });
+            if (student) {
+                var form = document.getElementById("studentForm");
+                form.elements["EditId"].value = student.StudentId;
+                form.elements["FullName"].value = student.FullName || "";
+                form.elements["Email"].value = student.Email || "";
+                form.elements["PhoneNumber"].value = student.PhoneNumber || "";
+                if (student.DateOfBirth) {
+                    form.elements["DateOfBirth"].value = String(student.DateOfBirth).slice(0, 10);
+                } else {
+                    form.elements["DateOfBirth"].value = "";
+                }
+                form.elements["Gender"].value = student.Gender || "";
+                form.elements["Address"].value = student.Address || "";
+
+                setFormEditMode("studentForm", "studentFormTitle", "Sửa sinh viên", "Cập nhật sinh viên");
+                document.getElementById("studentFormTitle").scrollIntoView({ behavior: "smooth", block: "start" });
+            }
+        }
+
+        var teacherBtn = event.target.closest("[data-edit-teacher]");
+        if (teacherBtn) {
+            var id = Number(teacherBtn.dataset.editTeacher);
+            var teacher = state.teachers.find(function (t) { return t.TeacherId === id; });
+            if (teacher) {
+                var form = document.getElementById("teacherForm");
+                form.elements["EditId"].value = teacher.TeacherId;
+                form.elements["LastName"].value = teacher.LastName || "";
+                form.elements["FirstName"].value = teacher.FirstName || "";
+                form.elements["Username"].value = teacher.Username || "";
+                form.elements["Email"].value = teacher.Email || "";
+                form.elements["PhoneNumber"].value = teacher.PhoneNumber || "";
+                form.elements["Specialization"].value = teacher.Specialization || "";
+                form.elements["Password"].value = "";
+                form.elements["Password"].placeholder = "Bỏ trống để giữ mật khẩu cũ";
+                setFormEditMode("teacherForm", "teacherFormTitle", "Sửa giảng viên", "Cập nhật giảng viên");
+                document.getElementById("teacherFormTitle").scrollIntoView({ behavior: "smooth", block: "start" });
+            }
+        }
+
+        if (courseBtn) {
+            var id = Number(courseBtn.dataset.editCourse);
+            var course = state.courses.find(function (c) { return c.CourseId === id; });
+            if (course) {
+                var form = document.getElementById("courseForm");
+                form.elements["EditId"].value = course.CourseId;
+                form.elements["CourseCode"].value = course.CourseCode || "";
+                form.elements["CourseName"].value = course.CourseName || "";
+                form.elements["Duration"].value = course.Duration || "";
+                form.elements["TuitionFee"].value = course.TuitionFee || 0;
+                form.elements["Credits"].value = course.Credits || 0;
+                form.elements["Description"].value = course.Description || "";
+
+                setFormEditMode("courseForm", "courseFormTitle", "Sửa khóa học", "Cập nhật khóa học");
+                document.getElementById("courseFormTitle").scrollIntoView({ behavior: "smooth", block: "start" });
+            }
+        }
+
+        if (classBtn) {
+            var id = Number(classBtn.dataset.editClass);
+            var cls = state.classes.find(function (c) { return c.ClassId === id; });
+            if (cls) {
+                var form = document.getElementById("classForm");
+                form.elements["EditId"].value = cls.ClassId;
+                form.elements["ClassCode"].value = cls.ClassCode || "";
+                form.elements["ClassName"].value = cls.ClassName || "";
+                form.elements["CourseId"].value = cls.CourseId || "";
+                form.elements["TeacherId"].value = cls.TeacherId || "";
+                form.elements["MaxStudents"].value = cls.MaxStudents || 30;
+
+                setFormEditMode("classForm", "classFormTitle", "Sửa lớp", "Cập nhật lớp");
+                document.getElementById("classFormTitle").scrollIntoView({ behavior: "smooth", block: "start" });
+            }
+        }
+
+        var roomBtn = event.target.closest("[data-edit-room]");
+        if (roomBtn) {
+            var id = Number(roomBtn.dataset.editRoom);
+            var room = state.rooms.find(function (r) { return r.RoomId === id; });
+            if (room) {
+                var form = document.getElementById("roomForm");
+                form.elements["EditId"].value = room.RoomId;
+                form.elements["RoomName"].value = room.RoomName || "";
+                form.elements["Capacity"].value = room.Capacity || 30;
+
+                setFormEditMode("roomForm", "roomFormTitle", "Sửa phòng học", "Cập nhật phòng");
+                document.getElementById("roomFormTitle").scrollIntoView({ behavior: "smooth", block: "start" });
+            }
+        }
+
+        var scoreBtn = event.target.closest("[data-edit-score]");
+        if (scoreBtn) {
+            var id = Number(scoreBtn.dataset.editScore);
+            var score = state.scores.find(function (s) { return s.ScoreId === id; });
+            if (score) {
+                var form = document.getElementById("scoreForm");
+                form.elements["EditId"].value = score.ScoreId;
+                form.elements["EnrollmentId"].value = score.EnrollmentId || "";
+                form.elements["ScoreTypeId"].value = score.ScoreTypeId || "";
+                form.elements["ScoreValue"].value = score.ScoreValue !== null ? score.ScoreValue : "";
+                form.elements["EnrollmentId"].disabled = true;
+
+                setFormEditMode("scoreForm", "scoreFormTitle", "Sửa điểm", "Cập nhật điểm");
+                document.getElementById("scoreFormTitle").scrollIntoView({ behavior: "smooth", block: "start" });
+            }
+        }
+
+        var notificationBtn = event.target.closest("[data-edit-notification]");
+        if (notificationBtn) {
+            var id = Number(notificationBtn.dataset.editNotification);
+            var notification = state.notifications.find(function (n) { return n.NotificationId === id; });
+            if (notification) {
+                var form = document.getElementById("notificationForm");
+                form.elements["EditId"].value = notification.NotificationId;
+                form.elements["Title"].value = notification.Title || "";
+                form.elements["Content"].value = notification.Content || "";
+                form.elements["Audience"].disabled = true; // Disable audience select for editing
+
+                setFormEditMode("notificationForm", "notificationFormTitle", "Sửa thông báo", "Cập nhật thông báo");
+                document.getElementById("notificationFormTitle").scrollIntoView({ behavior: "smooth", block: "start" });
+            }
+        }
+    });
+
+    document.querySelectorAll(".cancel-btn").forEach(function (btn) {
+        btn.addEventListener("click", function (event) {
+            var formId = event.target.closest("form").id;
+            var form = event.target.closest("form");
+            if (formId === "studentForm") resetFormState("studentForm", "studentFormTitle", "Thêm sinh viên", "Lưu sinh viên");
+            if (formId === "teacherForm") resetFormState("teacherForm", "teacherFormTitle", "Thêm giảng viên", "Lưu giảng viên");
+            if (formId === "courseForm") resetFormState("courseForm", "courseFormTitle", "Thêm khóa học", "Lưu khóa học");
+            if (formId === "classForm") resetFormState("classForm", "classFormTitle", "Tạo lớp", "Lưu lớp");
+            if (formId === "roomForm") resetFormState("roomForm", "roomFormTitle", "Thêm phòng học", "Lưu phòng");
+            if (formId === "scoreForm") {
+                resetFormState("scoreForm", "scoreFormTitle", "Thêm điểm", "Lưu điểm");
+                if (form.elements["EnrollmentId"]) form.elements["EnrollmentId"].disabled = false;
+            }
+            if (formId === "notificationForm") {
+                resetFormState("notificationForm", "notificationFormTitle", "Tạo thông báo", "Gửi thông báo");
+                if (form.elements["Audience"]) form.elements["Audience"].disabled = false;
+            }
+        });
+    });
+}
+
+let studentSearchTimer;
+async function searchStudents(query) {
+    try {
+        let url = endpoints.students;
+        if (query && query.trim() !== "") {
+            url += `?q=${encodeURIComponent(query.trim())}`;
+        }
+        state.students = await getJson(url);
+        renderStudents();
+    } catch (error) {
+        console.error("Error searching students:", error);
+    }
+}
+
+
 function bindSearch() {
+    const studentSearch = document.getElementById("studentSearch");
+    if (studentSearch) {
+        studentSearch.addEventListener("input", function () {
+            clearTimeout(studentSearchTimer);
+            studentSearchTimer = setTimeout(() => {
+                searchStudents(studentSearch.value);
+            }, 300);
+        });
+    }
+
     [
-        ["studentSearch", "studentsTableBody"],
+        ["teacherSearch", "teachersTableBody"],
         ["courseSearch", "coursesTableBody"],
+        ["classSearch", "classesTableBody"],
+        ["roomSearch", "roomsTableBody"],
     ].forEach(function (pair) {
         var input = document.getElementById(pair[0]);
         var tbody = document.getElementById(pair[1]);
@@ -543,6 +1065,16 @@ function bindNavigation() {
                 item.classList.add("active");
             }
         });
+
+        document.querySelectorAll(".section").forEach(function (sec) {
+            if ("#" + sec.id === activeHash) {
+                sec.style.display = "block";
+            } else {
+                sec.style.display = "none";
+            }
+        });
+
+        window.scrollTo(0, 0);
     }
 
     navItems.forEach(function (link) {
@@ -563,26 +1095,101 @@ function bindNavigation() {
     applyDashboardActiveState();
 }
 
-function validateStudentPayload(payload) {
+function validateTeacherPayload(payload, editId) {
+    var firstName = String(payload.FirstName || "").trim();
+    var lastName = String(payload.LastName || "").trim();
+    var username = String(payload.Username || "").trim().toLowerCase();
     var email = String(payload.Email || "").trim().toLowerCase();
-    if (!email) {
-        return "Email là bắt buộc.";
+    var phone = String(payload.PhoneNumber || "").trim();
+
+    if (!firstName) return "Tên giảng viên là bắt buộc.";
+    if (!lastName) return "Họ giảng viên là bắt buộc.";
+    if (!username) return "Username là bắt buộc.";
+    if (!/^[a-z0-9_]+$/.test(username)) return "Username chỉ chứa chữ thường, số và dấu gạch dưới.";
+
+    if (!editId) {
+        // Chỉ bắt buộc email khi thêm mới
+        if (!email) return "Email giảng viên là bắt buộc.";
+
+        var emailExists = state.teachers.some(function (t) {
+            return String(t.Email || "").trim().toLowerCase() === email;
+        });
+        if (emailExists) return "Email này đã được sử dụng.";
+
+        var usernameExists = state.teachers.some(function (t) {
+            return String(t.Username || "").trim().toLowerCase() === username;
+        });
+        if (usernameExists) return "Username này đã tồn tại.";
     }
 
-    var exists = state.students.some(function (student) {
-        return String(student.Email || "").trim().toLowerCase() === email;
-    });
-
-    if (exists) {
-        return "Email đã tồn tại trong danh sách sinh viên.";
+    if (phone) {
+        if (!/^[0-9]{10,15}$/.test(phone)) {
+            return "Số điện thoại không hợp lệ (chỉ nhập số, 10-15 ký tự).";
+        }
     }
 
     return "";
 }
 
-function validateClassPayload(payload) {
+function validateStudentPayload(payload, editId) {
+    var fullName = String(payload.FullName || "").trim();
+    var email = String(payload.Email || "").trim().toLowerCase();
+    var phone = String(payload.PhoneNumber || "").trim();
+
+    // DÒNG TRUY VẾT: Để xem trình duyệt có nhận diện được bạn gõ gì không
+    console.log("Dữ liệu SDT đang check là: ", phone);
+
+    if (!fullName) return "Họ tên là bắt buộc.";
+    if (fullName.length > 100) return "Họ tên không quá 100 ký tự.";
+
+    if (!email) return "Email là bắt buộc.";
+    if (email.length > 100) return "Email không quá 100 ký tự.";
+
+    var emailExists = state.students.some(function (student) {
+        if (editId && student.StudentId === Number(editId)) return false;
+        return String(student.Email || "").trim().toLowerCase() === email;
+    });
+    if (emailExists) return "Email này đã được sử dụng.";
+
+    // KIỂM TRA SỐ ĐIỆN THOẠI
+    if (phone) {
+        var phoneRegex = /^[0-9]{10,15}$/;
+        if (!phoneRegex.test(phone)) {
+            return "Số điện thoại không hợp lệ (Chỉ nhập số, từ 10-15 ký tự).";
+        }
+    }
+
+    return "";
+
+
+}
+function validateCoursePayload(payload, editId) {
+    var courseCode = String(payload.CourseCode || "").trim().toLowerCase();
+    var courseName = String(payload.CourseName || "").trim();
+    var fee = Number(payload.TuitionFee || 0);
+
+    if (!courseCode) return "Mã khóa học là bắt buộc.";
+    if (courseCode.length > 20) return "Mã khóa học không quá 20 ký tự.";
+
+    var codeExists = state.courses.some(function (c) {
+        if (editId && c.CourseId === Number(editId)) return false;
+        return String(c.CourseCode || "").trim().toLowerCase() === courseCode;
+    });
+    if (codeExists) return "Mã khóa học này đã tồn tại.";
+
+    if (!courseName) return "Tên khóa học là bắt buộc.";
+    if (courseName.length > 100) return "Tên khóa học không quá 100 ký tự.";
+
+    if (fee < 0) return "Học phí không được là số âm.";
+
+    return "";
+}
+
+function validateClassPayload(payload, editId) {
     var classCode = String(payload.ClassCode || "").trim().toLowerCase();
     var className = String(payload.ClassName || "").trim();
+    var courseId = Number(payload.CourseId || 0);
+
     if (!classCode) {
         return "Mã lớp là bắt buộc.";
     }
@@ -600,6 +1207,7 @@ function validateClassPayload(payload) {
     }
 
     var exists = state.classes.some(function (item) {
+        if (editId && item.ClassId === Number(editId)) return false;
         return String(item.ClassCode || "").trim().toLowerCase() === classCode;
     });
 
@@ -631,8 +1239,14 @@ function validateEnrollmentPayload(payload) {
 function validatePaymentPayload(payload) {
     var tuitionId = Number(payload.TuitionId || 0);
     var amount = Number(payload.Amount || 0);
-    if (!tuitionId || !amount) {
-        return "Vui lòng chọn khoản học phí và nhập số tiền hợp lệ.";
+    if (!tuitionId) {
+        return "Vui lòng chọn khoản học phí cần thanh toán.";
+    }
+    if (!amount) {
+        return "Vui lòng nhập số tiền cần thanh toán.";
+    }
+    if (amount <= 0) {
+        return "Số tiền thanh toán phải lớn hơn 0.";
     }
 
     var tuition = state.tuitions.find(function (item) {
@@ -650,6 +1264,38 @@ function validatePaymentPayload(payload) {
 
     return "";
 }
+
+function validateScorePayload(payload, editId) {
+    var enrollmentId = Number(payload.EnrollmentId || 0);
+    var scoreTypeId = Number(payload.ScoreTypeId || 0);
+    var scoreValue = payload.ScoreValue;
+
+    if (!enrollmentId) return "Vui lòng chọn sinh viên cần nhập điểm.";
+    if (!scoreTypeId) return "Vui lòng chọn loại điểm.";
+
+    if (scoreValue === null || scoreValue === undefined || scoreValue === "") {
+        return "Vui lòng nhập số điểm.";
+    }
+
+    scoreValue = Number(scoreValue);
+    if (scoreValue < 0 || scoreValue > 10) {
+        return "Điểm số phải nằm trong khoảng từ 0 đến 10.";
+    }
+
+    return "";
+}
+
+function validateNotificationPayload(payload) {
+    var title = String(payload.Title || "").trim();
+    var content = String(payload.Content || "").trim();
+
+    if (!title) return "Tiêu đề thông báo là bắt buộc.";
+    if (title.length > 200) return "Tiêu đề không được vượt quá 200 ký tự.";
+    if (!content) return "Nội dung thông báo không được để trống.";
+
+    return "";
+}
+
 
 function syncPaymentAmountLimit() {
     var select = document.getElementById("paymentTuitionSelect");
@@ -682,6 +1328,7 @@ function setDefaultPaymentDate() {
 document.addEventListener("DOMContentLoaded", function () {
     bindForms();
     bindDeletes();
+    bindEdits();
     bindSearch();
     bindNavigation();
     setDefaultPaymentDate();
@@ -694,12 +1341,107 @@ document.addEventListener("DOMContentLoaded", function () {
         paymentTuitionSelect.addEventListener("change", syncPaymentAmountLimit);
     }
 
-    loadAll();
+    // === User management events ===
+    var pwdModal = document.getElementById("pwdModal");
+    var pwdInput = document.getElementById("pwdModalInput");
+    var pwdMsg = document.getElementById("pwdModalMsg");
+    var pwdName = document.getElementById("pwdModalName");
+    var currentPwdUserId = null;
 
-    if (window.location.hash) {
-        var target = document.querySelector(window.location.hash);
-        if (target) {
-            setTimeout(function () { target.scrollIntoView({ behavior: "smooth" }); }, 300);
-        }
+    function openPwdModal(userId, name) {
+        currentPwdUserId = userId;
+        pwdName.textContent = "Tài khoản: " + name;
+        pwdInput.value = "";
+        pwdMsg.textContent = "";
+        pwdMsg.className = "message";
+        pwdModal.style.display = "flex";
+        setTimeout(function () { pwdInput.focus(); }, 100);
     }
+
+    function closePwdModal() {
+        pwdModal.style.display = "none";
+        currentPwdUserId = null;
+    }
+
+    if (document.getElementById("pwdModalClose")) {
+        document.getElementById("pwdModalClose").addEventListener("click", closePwdModal);
+    }
+    if (pwdModal) {
+        pwdModal.addEventListener("click", function (e) { if (e.target === pwdModal) closePwdModal(); });
+    }
+
+    if (document.getElementById("pwdModalSave")) {
+        document.getElementById("pwdModalSave").addEventListener("click", async function () {
+            var pw = pwdInput.value.trim();
+            if (!pw || pw.length < 6) {
+                pwdMsg.textContent = "Mật khẩu phải có ít nhất 6 ký tự.";
+                pwdMsg.className = "message error";
+                return;
+            }
+            try {
+                await sendJson("/api/users/" + currentPwdUserId + "/password", "PUT", { Password: pw });
+                pwdMsg.textContent = "Đã đổi mật khẩu thành công!";
+                pwdMsg.className = "message success";
+                setTimeout(closePwdModal, 1200);
+            } catch (err) {
+                pwdMsg.textContent = err.message;
+                pwdMsg.className = "message error";
+            }
+        });
+    }
+
+    // Delegate: Khoa/Mo khoa + Doi mat khau
+    document.body.addEventListener("click", async function (e) {
+        var pwdBtn = e.target.closest("[data-user-pwd]");
+        if (pwdBtn) {
+            openPwdModal(pwdBtn.dataset.userPwd, pwdBtn.dataset.userName);
+            return;
+        }
+
+        var toggleBtn = e.target.closest("[data-user-toggle]");
+        if (toggleBtn) {
+            var uid = toggleBtn.dataset.userToggle;
+            var newStatus = toggleBtn.dataset.userStatus;
+            var label = newStatus === "Inactive" ? "khóa" : "mở khóa";
+            if (!window.confirm("Xác nhận " + label + " tài khoản này?")) return;
+            try {
+                await sendJson("/api/users/" + uid + "/status", "PUT", { Status: newStatus });
+                setMessage(document.getElementById("userMessage"), "Đã " + label + " tài khoản.", "success");
+                await loadAll();
+            } catch (err) {
+                setMessage(document.getElementById("userMessage"), err.message, "error");
+            }
+        }
+    });
+
+    loadAll();
+    // === Xử lý Cấp tài khoản tự động cho Sinh viên ===
+    document.body.addEventListener("click", async function (event) {
+        var generateBtn = event.target.closest("[data-generate-account]");
+        if (generateBtn) {
+            var studentId = generateBtn.dataset.generateAccount;
+
+            if (!window.confirm("Bạn có chắc muốn tự động tạo tài khoản cho sinh viên này?\nUsername: Mã SV\nMật khẩu mặc định: Student@123")) {
+                return;
+            }
+
+            try {
+                // Gọi API cấp tài khoản. (Đảm bảo backend có endpoint này)
+                var response = await fetch("/api/users/generate/student/" + studentId, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" }
+                });
+
+                var result = await parseResponse(response); // Tận dụng hàm parseResponse có sẵn của bạn
+
+                // Hiển thị thông báo thành công
+                alert(result.message || "Cấp tài khoản thành công!");
+
+                // Tải lại toàn bộ dữ liệu để bảng Sinh viên và bảng Users được cập nhật
+                await loadAll();
+            } catch (error) {
+                alert("Lỗi khi cấp tài khoản: " + error.message);
+            }
+        }
+    });
 });

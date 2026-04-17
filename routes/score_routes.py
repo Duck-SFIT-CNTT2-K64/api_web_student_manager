@@ -48,3 +48,38 @@ def add_score():
         return jsonify({"success": False, "error": "Database error.", "details": str(exc)}), 500
     except Exception as exc:
         return jsonify({"success": False, "error": "Unexpected server error.", "details": str(exc)}), 500
+
+
+@score_bp.put("/<int:score_id>")
+def edit_score(score_id: int):
+    try:
+        payload = request.get_json(silent=True) or {}
+        from models.score_model import update_score
+        score = update_score(score_id, payload)
+        if not score:
+            return jsonify({"success": False, "error": "Score not found."}), 404
+        return jsonify({"success": True, "message": "Score updated.", "data": score}), 200
+    except ValueError as exc:
+        return jsonify({"success": False, "error": str(exc)}), 400
+    except pyodbc.IntegrityError as exc:
+        return jsonify({"success": False, "error": "Data validation failed.", "details": str(exc)}), 400
+    except pyodbc.Error as exc:
+        return jsonify({"success": False, "error": "Database error.", "details": str(exc)}), 500
+    except Exception as exc:
+        return jsonify({"success": False, "error": "Unexpected server error.", "details": str(exc)}), 500
+
+
+@score_bp.delete("/<int:score_id>")
+def remove_score(score_id: int):
+    try:
+        from models.score_model import delete_score
+        success = delete_score(score_id)
+        if not success:
+            return jsonify({"success": False, "error": "Score not found."}), 404
+        return jsonify({"success": True, "message": "Score deleted."}), 200
+    except pyodbc.IntegrityError as exc:
+        return jsonify({"success": False, "error": "Cannot delete because of dependent records.", "details": str(exc)}), 400
+    except pyodbc.Error as exc:
+        return jsonify({"success": False, "error": "Database error.", "details": str(exc)}), 500
+    except Exception as exc:
+        return jsonify({"success": False, "error": "Unexpected server error.", "details": str(exc)}), 500

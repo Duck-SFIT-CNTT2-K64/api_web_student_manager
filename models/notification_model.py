@@ -33,6 +33,55 @@ def get_all_notifications() -> List[Dict[str, Any]]:
         return rows_to_list(cursor, rows)
 
 
+def delete_notification(notification_id: int) -> bool:
+    if not get_notification_by_id(notification_id):
+        return False
+    with get_db_connection() as connection:
+        cursor = connection.cursor()
+        cursor.execute("DELETE FROM NotificationRecipients WHERE NotificationId = ?", (notification_id,))
+        cursor.execute("DELETE FROM Notifications WHERE NotificationId = ?", (notification_id,))
+        connection.commit()
+    return True
+
+
+def get_unread_notifications_for_user(user_id: int) -> List[Dict[str, Any]]:
+    with get_db_connection() as connection:
+        cursor = connection.cursor()
+        query = """
+        SELECT
+            n.NotificationId,
+            n.Title,
+            n.Content,
+            n.CreatedDate,
+            c.FullName AS CreatorName
+        FROM Notifications n
+        INNER JOIN NotificationRecipients nr ON n.NotificationId = nr.NotificationId
+        LEFT JOIN Users c ON n.CreatorId = c.UserId
+        WHERE nr.RecipientId = ? AND nr.IsRead = 0
+        ORDER BY n.CreatedDate DESC
+        """
+        cursor.execute(query, user_id)
+        rows = cursor.fetchall()
+        return rows_to_list(cursor, rows)
+
+
+def mark_notification_as_read(notification_id: int, user_id: int) -> bool:
+    with get_db_connection() as connection:
+        cursor = connection.cursor()
+        cursor.execute(
+            """
+            UPDATE NotificationRecipients
+            SET IsRead = 1
+            WHERE NotificationId = ? AND RecipientId = ?
+            """,
+            (notification_id, user_id),
+        )
+        if cursor.rowcount > 0:
+            connection.commit()
+            return True
+        return False
+
+
 def get_notification_by_id(notification_id: int) -> Dict[str, Any] | None:
     with get_db_connection() as connection:
         cursor = connection.cursor()
@@ -131,3 +180,45 @@ def create_notification(payload: Dict[str, Any]) -> Dict[str, Any]:
             raise
 
         return get_notification_by_id(notification_id)
+
+
+def update_notification(notification_id: int, payload: Dict[str, Any]) -> Dict[str, Any] | None:
+    title = (payload.get("Title") or "").strip()
+    if not title:
+        raise ValueError("Title is required.")
+
+    content = payload.get("Content") or None
+
+    try:
+        with get_db_connection() as connection:
+            cursor = connection.cursor()
+            
+            # 1. Update the notification's title and content
+            cursor.execute(
+                """
+                UPDATE Notifications
+                SET Title = ?, Content = ?
+                WHERE NotificationId = ?
+                """,
+                title,
+                content,
+                notification_id,
+            )
+            if cursor.rowcount == 0:
+                return None
+                
+            # 2. Reset the read state for all recipients so the banner appears again
+            cursor.execute(
+                """
+                UPDATE NotificationRecipients
+                SET IsRead = 0
+                WHERE NotificationId = ?
+                """,
+                notification_id,
+            )
+            
+            connection.commit()
+
+            return get_notification_by_id(notification_id)
+    except Exception:
+        raise

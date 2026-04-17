@@ -91,3 +91,47 @@ def create_score(payload: Dict[str, Any]) -> Dict[str, Any]:
         cursor.execute(SCORE_SELECT_BASE + " WHERE sc.ScoreId = ?", score_id)
         row = cursor.fetchone()
         return row_to_dict(cursor, row)
+
+def get_score_by_id(score_id: int) -> Dict[str, Any] | None:
+    with get_db_connection() as connection:
+        cursor = connection.cursor()
+        cursor.execute(SCORE_SELECT_BASE + " WHERE sc.ScoreId = ?", score_id)
+        row = cursor.fetchone()
+        return row_to_dict(cursor, row) if row else None
+
+def update_score(score_id: int, payload: Dict[str, Any]) -> Dict[str, Any] | None:
+    score = payload.get("ScoreValue", payload.get("Score"))
+    if score is not None:
+        try:
+            score = float(score)
+            if score < 0 or score > 10:
+                raise ValueError("ScoreValue must be between 0 and 10.")
+        except TypeError:
+            pass
+
+    enrollment_id = payload.get("EnrollmentId")
+    score_type_id = payload.get("ScoreTypeId")
+
+    with get_db_connection() as connection:
+        cursor = connection.cursor()
+        cursor.execute(
+            """
+            UPDATE Scores
+            SET EnrollmentId = ISNULL(?, EnrollmentId),
+                ScoreTypeId  = ISNULL(?, ScoreTypeId),
+                ScoreValue   = ISNULL(?, ScoreValue)
+            WHERE ScoreId = ?
+            """,
+            (enrollment_id, score_type_id, score, score_id)
+        )
+        connection.commit()
+    return get_score_by_id(score_id)
+
+def delete_score(score_id: int) -> bool:
+    if not get_score_by_id(score_id):
+        return False
+    with get_db_connection() as connection:
+        cursor = connection.cursor()
+        cursor.execute("DELETE FROM Scores WHERE ScoreId = ?", (score_id,))
+        connection.commit()
+    return True
