@@ -1,4 +1,5 @@
 from typing import Any, Dict, List, Optional
+import bcrypt
 
 from db import get_db_connection
 from models.helpers import row_to_dict, rows_to_list
@@ -170,7 +171,7 @@ def create_student(payload: Dict[str, Any]) -> Dict[str, Any]:
                 """,
                 role_id,
                 username,
-                password,
+                bcrypt.hashpw(password.encode("utf-8"), bcrypt.gensalt()).decode("utf-8"),
                 full_name,
                 email,
                 phone,
@@ -271,6 +272,15 @@ def update_student(student_id: int, payload: Dict[str, Any]) -> Optional[Dict[st
                 account_status,
                 existing_student["UserId"],
             )
+            
+            # Nếu có đổi mật khẩu (ví dụ được truyền qua payload)
+            new_password = payload.get("Password")
+            if new_password:
+                cursor.execute(
+                    "UPDATE Users SET PasswordHash = ? WHERE UserId = ?",
+                    (bcrypt.hashpw(new_password.encode("utf-8"), bcrypt.gensalt()).decode("utf-8"), existing_student["UserId"])
+                )
+            
             connection.commit()
         except Exception:
             connection.rollback()

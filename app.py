@@ -1,4 +1,7 @@
 import os
+from dotenv import load_dotenv
+
+load_dotenv()  # Đọc file .env nếu tồn tại
 
 from flask import Flask, jsonify
 
@@ -14,6 +17,8 @@ from routes.score_routes import score_bp
 from routes.student_routes import student_bp
 from routes.teacher_routes import teacher_bp
 from routes.tuition_routes import tuition_bp
+from routes.room_routes import room_bp
+from routes.user_routes import user_bp
 
 
 def create_app() -> Flask:
@@ -41,6 +46,8 @@ def create_app() -> Flask:
     app.register_blueprint(score_bp, url_prefix="/api/scores")
     app.register_blueprint(notification_bp, url_prefix="/api/notifications")
     app.register_blueprint(report_bp, url_prefix="/api/reports")
+    app.register_blueprint(room_bp, url_prefix="/api/rooms")
+    app.register_blueprint(user_bp, url_prefix="/api/users")
 
     @app.get("/api/health")
     def health_check():

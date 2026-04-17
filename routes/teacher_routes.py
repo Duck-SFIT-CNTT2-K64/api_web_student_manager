@@ -1,7 +1,13 @@
 import pyodbc
 from flask import Blueprint, jsonify, request
 from db import get_db_connection
-from models.teacher_model import get_all_teachers, get_teacher_by_id
+from models.teacher_model import (
+    get_all_teachers,
+    get_teacher_by_id,
+    create_teacher,
+    update_teacher,
+    delete_teacher,
+)
 
 teacher_bp = Blueprint("teachers", __name__)
 
@@ -24,6 +30,53 @@ def get_teacher(teacher_id: int):
         if not teacher:
             return jsonify({"success": False, "error": "Teacher not found."}), 404
         return jsonify({"success": True, "data": teacher}), 200
+    except pyodbc.Error as exc:
+        return jsonify({"success": False, "error": "Database error.", "details": str(exc)}), 500
+    except Exception as exc:
+        return jsonify({"success": False, "error": "Unexpected server error.", "details": str(exc)}), 500
+
+
+@teacher_bp.post("")
+def add_teacher():
+    try:
+        payload = request.get_json(silent=True) or {}
+        teacher = create_teacher(payload)
+        return jsonify({"success": True, "message": "Teacher created.", "data": teacher}), 201
+    except ValueError as exc:
+        return jsonify({"success": False, "error": str(exc)}), 400
+    except pyodbc.IntegrityError as exc:
+        return jsonify({"success": False, "error": "Dữ liệu bị trùng (mã/email giảng viên).", "details": str(exc)}), 400
+    except pyodbc.Error as exc:
+        return jsonify({"success": False, "error": "Database error.", "details": str(exc)}), 500
+    except Exception as exc:
+        return jsonify({"success": False, "error": "Unexpected server error.", "details": str(exc)}), 500
+
+
+@teacher_bp.put("/<int:teacher_id>")
+def edit_teacher(teacher_id: int):
+    try:
+        payload = request.get_json(silent=True) or {}
+        teacher = update_teacher(teacher_id, payload)
+        if not teacher:
+            return jsonify({"success": False, "error": "Teacher not found."}), 404
+        return jsonify({"success": True, "message": "Teacher updated.", "data": teacher}), 200
+    except ValueError as exc:
+        return jsonify({"success": False, "error": str(exc)}), 400
+    except pyodbc.IntegrityError as exc:
+        return jsonify({"success": False, "error": "Dữ liệu không hợp lệ khi cập nhật.", "details": str(exc)}), 400
+    except pyodbc.Error as exc:
+        return jsonify({"success": False, "error": "Database error.", "details": str(exc)}), 500
+    except Exception as exc:
+        return jsonify({"success": False, "error": "Unexpected server error.", "details": str(exc)}), 500
+
+
+@teacher_bp.delete("/<int:teacher_id>")
+def remove_teacher(teacher_id: int):
+    try:
+        deleted = delete_teacher(teacher_id)
+        if not deleted:
+            return jsonify({"success": False, "error": "Teacher not found."}), 404
+        return jsonify({"success": True, "message": "Teacher deleted."}), 200
     except pyodbc.Error as exc:
         return jsonify({"success": False, "error": "Database error.", "details": str(exc)}), 500
     except Exception as exc:

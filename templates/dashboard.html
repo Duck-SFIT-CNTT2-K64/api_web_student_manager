@@ -14,11 +14,17 @@
 <a href="#students" class="nav-item">
     <i class="fas fa-user-graduate"></i><span>Sinh viên</span>
 </a>
+<a href="#teachers" class="nav-item">
+    <i class="fas fa-chalkboard-teacher"></i><span>Giảng viên</span>
+</a>
 <a href="#courses" class="nav-item">
     <i class="fas fa-book"></i><span>Khóa học</span>
 </a>
 <a href="#classes" class="nav-item">
     <i class="fas fa-chalkboard-teacher"></i><span>Lớp học</span>
+</a>
+<a href="#rooms" class="nav-item">
+    <i class="fas fa-door-open"></i><span>Phòng học</span>
 </a>
 <a href="#enrollments" class="nav-item">
     <i class="fas fa-user-plus"></i><span>Ghi danh</span>
@@ -31,6 +37,10 @@
 </a>
 <a href="#notifications" class="nav-item">
     <i class="fas fa-bell"></i><span>Thông báo</span>
+</a>
+<div class="nav-divider">Hệ thống</div>
+<a href="#users" class="nav-item">
+    <i class="fas fa-users-cog"></i><span>Tài khoản</span>
 </a>
 {% endblock %}
 
@@ -127,10 +137,68 @@
                             <th>Email</th>
                             <th>Điện thoại</th>
                             <th>Trạng thái</th>
+                            <th>Tài khoản</th>
+                            <th>Hành động</th>
                             <th style="width:60px"></th>
                         </tr>
                     </thead>
                     <tbody id="studentsTableBody"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- ===== TEACHERS ===== -->
+<section id="teachers" class="section">
+    <div class="section-heading">
+        <div>
+            <h2>Giảng viên</h2>
+            <p>Thêm tài khoản giảng viên mới và quản lý hồ sơ.</p>
+        </div>
+    </div>
+    <div class="grid form-and-table">
+        <div class="panel">
+            <h3 id="teacherFormTitle">Thêm giảng viên</h3>
+            <form id="teacherForm" class="form-grid">
+                <input type="hidden" name="EditId" value="">
+                <label>Họ * <input name="LastName" required maxlength="50" placeholder="VD: Dương Yến"></label>
+                <label>Tên * <input name="FirstName" required maxlength="50" placeholder="VD: Nhi"></label>
+                <label>Username * <input name="Username" required maxlength="50" placeholder="VD: dynhi"></label>
+                <label>Email * <input name="Email" type="email" required maxlength="100"></label>
+                <label>Số điện thoại <input name="PhoneNumber" pattern="[0-9]{10,15}" maxlength="20"
+                        title="Chỉ nhập số"></label>
+                <label>Chuyên ngành <input name="Specialization" maxlength="100"
+                        placeholder="VD: Lập trình Web"></label>
+                <label>Mật khẩu <input name="Password" type="password" placeholder="Mặc định: Teacher@123"></label>
+                <div style="display:flex;gap:8px">
+                    <button class="btn btn-primary submit-btn" type="submit"><i class="fas fa-save"></i> <span>Lưu giảng
+                            viên</span></button>
+                    <button class="btn btn-outline cancel-btn" type="button" style="display:none"><i
+                            class="fas fa-times"></i> Hủy</button>
+                </div>
+            </form>
+            <p id="teacherMessage" class="message"></p>
+        </div>
+        <div class="panel table-panel">
+            <div class="table-header">
+                <h3>Danh sách giảng viên</h3>
+                <input id="teacherSearch" class="search-input" placeholder="Tìm mã, tên, email...">
+            </div>
+            <div class="table-wrap">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Mã GV</th>
+                            <th>Họ tên</th>
+                            <th>Email</th>
+                            <th>Chuyên ngành</th>
+                            <th>Lớp / HV</th>
+                            <th>TK</th>
+                            <th style="width:60px"></th>
+                        </tr>
+                    </thead>
+                    <tbody id="teachersTableBody"></tbody>
                 </table>
             </div>
         </div>
@@ -241,6 +309,52 @@
     </div>
 </section>
 
+<!-- ===== ROOMS ===== -->
+<section id="rooms" class="section">
+    <div class="section-heading">
+        <div>
+            <h2>Phòng học</h2>
+            <p>Quản lý danh sách và sức chứa các phòng học trong cơ sở.</p>
+        </div>
+    </div>
+    <div class="grid form-and-table">
+        <div class="panel">
+            <h3 id="roomFormTitle">Thêm phòng học</h3>
+            <form id="roomForm" class="form-grid">
+                <input type="hidden" name="EditId" value="">
+                <label>Tên phòng * <input name="RoomName" required maxlength="100"
+                        placeholder="VD: Phòng Lab 101"></label>
+                <label>Sức chứa * <input name="Capacity" type="number" required min="1" value="30"></label>
+                <div style="display:flex;gap:8px">
+                    <button class="btn btn-primary submit-btn" type="submit"><i class="fas fa-save"></i> <span>Lưu
+                            phòng</span></button>
+                    <button class="btn btn-outline cancel-btn" type="button" style="display:none"><i
+                            class="fas fa-times"></i> Hủy</button>
+                </div>
+            </form>
+            <p id="roomMessage" class="message"></p>
+        </div>
+        <div class="panel table-panel">
+            <div class="table-header">
+                <h3>Danh sách phòng</h3>
+                <input id="roomSearch" class="search-input" placeholder="Tìm phòng...">
+            </div>
+            <div class="table-wrap">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Tên phòng</th>
+                            <th>Sức chứa</th>
+                            <th style="width:60px"></th>
+                        </tr>
+                    </thead>
+                    <tbody id="roomsTableBody"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</section>
+
 <!-- ===== ENROLLMENTS ===== -->
 <section id="enrollments" class="section">
     <div class="section-heading">
@@ -331,12 +445,18 @@
     </div>
     <div class="grid form-and-table">
         <div class="panel">
-            <h3>Thêm điểm</h3>
+            <h3 id="scoreFormTitle">Thêm điểm</h3>
             <form id="scoreForm" class="form-grid">
+                <input type="hidden" name="EditId" value="">
                 <label>Ghi danh <select name="EnrollmentId" id="scoreEnrollmentSelect" required></select></label>
                 <label>Loại điểm <select name="ScoreTypeId" id="scoreTypeSelect" required></select></label>
                 <label>Điểm <input name="ScoreValue" type="number" min="0" max="10" step="0.1" required></label>
-                <button class="btn btn-primary" type="submit"><i class="fas fa-save"></i> Lưu điểm</button>
+                <div style="display:flex;gap:8px">
+                    <button class="btn btn-primary submit-btn" type="submit"><i class="fas fa-save"></i> <span>Lưu
+                            điểm</span></button>
+                    <button class="btn btn-outline cancel-btn" type="button" style="display:none"><i
+                            class="fas fa-times"></i> Hủy</button>
+                </div>
             </form>
             <p id="scoreMessage" class="message"></p>
         </div>
@@ -348,8 +468,10 @@
                         <tr>
                             <th>Sinh viên</th>
                             <th>Lớp</th>
+                            <th>Khóa học</th>
                             <th>Loại điểm</th>
                             <th>Điểm</th>
+                            <th style="width:60px"></th>
                         </tr>
                     </thead>
                     <tbody id="scoresTableBody"></tbody>
@@ -369,8 +491,9 @@
     </div>
     <div class="grid form-and-table">
         <div class="panel">
-            <h3>Tạo thông báo</h3>
+            <h3 id="notificationFormTitle">Tạo thông báo</h3>
             <form id="notificationForm" class="form-grid">
+                <input type="hidden" name="EditId" value="">
                 <label>Tiêu đề <input name="Title" required></label>
                 <label>Nội dung <textarea name="Content" rows="4"></textarea></label>
                 <label>Đối tượng
@@ -381,7 +504,12 @@
                         <option value="admins">Quản trị viên</option>
                     </select>
                 </label>
-                <button class="btn btn-primary" type="submit"><i class="fas fa-paper-plane"></i> Gửi thông báo</button>
+                <div style="display:flex;gap:10px;margin-top:10px">
+                    <button class="btn btn-primary submit-btn" type="submit" style="flex:1"><i
+                            class="fas fa-paper-plane"></i> <span>Gửi thông báo</span></button>
+                    <button type="button" class="btn cancel-btn" style="display:none;flex:1"><i
+                            class="fas fa-times"></i> Hủy</button>
+                </div>
             </form>
             <p id="notificationMessage" class="message"></p>
         </div>
@@ -391,6 +519,59 @@
         </div>
     </div>
 </section>
+
+<!-- ===== USERS ===== -->
+<section id="users" class="section">
+    <div class="section-heading">
+        <div>
+            <h2>Quản lý tài khoản</h2>
+            <p>Xem, khóa/mở khóa và đổi mật khẩu tài khoản người dùng trong hệ thống.</p>
+        </div>
+    </div>
+    <p id="userMessage" class="message"></p>
+    <div class="card">
+        <div class="card-body-flush">
+            <div class="table-wrap">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Username</th>
+                            <th>Họ tên</th>
+                            <th>Email</th>
+                            <th>Vai trò</th>
+                            <th>Trạng thái</th>
+                            <th style="white-space:nowrap">Thao tác</th>
+                        </tr>
+                    </thead>
+                    <tbody id="usersTableBody">
+                        <tr>
+                            <td colspan="6" class="empty">Đang tải...</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Modal đổi mật khẩu -->
+<div id="pwdModal"
+    style="display:none;position:fixed;inset:0;z-index:9000;background:rgba(0,0,0,.55);backdrop-filter:blur(4px);align-items:center;justify-content:center">
+    <div
+        style="background:var(--surface,#1e2433);border:1px solid var(--border,#2d3550);border-radius:16px;padding:28px 32px;max-width:380px;width:90%;box-shadow:0 20px 50px rgba(0,0,0,.5)">
+        <h3 style="margin-bottom:16px;font-size:1rem"><i class="fas fa-key"
+                style="color:var(--primary);margin-right:8px"></i>Đổi mật khẩu</h3>
+        <p id="pwdModalName" style="font-size:.85rem;color:var(--text-muted);margin-bottom:16px"></p>
+        <input id="pwdModalInput" type="password" placeholder="Mật khẩu mới (tối thiểu 6 ký tự)"
+            style="width:100%;padding:9px 12px;border-radius:8px;border:1px solid var(--border);background:var(--surface-alt);color:var(--text);font-size:.9rem;margin-bottom:12px;box-sizing:border-box">
+        <p id="pwdModalMsg" class="message" style="margin-bottom:12px"></p>
+        <div style="display:flex;gap:10px">
+            <button id="pwdModalSave" class="btn btn-primary" style="flex:1"><i class="fas fa-save"></i> Lưu</button>
+            <button id="pwdModalClose"
+                style="flex:1;padding:9px 0;border-radius:8px;border:1px solid var(--border);background:transparent;color:var(--text);cursor:pointer">Hủy</button>
+        </div>
+    </div>
+</div>
 {% endblock %}
 
 {% block extra_js %}
