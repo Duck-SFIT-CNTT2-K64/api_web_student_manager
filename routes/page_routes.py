@@ -1,6 +1,7 @@
 from flask import Blueprint, redirect, render_template, session, url_for
 
 from models.auth_model import get_admin_home_data, get_student_home_data, get_teacher_home_data
+from models.public_model import get_public_landing_data
 from utils.auth import current_session_user, login_required, role_required
 
 page_bp = Blueprint("pages", __name__)
@@ -8,7 +9,30 @@ page_bp = Blueprint("pages", __name__)
 
 @page_bp.get("/")
 def home():
-    return redirect(url_for("pages.home_redirect"))
+    try:
+        landing_data = get_public_landing_data()
+    except Exception:
+        landing_data = {
+            "Center": {
+                "Name": "CLASSES369",
+                "Tagline": "Trung tam tin hoc thuc chien, huong nghiep va lam duoc viec",
+                "Hotline": "0901 234 369",
+                "Email": "hello@classes369.vn",
+                "Address": "Khu A - Dai hoc Cong Nghiep Ha Noi",
+            },
+            "OpenSchedules": [],
+            "Programs": [],
+            "Notices": [],
+            "FeaturedTeachers": [],
+            "Services": [],
+            "PaymentGuide": [],
+        }
+
+    return render_template(
+        "landing.html",
+        landing_data=landing_data,
+        current_user=current_session_user(),
+    )
 
 
 @page_bp.get("/home")

@@ -34,6 +34,28 @@ def get_all_students() -> List[Dict[str, Any]]:
         return rows_to_list(cursor, rows)
 
 
+def search_students(keyword: str) -> List[Dict[str, Any]]:
+    term = (keyword or "").strip()
+    if not term:
+        return get_all_students()
+
+    like_term = f"%{term}%"
+    with get_db_connection() as connection:
+        cursor = connection.cursor()
+        cursor.execute(
+            STUDENT_SELECT_BASE
+            + """
+            WHERE s.StudentCode LIKE ? OR s.FullName LIKE ? OR s.Email LIKE ?
+            ORDER BY s.StudentId
+            """,
+            like_term,
+            like_term,
+            like_term,
+        )
+        rows = cursor.fetchall()
+        return rows_to_list(cursor, rows)
+
+
 def get_student_by_id(student_id: int) -> Optional[Dict[str, Any]]:
     with get_db_connection() as connection:
         cursor = connection.cursor()
@@ -319,3 +341,351 @@ def delete_student_by_id(student_id: int) -> bool:
             connection.rollback()
             raise
         return deleted
+
+
+def get_student_id_by_user_id(user_id: int) -> Optional[int]:
+    with get_db_connection() as connection:
+        cursor = connection.cursor()
+        cursor.execute("SELECT TOP 1 StudentId FROM Students WHERE UserId = ?", int(user_id))
+        row = cursor.fetchone()
+        return int(row[0]) if row else None
+
+
+def get_student_profile_by_user_id(user_id: int) -> Optional[Dict[str, Any]]:
+    with get_db_connection() as connection:
+        cursor = connection.cursor()
+        cursor.execute(
+            """
+            SELECT
+                s.StudentId,
+                s.StudentCode,
+                s.FullName,
+                s.Email,
+                s.PhoneNumber,
+                s.DateOfBirth,
+                s.Gender,
+                s.Address,
+                ss.StatusName,
+                (SELECT COUNT(*)
+                 FROM Enrollments e
+                 WHERE e.StudentId = s.StudentId
+                   AND e.Status = N'Enrolled') AS ActiveClasses,
+                (SELECT ISNULL(SUM(t.TotalFee - t.AmountPaid), 0)
+                 FROM Tuitions t
+                 INNER JOIN Enrollments e ON t.EnrollmentId = e.EnrollmentId
+                 WHERE e.StudentId = s.StudentId) AS TotalDebt
+            FROM Students s
+            LEFT JOIN StudentStatuses ss ON s.StatusId = ss.StatusId
+            WHERE s.UserId = ?
+            """,
+            int(user_id),
+        )
+        row = cursor.fetchone()
+        return row_to_dict(cursor, row) if row else None
+
+
+def get_student_learning_by_user_id(user_id: int) -> Dict[str, List[Dict[str, Any]]]:
+    with get_db_connection() as connection:
+        cursor = connection.cursor()
+        cursor.execute(
+            """
+            SELECT
+                e.EnrollmentId,
+                e.EnrollmentDate,
+                e.Status,
+                c.ClassId,
+                c.ClassCode,
+                c.ClassName,
+                co.CourseId,
+                co.CourseCode,
+                co.CourseName,
+                co.Description AS CourseContent,
+                co.Duration,
+                co.Credits,
+                co.TuitionFee,
+                CASE
+                    WHEN t.TeacherId IS NULL THEN NULL
+                    ELSE CONCAT(t.LastName, N' ', t.FirstName)
+                END AS TeacherName
+            FROM Enrollments e
+            INNER JOIN Students s ON e.StudentId = s.StudentId
+            INNER JOIN Classes c ON e.ClassId = c.ClassId
+            INNER JOIN Courses co ON c.CourseId = co.CourseId
+            LEFT JOIN Teachers t ON c.TeacherId = t.TeacherId
+            WHERE s.UserId = ?
+            ORDER BY e.EnrollmentDate DESC, e.EnrollmentId DESC
+            """,
+            int(user_id),
+        )
+        enrollment_rows = cursor.fetchall()
+        enrollments = rows_to_list(cursor, enrollment_rows)
+
+        contents: List[Dict[str, Any]] = []
+        seen_course_ids = set()
+        for item in enrollments:
+            course_id = item.get("CourseId")
+            if course_id in seen_course_ids:
+                continue
+            seen_course_ids.add(course_id)
+            contents.append(
+                {
+                    "CourseId": course_id,
+                    "CourseCode": item.get("CourseCode"),
+                    "CourseName": item.get("CourseName"),
+                    "CourseContent": item.get("CourseContent"),
+                    "Duration": item.get("Duration"),
+                    "Credits": item.get("Credits"),
+                }
+            )
+
+        return {"Enrollments": enrollments, "CourseContents": contents}
+
+
+def get_student_registration_status_by_user_id(user_id: int) -> List[Dict[str, Any]]:
+    with get_db_connection() as connection:
+        cursor = connection.cursor()
+        cursor.execute(
+            """
+            SELECT
+                e.EnrollmentId,
+                e.EnrollmentDate,
+                e.Status AS RegistrationStatus,
+                c.ClassId,
+                c.ClassCode,
+                c.ClassName,
+                co.CourseCode,
+                co.CourseName,
+                co.TuitionFee
+            FROM Enrollments e
+            INNER JOIN Students s ON e.StudentId = s.StudentId
+            INNER JOIN Classes c ON e.ClassId = c.ClassId
+            INNER JOIN Courses co ON c.CourseId = co.CourseId
+            WHERE s.UserId = ?
+            ORDER BY e.EnrollmentDate DESC, e.EnrollmentId DESC
+            """,
+            int(user_id),
+        )
+        rows = cursor.fetchall()
+        return rows_to_list(cursor, rows)
+
+
+def get_registration_options_by_user_id(user_id: int) -> List[Dict[str, Any]]:
+    student_id = get_student_id_by_user_id(user_id)
+    if not student_id:
+        return []
+
+    with get_db_connection() as connection:
+        cursor = connection.cursor()
+        cursor.execute(
+            """
+            SELECT
+                c.ClassId,
+                c.ClassCode,
+                c.ClassName,
+                c.MaxStudents,
+                co.CourseCode,
+                co.CourseName,
+                co.Description AS CourseContent,
+                co.TuitionFee,
+                COUNT(e.EnrollmentId) AS EnrollmentCount,
+                CASE
+                    WHEN c.MaxStudents IS NULL THEN NULL
+                    ELSE c.MaxStudents - COUNT(e.EnrollmentId)
+                END AS RemainingSeats
+            FROM Classes c
+            INNER JOIN Courses co ON c.CourseId = co.CourseId
+            LEFT JOIN Enrollments e ON c.ClassId = e.ClassId
+            WHERE NOT EXISTS (
+                SELECT 1
+                FROM Enrollments me
+                WHERE me.ClassId = c.ClassId
+                  AND me.StudentId = ?
+            )
+            GROUP BY
+                c.ClassId,
+                c.ClassCode,
+                c.ClassName,
+                c.MaxStudents,
+                co.CourseCode,
+                co.CourseName,
+                co.Description,
+                co.TuitionFee
+            HAVING c.MaxStudents IS NULL OR c.MaxStudents > COUNT(e.EnrollmentId)
+            ORDER BY co.CourseName, c.ClassName
+            """,
+            int(student_id),
+        )
+        rows = cursor.fetchall()
+        return rows_to_list(cursor, rows)
+
+
+def create_student_registration(user_id: int, class_id: int) -> Dict[str, Any]:
+    student_id = get_student_id_by_user_id(user_id)
+    if not student_id:
+        raise ValueError("Không tìm thấy hồ sơ sinh viên cho tài khoản hiện tại.")
+
+    from models.enrollment_model import create_enrollment
+
+    return create_enrollment(
+        {
+            "StudentId": int(student_id),
+            "ClassId": int(class_id),
+            "Status": "Enrolled",
+            "CreateTuition": True,
+        }
+    )
+
+
+def get_student_schedule_by_user_id(user_id: int) -> List[Dict[str, Any]]:
+    with get_db_connection() as connection:
+        cursor = connection.cursor()
+        cursor.execute(
+            """
+            SELECT
+                c.ClassCode,
+                c.ClassName,
+                cs.Weekday,
+                cs.StartTime,
+                cs.EndTime,
+                r.RoomName,
+                CONCAT(t.LastName, N' ', t.FirstName) AS TeacherName
+            FROM ClassSchedules cs
+            INNER JOIN Classes c ON cs.ClassId = c.ClassId
+            INNER JOIN Enrollments e ON c.ClassId = e.ClassId
+            INNER JOIN Students s ON e.StudentId = s.StudentId
+            LEFT JOIN Teachers t ON c.TeacherId = t.TeacherId
+            LEFT JOIN Rooms r ON cs.RoomId = r.RoomId
+            WHERE s.UserId = ?
+              AND e.Status = N'Enrolled'
+            ORDER BY
+                CASE
+                    WHEN cs.Weekday = N'Monday' THEN 1
+                    WHEN cs.Weekday = N'Tuesday' THEN 2
+                    WHEN cs.Weekday = N'Wednesday' THEN 3
+                    WHEN cs.Weekday = N'Thursday' THEN 4
+                    WHEN cs.Weekday = N'Friday' THEN 5
+                    WHEN cs.Weekday = N'Saturday' THEN 6
+                    ELSE 7
+                END,
+                cs.StartTime
+            """,
+            int(user_id),
+        )
+        rows = cursor.fetchall()
+        return rows_to_list(cursor, rows)
+
+
+def get_student_exam_schedule_by_user_id(user_id: int) -> List[Dict[str, Any]]:
+    with get_db_connection() as connection:
+        cursor = connection.cursor()
+        cursor.execute(
+            """
+            SELECT
+                c.ClassCode,
+                c.ClassName,
+                co.CourseName,
+                DATEADD(DAY, 60, CAST(e.EnrollmentDate AS DATE)) AS ExamDate,
+                COALESCE(MIN(r.RoomName), N'TBA') AS ExamRoom,
+                N'Planned' AS ExamStatus
+            FROM Enrollments e
+            INNER JOIN Students s ON e.StudentId = s.StudentId
+            INNER JOIN Classes c ON e.ClassId = c.ClassId
+            INNER JOIN Courses co ON c.CourseId = co.CourseId
+            LEFT JOIN ClassSchedules cs ON c.ClassId = cs.ClassId
+            LEFT JOIN Rooms r ON cs.RoomId = r.RoomId
+            WHERE s.UserId = ?
+              AND e.Status = N'Enrolled'
+            GROUP BY
+                c.ClassCode,
+                c.ClassName,
+                co.CourseName,
+                DATEADD(DAY, 60, CAST(e.EnrollmentDate AS DATE))
+            ORDER BY ExamDate ASC, c.ClassCode
+            """,
+            int(user_id),
+        )
+        rows = cursor.fetchall()
+        return rows_to_list(cursor, rows)
+
+
+def get_student_scores_by_user_id(user_id: int) -> List[Dict[str, Any]]:
+    with get_db_connection() as connection:
+        cursor = connection.cursor()
+        cursor.execute(
+            """
+            SELECT
+                c.ClassCode,
+                c.ClassName,
+                MAX(CASE WHEN st.ScoreTypeId = 1 THEN sc.ScoreValue END) AS ChuyenCan,
+                MAX(CASE WHEN st.ScoreTypeId = 2 THEN sc.ScoreValue END) AS GiuaKy,
+                MAX(CASE WHEN st.ScoreTypeId = 3 THEN sc.ScoreValue END) AS CuoiKy
+            FROM Enrollments e
+            INNER JOIN Students s ON e.StudentId = s.StudentId
+            INNER JOIN Classes c ON e.ClassId = c.ClassId
+            LEFT JOIN Scores sc ON e.EnrollmentId = sc.EnrollmentId
+            LEFT JOIN ScoreTypes st ON sc.ScoreTypeId = st.ScoreTypeId
+            WHERE s.UserId = ?
+            GROUP BY c.ClassCode, c.ClassName
+            ORDER BY c.ClassCode
+            """,
+            int(user_id),
+        )
+        rows = cursor.fetchall()
+        return rows_to_list(cursor, rows)
+
+
+def get_student_finance_by_user_id(user_id: int) -> List[Dict[str, Any]]:
+    with get_db_connection() as connection:
+        cursor = connection.cursor()
+        cursor.execute(
+            """
+            SELECT
+                t.TuitionId,
+                c.ClassCode,
+                c.ClassName,
+                t.TotalFee,
+                t.AmountPaid,
+                (t.TotalFee - t.AmountPaid) AS Debt,
+                t.DueDate,
+                t.Status
+            FROM Tuitions t
+            INNER JOIN Enrollments e ON t.EnrollmentId = e.EnrollmentId
+            INNER JOIN Classes c ON e.ClassId = c.ClassId
+            INNER JOIN Students s ON e.StudentId = s.StudentId
+            WHERE s.UserId = ?
+            ORDER BY t.DueDate, t.TuitionId
+            """,
+            int(user_id),
+        )
+        rows = cursor.fetchall()
+        return rows_to_list(cursor, rows)
+
+
+def create_student_tuition_payment(user_id: int, payload: Dict[str, Any]) -> Dict[str, Any]:
+    tuition_id = payload.get("TuitionId") or payload.get("tuitionId")
+    if tuition_id is None:
+        raise ValueError("TuitionId is required.")
+
+    with get_db_connection() as connection:
+        cursor = connection.cursor()
+        cursor.execute(
+            """
+            SELECT TOP 1 t.TuitionId
+            FROM Tuitions t
+            INNER JOIN Enrollments e ON t.EnrollmentId = e.EnrollmentId
+            INNER JOIN Students s ON e.StudentId = s.StudentId
+            WHERE t.TuitionId = ? AND s.UserId = ?
+            """,
+            int(tuition_id),
+            int(user_id),
+        )
+        if not cursor.fetchone():
+            raise ValueError("Khoản học phí không thuộc tài khoản sinh viên hiện tại.")
+
+    from models.payment_model import record_tuition_payment
+
+    payment_payload = dict(payload)
+    payment_payload["TuitionId"] = int(tuition_id)
+    if not payment_payload.get("CashierId"):
+        payment_payload["CashierId"] = int(user_id)
+    return record_tuition_payment(payment_payload)

@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CLASSES369 | Trung tam tin hoc</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&family=Fraunces:opsz,wght,SOFT@9..144,500,80&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/landing.css') }}">
+</head>
+<body>
+    <div class="ambient" aria-hidden="true"></div>
+
+    <header class="hero" id="introduction">
+        <nav class="top-nav">
+            <a class="brand" href="#introduction">
+                <span class="brand-icon"><i class="fas fa-graduation-cap"></i></span>
+                <span>
+                    <strong>{{ landing_data.Center.Name }}</strong>
+                    <small>Trung tam dao tao CNTT</small>
+                </span>
+            </a>
+            <button class="nav-toggle" id="navToggle" aria-label="Mo menu">
+                <i class="fas fa-bars"></i>
+            </button>
+            <div class="nav-links" id="navLinks">
+                <a href="#schedules">Lich khai giang</a>
+                <a href="#programs">Chuong trinh</a>
+                <a href="#services">Dich vu</a>
+                <a href="#news">Tin tuc</a>
+                <a href="#payment-guide">Hoc phi</a>
+                <a href="#contact">Lien he</a>
+            </div>
+            <a class="btn btn-primary" href="{{ '/home' if current_user else '/login' }}">
+                {{ 'Vao dashboard' if current_user else 'Dang nhap' }}
+            </a>
+        </nav>
+
+        <div class="hero-content">
+            <div class="hero-copy">
+                <p class="eyebrow">Cong dong hoc lap trinh thuc chien</p>
+                <h1>{{ landing_data.Center.Tagline }}</h1>
+                <p>
+                    Dao tao lap trinh, co so du lieu va he thong mang theo mo hinh lop nho,
+                    theo sat qua trinh thuc hanh tu buoi dau den project cuoi khoa.
+                </p>
+                <div class="hero-actions">
+                    <a class="btn btn-primary" href="#programs">Kham pha lo trinh</a>
+                    <a class="btn btn-ghost" href="#contact">Dat lich tu van</a>
+                </div>
+            </div>
+            <div class="hero-card">
+                <h3>Thong tin nhanh</h3>
+                <ul>
+                    <li>
+                        <span><i class="fas fa-phone-volume"></i> Hotline</span>
+                        <strong>{{ landing_data.Center.Hotline }}</strong>
+                    </li>
+                    <li>
+                        <span><i class="fas fa-envelope"></i> Email</span>
+                        <strong>{{ landing_data.Center.Email }}</strong>
+                    </li>
+                    <li>
+                        <span><i class="fas fa-map-location-dot"></i> Dia chi</span>
+                        <strong>{{ landing_data.Center.Address }}</strong>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </header>
+
+    <main class="main-content">
+        <section class="section" id="schedules">
+            <div class="section-head">
+                <p class="eyebrow">Lich khai giang</p>
+                <h2>Lich mo lop sap toi</h2>
+            </div>
+            <div class="table-wrap">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Lop</th>
+                            <th>Khoa hoc</th>
+                            <th>Thu</th>
+                            <th>Ca hoc</th>
+                            <th>Phong</th>
+                            <th>Cho trong</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for item in landing_data.OpenSchedules %}
+                        <tr>
+                            <td><strong>{{ item.ClassCode }}</strong><br><small>{{ item.ClassName }}</small></td>
+                            <td>{{ item.CourseCode }} - {{ item.CourseName }}</td>
+                            <td class="weekday" data-weekday="{{ item.Weekday }}">{{ item.Weekday }}</td>
+                            <td>{{ item.StartTime }} - {{ item.EndTime }}</td>
+                            <td>{{ item.RoomName or '-' }}</td>
+                            <td>
+                                {% if item.RemainingSeats is not none %}
+                                    {{ item.RemainingSeats }} / {{ item.MaxStudents }}
+                                {% else %}
+                                    Khong gioi han
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% else %}
+                        <tr>
+                            <td colspan="6" class="empty">Chua co du lieu lich khai giang.</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <section class="section" id="programs">
+            <div class="section-head">
+                <p class="eyebrow">Dao tao</p>
+                <h2>Chuong trinh hoc tieu bieu</h2>
+            </div>
+            <div class="program-grid">
+                {% for item in landing_data.Programs %}
+                <article class="program-card">
+                    <p class="program-code">{{ item.CourseCode }}</p>
+                    <h3>{{ item.CourseName }}</h3>
+                    <p>{{ item.Description or 'Chuong trinh bo sung ky nang thuc hanh theo du an.' }}</p>
+                    <ul>
+                        <li><i class="fas fa-clock"></i> {{ item.Duration or 'Dang cap nhat' }}</li>
+                        <li><i class="fas fa-book-open"></i> {{ item.Credits or 0 }} tin chi</li>
+                        <li><i class="fas fa-coins"></i> {{ '{:,.0f}'.format(item.TuitionFee or 0) }} VND</li>
+                    </ul>
+                </article>
+                {% else %}
+                <p class="empty">Chua co du lieu chuong trinh hoc.</p>
+                {% endfor %}
+            </div>
+        </section>
+
+        <section class="section" id="services">
+            <div class="section-head">
+                <p class="eyebrow">Dong hanh</p>
+                <h2>Dich vu ho tro hoc vien</h2>
+            </div>
+            <div class="service-grid">
+                {% for service in landing_data.Services %}
+                <article class="service-card">
+                    <h3>{{ service.Title }}</h3>
+                    <p>{{ service.Description }}</p>
+                </article>
+                {% endfor %}
+            </div>
+        </section>
+
+        <section class="section" id="news">
+            <div class="section-head">
+                <p class="eyebrow">Cap nhat</p>
+                <h2>Tin tuc va thong bao moi</h2>
+            </div>
+            <div class="news-grid">
+                {% for item in landing_data.Notices %}
+                <article class="news-card">
+                    <h3>{{ item.Title }}</h3>
+                    <p>{{ item.Content }}</p>
+                    <small>{{ item.CreatedAt[:10] if item.CreatedAt else '-' }}</small>
+                </article>
+                {% else %}
+                <p class="empty">Chua co thong bao moi.</p>
+                {% endfor %}
+            </div>
+        </section>
+
+        <section class="section" id="payment-guide">
+            <div class="section-head">
+                <p class="eyebrow">Hoc phi</p>
+                <h2>Huong dan thanh toan</h2>
+            </div>
+            <ol class="payment-steps">
+                {% for step in landing_data.PaymentGuide %}
+                <li>{{ step }}</li>
+                {% endfor %}
+            </ol>
+        </section>
+
+        <section class="section" id="contact">
+            <div class="section-head">
+                <p class="eyebrow">Lien he</p>
+                <h2>Dat lich tu van</h2>
+            </div>
+            <div class="contact-card">
+                <div>
+                    <h3>CLASSES369</h3>
+                    <p>{{ landing_data.Center.Address }}</p>
+                    <p>Hotline: <strong>{{ landing_data.Center.Hotline }}</strong></p>
+                    <p>Email: <strong>{{ landing_data.Center.Email }}</strong></p>
+                </div>
+                <a class="btn btn-primary" href="/login">Dang nhap de dang ky hoc</a>
+            </div>
+        </section>
+    </main>
+
+    <footer class="site-footer">
+        <p>&copy; 2025 CLASSES369 - Trung tam tin hoc thuc chien.</p>
+    </footer>
+
+    <script src="{{ url_for('static', filename='js/landing.js') }}"></script>
+</body>
+</html>

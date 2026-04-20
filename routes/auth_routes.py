@@ -30,7 +30,7 @@ def _login_payload() -> tuple[str, str]:
 @auth_bp.get("/login")
 def login_page():
     if current_session_user().get("UserId"):
-        return redirect(url_for("pages.home"))
+        return redirect(url_for("pages.home_redirect"))
 
     error = request.args.get("error")
     next_path = request.args.get("next") or ""

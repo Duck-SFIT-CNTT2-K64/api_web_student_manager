@@ -1,13 +1,20 @@
 import pyodbc
 from flask import Blueprint, jsonify, request
-from db import get_db_connection
 from models.teacher_model import (
-    get_all_teachers,
-    get_teacher_by_id,
     create_teacher,
-    update_teacher,
     delete_teacher,
+    get_all_teachers,
+    get_class_students_with_scores,
+    get_teacher_by_id,
+    get_teacher_classes_by_user_id,
+    get_teacher_schedule_by_user_id,
+    get_teacher_stats_by_user_id,
+    is_class_owned_by_teacher,
+    is_enrollment_owned_by_teacher,
+    save_score_entry,
+    update_teacher,
 )
+from utils.auth import current_session_user, role_required
 
 teacher_bp = Blueprint("teachers", __name__)
 
@@ -83,132 +90,118 @@ def remove_teacher(teacher_id: int):
         return jsonify({"success": False, "error": "Unexpected server error.", "details": str(exc)}), 500
 
 
+def _authorize_user_scope(target_user_id: int):
+    session_user = current_session_user()
+    session_user_id = session_user.get("UserId")
+    role_name = str(session_user.get("RoleName") or "").lower()
 
-@teacher_bp.get('/stats/<int:user_id>')
+    if role_name == "admin":
+        return None
+
+    if not session_user_id or int(session_user_id) != int(target_user_id):
+        return jsonify({"success": False, "error": "Forbidden."}), 403
+
+    return None
+
+
+@teacher_bp.get("/stats/<int:user_id>")
+@role_required("Teacher", "Admin")
 def get_teacher_stats(user_id: int):
+    denied = _authorize_user_scope(user_id)
+    if denied:
+        return denied
+
     try:
-        with get_db_connection() as conn:
-            cursor = conn.cursor()
-        
-            # 1. Tìm TeacherId
-            cursor.execute("SELECT TeacherId FROM Teachers WHERE UserId = ?", (user_id,))
-            teacher = cursor.fetchone()
-            if not teacher:
-                return jsonify({"success": False, "error": "Không tìm thấy hồ sơ giảng viên."}), 404
-            
-            # 2. Lấy thống kê
-            query = """
-                SELECT 
-                    (SELECT COUNT(*) FROM Classes WHERE TeacherId = ?) as TotalClasses,
-                    (SELECT COUNT(DISTINCT StudentId) FROM Enrollments e 
-                    JOIN Classes c ON e.ClassId = c.ClassId 
-                    WHERE c.TeacherId = ?) as TotalStudents
-            """
-            cursor.execute(query, (teacher.TeacherId, teacher.TeacherId))
-            stats = cursor.fetchone()
-            
-            data = {
-                "total_classes": stats.TotalClasses,
-                "total_students": stats.TotalStudents
-            }
-            return jsonify({"success": True, "data": data}), 200
+        stats = get_teacher_stats_by_user_id(user_id)
+        data = {
+            "total_classes": stats.get("ClassCount", 0),
+            "total_students": stats.get("StudentCount", 0),
+            "total_scores": stats.get("ScoreCount", 0),
+        }
+        return jsonify({"success": True, "data": data}), 200
     except pyodbc.Error as exc:
-        return jsonify({"success": False, "error": "Lỗi cơ sở dữ liệu.", "details": str(exc)}), 500
+        return jsonify({"success": False, "error": "Database error.", "details": str(exc)}), 500
     except Exception as exc:
-        return jsonify({"success": False, "error": "Lỗi máy chủ.", "details": str(exc)}), 500
+        return jsonify({"success": False, "error": "Unexpected server error.", "details": str(exc)}), 500
 
-#lay lich day
-@teacher_bp.get('/schedule/<int:user_id>')
-def get_teacher_schedule(user_id: int):
+
+@teacher_bp.get("/classes/<int:user_id>")
+@role_required("Teacher", "Admin")
+def get_teacher_classes(user_id: int):
+    denied = _authorize_user_scope(user_id)
+    if denied:
+        return denied
+
     try:
-        # Nhớ dùng 'with' để kết nối an toàn như API trước
-        with get_db_connection() as conn:
-            cursor = conn.cursor()
-            query = """
-                SELECT cs.Weekday, cs.StartTime, cs.EndTime, r.RoomName, c.ClassName, c.ClassCode
-                FROM ClassSchedules cs
-                JOIN Classes c ON cs.ClassId = c.ClassId
-                JOIN Teachers t ON c.TeacherId = t.TeacherId
-                LEFT JOIN Rooms r ON cs.RoomId = r.RoomId
-                WHERE t.UserId = ?
-                ORDER BY CASE 
-                    WHEN Weekday = N'Monday' THEN 1 WHEN Weekday = N'Tuesday' THEN 2 
-                    WHEN Weekday = N'Wednesday' THEN 3 WHEN Weekday = N'Thursday' THEN 4 
-                    WHEN Weekday = N'Friday' THEN 5 WHEN Weekday = N'Saturday' THEN 6 
-                    ELSE 7 END, StartTime
-            """
-            cursor.execute(query, (user_id,))
-            rows = cursor.fetchall()
-            
-            # Xử lý ép kiểu thời gian thành chữ (String)
-            schedule = []
-            for row in rows:
-                item = dict(zip([column[0] for column in cursor.description], row))
-                # Ép StartTime và EndTime thành chữ (VD: '18:00:00')
-                if item.get('StartTime') is not None:
-                    item['StartTime'] = str(item['StartTime'])
-                if item.get('EndTime') is not None:
-                    item['EndTime'] = str(item['EndTime'])
-                schedule.append(item)
-                
-            return jsonify({"success": True, "data": schedule}), 200
-            
+        classes = get_teacher_classes_by_user_id(user_id)
+        return jsonify({"success": True, "data": classes}), 200
+    except pyodbc.Error as exc:
+        return jsonify({"success": False, "error": "Database error.", "details": str(exc)}), 500
     except Exception as exc:
-        return jsonify({"success": False, "error": "Lỗi máy chủ.", "details": str(exc)}), 500
+        return jsonify({"success": False, "error": "Unexpected server error.", "details": str(exc)}), 500
 
-#lay danh sách sinh vien theo lop
-@teacher_bp.get('/class-students/<int:class_id>')
+
+@teacher_bp.get("/schedule/<int:user_id>")
+@role_required("Teacher", "Admin")
+def get_teacher_schedule(user_id: int):
+    denied = _authorize_user_scope(user_id)
+    if denied:
+        return denied
+
+    try:
+        schedule = get_teacher_schedule_by_user_id(user_id)
+        return jsonify({"success": True, "data": schedule}), 200
+    except pyodbc.Error as exc:
+        return jsonify({"success": False, "error": "Database error.", "details": str(exc)}), 500
+    except Exception as exc:
+        return jsonify({"success": False, "error": "Unexpected server error.", "details": str(exc)}), 500
+
+
+@teacher_bp.get("/class-students/<int:class_id>")
+@role_required("Teacher", "Admin")
 def get_class_students(class_id: int):
     try:
-        with get_db_connection() as conn:
-            cursor = conn.cursor()
-            query = """
-                SELECT e.EnrollmentId, s.StudentCode, s.FullName, 
-                   sc_cc.ScoreValue as ChuyenCan, 
-                   sc_gk.ScoreValue as GiuaKy, 
-                   sc_ck.ScoreValue as CuoiKy
-            FROM Enrollments e
-            JOIN Students s ON e.StudentId = s.StudentId
-            LEFT JOIN Scores sc_cc ON e.EnrollmentId = sc_cc.EnrollmentId AND sc_cc.ScoreTypeId = 1
-            LEFT JOIN Scores sc_gk ON e.EnrollmentId = sc_gk.EnrollmentId AND sc_gk.ScoreTypeId = 2
-            LEFT JOIN Scores sc_ck ON e.EnrollmentId = sc_ck.EnrollmentId AND sc_ck.ScoreTypeId = 3
-            WHERE e.ClassId = ?
-        """ 
-            cursor.execute(query, (class_id,))
-            rows = cursor.fetchall()
-            students = [dict(zip([column[0] for column in cursor.description], row)) for row in rows]
-            return jsonify({"success": True, "data": students}), 200
-    except Exception as exc:
-        return jsonify({"success": False, "error": "Lỗi máy chủ.", "details": str(exc)}), 500
+        session_user = current_session_user()
+        role_name = str(session_user.get("RoleName") or "").lower()
+        user_id = session_user.get("UserId")
 
-#nhap va cap nhat diem
-@teacher_bp.post('/save-score')
-def save_score():
-    try:
-        data = request.json
-        enrollment_id = data.get('EnrollmentId')
-        score_type_id = data.get('ScoreTypeId')
-        score_value = data.get('ScoreValue')
+        if role_name == "teacher":
+            if not user_id or not is_class_owned_by_teacher(int(user_id), int(class_id)):
+                return jsonify({"success": False, "error": "Forbidden."}), 403
 
-        # Validate điểm số
-        if score_value is None or not (0 <= float(score_value) <= 10):
-            return jsonify({"success": False, "error": "Điểm phải nằm trong khoảng từ 0 đến 10"}), 400
-
-        with get_db_connection() as conn:
-            cursor = conn.cursor()
-        
-            upsert_query = """
-                IF EXISTS (SELECT 1 FROM Scores WHERE EnrollmentId = ? AND ScoreTypeId = ?)
-                    UPDATE Scores SET ScoreValue = ? WHERE EnrollmentId = ? AND ScoreTypeId = ?
-                ELSE
-                    INSERT INTO Scores (EnrollmentId, ScoreTypeId, ScoreValue) VALUES (?, ?, ?)
-            """
-            cursor.execute(upsert_query, (enrollment_id, score_type_id, score_value, 
-                                      enrollment_id, score_type_id, 
-                                      enrollment_id, score_type_id, score_value))
-            conn.commit()
-            return jsonify({"success": True, "message": "Cập nhật điểm thành công"}), 200
+        students = get_class_students_with_scores(class_id)
+        return jsonify({"success": True, "data": students}), 200
     except pyodbc.Error as exc:
-        return jsonify({"success": False, "error": "Lỗi khi lưu điểm vào CSDL.", "details": str(exc)}), 500
+        return jsonify({"success": False, "error": "Database error.", "details": str(exc)}), 500
     except Exception as exc:
-        return jsonify({"success": False, "error": "Lỗi dữ liệu đầu vào.", "details": str(exc)}), 400
+        return jsonify({"success": False, "error": "Unexpected server error.", "details": str(exc)}), 500
+
+
+@teacher_bp.post("/save-score")
+@role_required("Teacher", "Admin")
+def save_score():
+    payload = request.get_json(silent=True) or {}
+    enrollment_id = payload.get("EnrollmentId")
+    score_type_id = payload.get("ScoreTypeId")
+    score_value = payload.get("ScoreValue")
+
+    if enrollment_id is None or score_type_id is None or score_value is None:
+        return jsonify({"success": False, "error": "EnrollmentId, ScoreTypeId, ScoreValue are required."}), 400
+
+    try:
+        session_user = current_session_user()
+        role_name = str(session_user.get("RoleName") or "").lower()
+        user_id = session_user.get("UserId")
+
+        if role_name == "teacher":
+            if not user_id or not is_enrollment_owned_by_teacher(int(user_id), int(enrollment_id)):
+                return jsonify({"success": False, "error": "Forbidden."}), 403
+
+        save_score_entry(int(enrollment_id), int(score_type_id), float(score_value))
+        return jsonify({"success": True, "message": "Score saved."}), 200
+    except ValueError as exc:
+        return jsonify({"success": False, "error": str(exc)}), 400
+    except pyodbc.Error as exc:
+        return jsonify({"success": False, "error": "Database error.", "details": str(exc)}), 500
+    except Exception as exc:
+        return jsonify({"success": False, "error": "Unexpected server error.", "details": str(exc)}), 500
