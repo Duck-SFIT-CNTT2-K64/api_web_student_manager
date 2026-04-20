@@ -12,6 +12,8 @@ def _build_connection_string() -> str:
     trusted_connection = os.getenv("DB_TRUSTED_CONNECTION", "yes").lower()
     user = os.getenv("DB_USER", "")
     password = os.getenv("DB_PASSWORD", "")
+    encrypt = os.getenv("DB_ENCRYPT", "no").lower()
+    trust_server_certificate = os.getenv("DB_TRUST_SERVER_CERTIFICATE", "yes").lower()
 
     parts = [
         f"DRIVER={{{driver}}}",
@@ -24,6 +26,13 @@ def _build_connection_string() -> str:
     else:
         parts.append(f"UID={user}")
         parts.append(f"PWD={password}")
+
+    parts.append("Encrypt=yes" if encrypt in {"yes", "true", "1"} else "Encrypt=no")
+    parts.append(
+        "TrustServerCertificate=yes"
+        if trust_server_certificate in {"yes", "true", "1"}
+        else "TrustServerCertificate=no"
+    )
 
     return ";".join(parts) + ";"
 
