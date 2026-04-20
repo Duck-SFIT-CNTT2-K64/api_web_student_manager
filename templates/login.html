@@ -37,6 +37,13 @@
         </div>
         {% endif %}
 
+        {% if success %}
+        <div class="auth-alert success">
+            <i class="fas fa-circle-check"></i>
+            {{ success }}
+        </div>
+        {% endif %}
+
         <form method="post" action="/login" class="auth-form">
             {% if next_path %}
             <input type="hidden" name="next" value="{{ next_path }}">
@@ -72,7 +79,7 @@
         </form>
 
         <div class="auth-footer">
-            Chưa có tài khoản? <a href="#">Liên hệ quản trị viên</a>
+            Chưa có tài khoản? <a href="/register">Đăng ký học viên</a>
         </div>
     </div>
 </div>

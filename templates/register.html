@@ -1,0 +1,101 @@
+{% extends 'layouts/auth.html' %}
+
+{% block title %}Dang ky hoc vien | CLASSES369{% endblock %}
+
+{% block content %}
+{% set data = form_data or {} %}
+<div class="auth-container">
+    <div class="auth-brand">
+        <a href="/" style="display:inline-flex;align-items:center;gap:6px;color:#4361ee;text-decoration:none;margin-bottom:14px;font-weight:600">
+            <i class="fas fa-arrow-left"></i> Ve trang chu
+        </a>
+        <div class="auth-brand-logo">
+            <div class="logo-icon">
+                <i class="fas fa-user-plus"></i>
+            </div>
+            <h1>CLASSES369</h1>
+        </div>
+
+        <h2>Tao tai khoan hoc vien<br>trong 1 buoc</h2>
+        <p>Dang ky tai khoan de bat dau hoc tap. He thong se tu dong gan role Student cho tai khoan moi.</p>
+
+        <ul class="auth-features">
+            <li><i class="fas fa-circle-check"></i> Tu dong tao tai khoan role Student</li>
+            <li><i class="fas fa-lock"></i> Mat khau duoc ma hoa bang bcrypt</li>
+            <li><i class="fas fa-id-card"></i> Ho so hoc vien duoc tao ngay sau dang ky</li>
+            <li><i class="fas fa-arrow-right-to-bracket"></i> Dang nhap va hoc ngay sau khi tao tai khoan</li>
+        </ul>
+    </div>
+
+    <div class="auth-form-panel">
+        <h2>Dang ky hoc vien</h2>
+        <p class="auth-subtitle">Nhap thong tin tai khoan de tao moi</p>
+
+        {% if error %}
+        <div class="auth-alert error">
+            <i class="fas fa-circle-exclamation"></i>
+            {{ error }}
+        </div>
+        {% endif %}
+
+        <form method="post" action="/register" class="auth-form">
+            <div class="form-group">
+                <label for="full_name">Ho va ten</label>
+                <div class="input-wrapper">
+                    <i class="fas fa-user"></i>
+                    <input type="text" id="full_name" name="full_name" placeholder="Nhap ho va ten" value="{{ data.get('full_name', '') }}" required autofocus>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label for="email">Email</label>
+                <div class="input-wrapper">
+                    <i class="fas fa-envelope"></i>
+                    <input type="email" id="email" name="email" placeholder="Nhap email" value="{{ data.get('email', '') }}" required>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label for="phone">So dien thoai</label>
+                <div class="input-wrapper">
+                    <i class="fas fa-phone"></i>
+                    <input type="text" id="phone" name="phone" placeholder="Nhap so dien thoai" value="{{ data.get('phone', '') }}">
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label for="username">Ten dang nhap (tuy chon)</label>
+                <div class="input-wrapper">
+                    <i class="fas fa-at"></i>
+                    <input type="text" id="username" name="username" placeholder="De trong de he thong tu sinh" value="{{ data.get('username', '') }}">
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label for="password">Mat khau</label>
+                <div class="input-wrapper">
+                    <i class="fas fa-lock"></i>
+                    <input type="password" id="password" name="password" placeholder="Nhap mat khau" required>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label for="confirm_password">Xac nhan mat khau</label>
+                <div class="input-wrapper">
+                    <i class="fas fa-shield-halved"></i>
+                    <input type="password" id="confirm_password" name="confirm_password" placeholder="Nhap lai mat khau" required>
+                </div>
+            </div>
+
+            <button type="submit" class="btn-login">
+                <i class="fas fa-user-plus"></i>
+                Dang ky ngay
+            </button>
+        </form>
+
+        <div class="auth-footer">
+            Da co tai khoan? <a href="/login">Dang nhap</a>
+        </div>
+    </div>
+</div>
+{% endblock %}
