@@ -285,7 +285,107 @@
         });
     }
 
+    function initNewUIMockEvents() {
+        // Populate ALL class dropdowns when state.classes updates
+        function updateClassSelects() {
+            var options = '<option value="">Chọn lớp...</option>';
+            (state.classes || []).forEach(function (c) {
+                options += '<option value="' + c.ClassId + '">' + escapeHtml(c.ClassName) + '</option>';
+            });
+
+            var classListSelect = document.getElementById('classListSelect');
+            if (classListSelect) classListSelect.innerHTML = options;
+
+            var examClassSelect = document.getElementById('examClassSelect');
+            if (examClassSelect) examClassSelect.innerHTML = options;
+
+            var attClassSelect = document.getElementById('attendanceClassSelect');
+            if (attClassSelect) attClassSelect.innerHTML = options;
+
+            var notifSelect = document.getElementById('notificationTargetSelect');
+            if (notifSelect) {
+                notifSelect.innerHTML = '<option value="all">Tất cả lớp của tôi</option>' + options;
+            }
+        }
+
+        // Listen to original class generation to reuse
+        var origRenderClassSelect = renderClassSelect;
+        renderClassSelect = function () {
+            origRenderClassSelect();
+            updateClassSelects();
+        };
+
+        // 1. Xem role học sinh
+        var viewStudentSearch = document.getElementById('viewStudentSearch');
+        if (viewStudentSearch) {
+            viewStudentSearch.addEventListener('input', function (e) {
+                var body = document.getElementById('viewStudentTableBody');
+                if (body) {
+                    body.innerHTML = '<tr><td colspan="4" class="empty">Đang tìm: ' + escapeHtml(e.target.value) + '... (Tính năng đang phát triển)</td></tr>';
+                }
+            });
+        }
+
+        // 2. Danh sách lớp
+        var classListBtn = document.getElementById('classListBtn');
+        if (classListBtn) {
+            classListBtn.addEventListener('click', function () {
+                var val = document.getElementById('classListSelect').value;
+                var body = document.getElementById('classListTableBody');
+                if (!val) {
+                    alert('Vui lòng chọn lớp!');
+                    return;
+                }
+                body.innerHTML = '<tr><td colspan="4" class="empty">Đang tải cấu trúc danh sách sinh viên... (Mockup/Tính năng chờ API)</td></tr>';
+            });
+        }
+
+        // 3. Exams
+        var examForm = document.getElementById('examForm');
+        if (examForm) {
+            examForm.addEventListener('submit', function (e) {
+                e.preventDefault();
+                alert("Tạo bài kiểm tra thành công! (Tính năng mô phỏng)");
+                var body = document.getElementById('examTableBody');
+                body.innerHTML = '<tr><td>Bài kiểm tra giả lập</td><td>---</td><td>---</td><td><span class="badge good">Đã giao</span></td></tr>';
+                examForm.reset();
+            });
+        }
+
+        // 4. Attendance
+        var attSearchBtn = document.getElementById('attendanceSearchBtn');
+        if (attSearchBtn) {
+            attSearchBtn.addEventListener('click', function () {
+                var val = document.getElementById('attendanceClassSelect').value;
+                if (!val) {
+                    alert('Vui lòng chọn lớp và ngày học để điểm danh!');
+                    return;
+                }
+                var body = document.getElementById('attendanceTableBody');
+                body.innerHTML = '<tr><td>SV01</td><td>Nguyễn Văn A</td><td style="text-align:center"><input type="radio" name="att_1" checked></td><td style="text-align:center"><input type="radio" name="att_1"></td><td style="text-align:center"><input type="radio" name="att_1"></td></tr>';
+            });
+        }
+
+        var attSaveBtn = document.getElementById('attendanceSaveBtn');
+        if (attSaveBtn) {
+            attSaveBtn.addEventListener('click', function () {
+                alert('Đã lưu điểm danh!');
+            });
+        }
+
+        // 5. Notifications
+        var notifSendBtn = document.getElementById('notificationSendBtn');
+        if (notifSendBtn) {
+            notifSendBtn.addEventListener('click', function () {
+                alert('Thông báo đã được gửi đến sinh viên!');
+                var body = document.getElementById('notificationTableBody');
+                body.innerHTML = '<tr><td>Thông báo giả lập</td><td>Tất cả lớp</td><td>Vừa xong</td></tr>';
+            });
+        }
+    }
+
     bindEvents();
+    initNewUIMockEvents();
     loadDashboardData().catch(function (error) {
         setMessage(error.message, "error");
     });
