@@ -1,57 +1,84 @@
 # Classes369 Student Management API
 
-Flask + SQL Server project for managing the latest `QLSV_TrungTamTinHoc` database schema.
+Flask + SQL Server project for managing the `QLSV_TrungTamTinHoc` schema.
 
-## What This Version Covers
+## 1) Chức Năng Chính
 
-- Login page at `/login` with role-based redirect from database (`Users` + `Roles`).
-- Different home pages per role:
-   - Admin: `/admin/home`
-   - Teacher: `/teacher/home`
-   - Student: `/student/home`
-- Dashboard page at `/dashboard` with live data from REST APIs.
-- Students linked to `Users` and `StudentStatuses`.
-- Teachers, courses, classes, class capacity, and enrollments.
-- Tuition tracking through `Tuitions` and payment receipts through `Receipts`.
-- Score entry through `ScoreTypes` and `Scores`.
-- Notifications through `Notifications` and `NotificationRecipients`.
-- Report summary endpoint for dashboard totals and top courses.
+- Đăng nhập theo vai trò từ bảng `Users` + `Roles`.
+- Trang riêng theo vai trò:
+  - Admin: `/admin/home`
+  - Teacher: `/teacher/home`
+  - Student: `/student/home`
+- Dashboard quản trị: `/dashboard`.
+- CRUD học viên, giảng viên, khóa học, lớp học, ghi danh.
+- Quản lý học phí (`Tuitions`) và biên lai (`Receipts`).
+- Quản lý điểm (`ScoreTypes`, `Scores`).
+- Thông báo (`Notifications`, `NotificationRecipients`).
 
-## Project Structure
+## 2) Cấu Trúc Dự Án
 
 ```text
 BTL_API/
 ├─ app.py
 ├─ db.py
-├─ QLSV_TrungTamTinHoc.sql
+├─ Dockerfile
+├─ docker-compose.yml
+├─ .gitignore
+├─ .dockerignore
+├─ .env.example
+├─ .env.docker.example
+├─ database/
+│  ├─ QLSV_TrungTamTinHoc.sql
+│  └─ ...
+├─ docker/
+│  └─ db-init/
+│     └─ init-db.sh
 ├─ models/
-│  └─ auth_model.py
 ├─ routes/
-│  └─ auth_routes.py
 ├─ templates/
-│  ├─ login.html
-│  ├─ admin_home.html
-│  ├─ teacher_home.html
-│  ├─ student_home.html
-│  └─ dashboard.html
 └─ static/
-   ├─ css/style.css
-   ├─ css/auth_pages.css
-   └─ js/dashboard.js
 ```
 
-## Database Setup
+## 3) Xử Lý Việc Push Nhầm `.env` Lên Git
 
-1. Open SQL Server Management Studio.
-2. Run `QLSV_TrungTamTinHoc.sql`.
-3. Confirm the database name is `QLSV_TrungTamTinHoc`.
-4. (Khuyến nghị) Run `seed_mock_teachers_students.sql` để thêm dữ liệu ảo giáo viên/học sinh và sửa lệch role-profile của `teacher01` / `student01`.
+Bạn đã có `.gitignore` để bỏ qua file nhạy cảm (`.env`, `.env.*`, trừ `.env.example` và `.env.docker.example`).
 
-The project no longer targets the older `QLSV_TrungTamTinHoc_` schema.
+### Bước 1: Ngừng track `.env` và các file rác đã lỡ lên repo
 
-## Environment
+Chạy trong thư mục dự án:
 
-Create a virtual environment and install dependencies:
+```powershell
+git rm --cached .env
+git rm --cached -r __pycache__
+git rm --cached -r .venv
+git rm --cached -r .vs
+```
+
+Nếu có thư mục không track thì Git có thể báo lỗi cho thư mục đó, bạn có thể bỏ qua.
+
+### Bước 2: Commit thay đổi
+
+```powershell
+git add .gitignore
+git commit -m "chore: ignore local env and build artifacts"
+git push
+```
+
+### Bước 3: Bắt buộc xoay vòng secret
+
+Vì `.env` đã từng bị push:
+
+- Đổi `FLASK_SECRET_KEY`.
+- Nếu đã dùng `DB_USER`/`DB_PASSWORD`, đổi luôn mật khẩu DB.
+- Tạo lại `.env` local theo secret mới.
+
+### Bước 4 (tuỳ chọn): Xoá hẳn `.env` khỏi lịch sử git
+
+Nếu repo đã public hoặc có nhiều người truy cập, nên làm thêm bước rewrite history bằng `git filter-repo` hoặc BFG. Đây là thao tác nâng cao, cần thống nhất với team trước khi force push.
+
+## 4) Cách 1 - Chạy Local (không Docker)
+
+### 4.1 Cài dependencies
 
 ```powershell
 python -m venv .venv
@@ -59,72 +86,128 @@ python -m venv .venv
 pip install -r requirements.txt
 ```
 
-Configure SQL Server connection variables:
+### 4.2 Chuẩn bị `.env`
 
-```powershell
-$env:DB_DRIVER="ODBC Driver 17 for SQL Server"
-$env:DB_SERVER="localhost"
-$env:DB_NAME="QLSV_TrungTamTinHoc"
-$env:DB_TRUSTED_CONNECTION="yes"
-$env:FLASK_SECRET_KEY="change-this-to-random-text"
+Tạo file `.env` từ `.env.example` và chỉnh giá trị phù hợp máy local:
+
+```env
+DB_DRIVER=ODBC Driver 17 for SQL Server
+DB_SERVER=localhost\SQLEXPRESS
+DB_NAME=QLSV_TrungTamTinHoc
+DB_TRUSTED_CONNECTION=yes
+FLASK_SECRET_KEY=change-this-to-random-text
 ```
 
-For SQL Server authentication:
-
-```powershell
-$env:DB_TRUSTED_CONNECTION="no"
-$env:DB_USER="sa"
-$env:DB_PASSWORD="your_password"
-```
-
-## Run
+### 4.3 Chạy app
 
 ```powershell
 python app.py
 ```
 
-Open:
+Mở:
 
 - `http://127.0.0.1:5000/login`
-- `http://127.0.0.1:5000/home` (auto redirect by role)
+- `http://127.0.0.1:5000/home`
 - `http://127.0.0.1:5000/dashboard`
 - `http://127.0.0.1:5000/api/health`
 
-## Login Test Accounts (from provided SQL)
+## 5) Cách 2 - Chạy Bằng Docker (app + SQL Server)
+
+Mục tiêu: khách hàng chỉ cần Docker Desktop, không cần cài SQL Server riêng và không cần tự chạy script DB bằng tay.
+
+### 5.1 Điều kiện
+
+- Đã cài Docker Desktop.
+- Bật Docker engine và đảm bảo lệnh `docker compose` chạy được.
+
+### 5.2 Tạo file env cho Docker
+
+Copy file mẫu:
+
+```powershell
+Copy-Item .env.docker.example .env.docker
+```
+
+Mở `.env.docker` và chỉnh:
+
+```env
+MSSQL_SA_PASSWORD=YourStrong!Passw0rd
+DB_NAME=QLSV_TrungTamTinHoc
+FLASK_SECRET_KEY=change-this-to-a-random-secret
+APP_PORT=5000
+MSSQL_PORT=1433
+```
+
+Lưu ý:
+
+- `MSSQL_SA_PASSWORD` phải đủ mạnh theo policy của SQL Server.
+- Không commit `.env.docker` lên git.
+
+### 5.3 Build và chạy toàn bộ stack
+
+```powershell
+docker compose --env-file .env.docker up -d --build
+```
+
+Stack gồm 3 service:
+
+- `db`: SQL Server 2022.
+- `db-init`: chờ DB sẵn sàng rồi import `database/QLSV_TrungTamTinHoc.sql` (chỉ khi DB chưa khởi tạo).
+- `web`: Flask API kết nối vào `db` qua network nội bộ Docker.
+
+### 5.4 Kiểm tra container
+
+```powershell
+docker compose ps
+docker compose logs -f db-init
+docker compose logs -f web
+```
+
+Khi `db-init` báo `Database initialization completed` hoặc `already initialized`, có thể truy cập app:
+
+- `http://127.0.0.1:5000/login`
+- `http://127.0.0.1:5000/api/health`
+
+### 5.5 Tài khoản test
 
 - Admin: `admin` / `admin@123`
 - Teacher: `hung.dq` / `123456`
 - Student: `tien.nm` / `123456`
 
-The app supports both plain text passwords and bcrypt hashes in `Users.PasswordHash`.
+### 5.6 Dừng hệ thống
 
-## API Groups
+```powershell
+docker compose down
+```
 
-- `POST /login` (form login)
-- `POST /logout` (form logout)
-- `POST /api/auth/login`
-- `POST /api/auth/logout`
-- `GET /api/auth/me`
+### 5.7 Xoá toàn bộ dữ liệu DB Docker và khởi tạo lại từ đầu
+
+```powershell
+docker compose down -v
+docker compose --env-file .env.docker up -d --build
+```
+
+Lệnh `down -v` sẽ xoá volume `sqlserver_data`, lần chạy tiếp theo `db-init` sẽ import DB mới lại từ script SQL.
+
+## 6) API Nhóm Chính
+
+- `POST /login`, `POST /logout`
+- `POST /api/auth/login`, `POST /api/auth/logout`, `GET /api/auth/me`
 - `GET/POST/PUT/DELETE /api/students`
-- `GET /api/students/statuses`
-- `GET /api/teachers`
+- `GET/POST/PUT/DELETE /api/teachers`
 - `GET/POST/PUT/DELETE /api/courses`
 - `GET/POST/PUT/DELETE /api/classes`
-- `GET /api/classes/schedules`
-- `GET /api/classes/rooms`
 - `GET/POST /api/enrollments`
 - `GET /api/tuitions`
-- `POST /api/payments`
-- `GET /api/payments/receipts`
+- `POST /api/payments`, `GET /api/payments/receipts`
 - `GET/POST /api/scores`
-- `GET /api/scores/types`
 - `GET/POST /api/notifications`
 - `GET /api/reports/summary`
 
-## Notes
+## 7) Troubleshooting Nhanh
 
-- Creating a student also creates the linked `Users` row with role `Student`.
-- Creating an enrollment also creates a `Tuitions` row using the class course fee.
-- Recording a payment updates `Tuitions.AmountPaid`, recalculates tuition status, and inserts a `Receipts` row.
-- Authorization for role pages is enforced through server-side session (`login_required` and `role_required`).
-- `/dashboard` is restricted to `Admin` role.
+- `Login failed do DB`: kiểm tra `docker compose logs web` và `docker compose logs db`.
+- `db-init fail`: thường do password SQL yếu hoặc script SQL lỗi.
+- `Port 5000 bị chiếm`: đổi `APP_PORT` trong `.env.docker`.
+- `Port 1433 bị chiếm`: đổi `MSSQL_PORT` trong `.env.docker`.
+- `Đổi script seed/schema`: cập nhật file trong `database/` rồi chạy lại với `docker compose down -v`.

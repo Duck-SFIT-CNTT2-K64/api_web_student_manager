@@ -1,0 +1,20 @@
+# Git and local metadata
+.git
+.gitignore
+.vs
+.vscode
+.idea
+
+# Python virtual envs and cache
+.venv
+venv
+__pycache__
+*.py[cod]
+
+# Local runtime files
+.env
+.env.*
+*.log
+
+# Misc
+README.md
