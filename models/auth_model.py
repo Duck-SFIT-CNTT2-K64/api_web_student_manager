@@ -267,9 +267,9 @@ def get_student_home_data(user_id: int) -> Dict[str, Any]:
 def get_navigation_path_by_role(role_name: Optional[str]) -> str:
     role = (role_name or "").strip().lower()
     if role == "admin":
-        return "/admin/home"
+        return "/"
     if role == "teacher":
-        return "/teacher/home"
+        return "/"
     if role == "student":
         return "/student/home"
     return "/login"
