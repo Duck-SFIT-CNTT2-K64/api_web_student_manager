@@ -11,6 +11,8 @@ const state = {
     scoreTypes: [],
     notifications: [],
     users: [],
+    class_schedules: [],
+    me: null,
 };
 
 const endpoints = {
@@ -26,6 +28,7 @@ const endpoints = {
     scoreTypes: "/api/scores/types",
     notifications: "/api/notifications",
     users: "/api/users",
+    class_schedules: "/api/schedules",
 };
 
 const globalMessage = document.getElementById("globalMessage");
@@ -87,7 +90,7 @@ function showCredentialModal(teacherName, username, password) {
         '<strong id="credPassword" style="color:var(--success,#22c55e);letter-spacing:.5px">' + escapeHtml(password) + '</strong>' +
         '</div>' +
         '</div>' +
-        '<p style="font-size:.8rem;color:var(--text-muted,#94a3b8);margin-bottom:18px">\u26a0\uFE0F Sao chép và gửi cho giảng viên. Thông tin này không hiển thị lại.</p>' +
+        '<p style="font-size:.8rem;color:var(--text-muted,#94a3b8);margin-bottom:18px">\u26a0\uFE0F Sao chép và gửi cho người dùng</p>' +
         '<div style="display:flex;gap:10px">' +
         '<button id="credCopyBtn" style="flex:1;padding:9px 0;border-radius:8px;border:none;background:var(--primary,#6366f1);color:#fff;cursor:pointer;font-size:.9rem"><i class="fas fa-copy"></i> Sao chép</button>' +
         '<button id="credCloseBtn" style="flex:1;padding:9px 0;border-radius:8px;border:1px solid var(--border,#2d3550);background:transparent;color:var(--text,#e2e8f0);cursor:pointer;font-size:.9rem">\u0110óng</button>' +
@@ -374,6 +377,10 @@ function renderTeachers() {
         state.teachers
             .map(function (t) {
                 var searchText = escapeHtml((t.TeacherCode + " " + t.FullName + " " + t.Email + " " + (t.Specialization || "")).toLowerCase());
+                var btnGenerateAccount = !t.UserId
+                    ? '<button class="btn-icon" style="color:var(--primary)" title="Cấp tài khoản tự động" data-generate-teacher-account="' + t.TeacherId + '"><i class="fas fa-user-plus"></i></button> '
+                    : '<span title="Đã có tài khoản" style="color:var(--success);display:inline-block;padding:6px;font-size:.9rem"><i class="fas fa-check-circle"></i></span> ';
+
                 return '<tr data-search="' + searchText + '">' +
                     "<td><strong>" + escapeHtml(t.TeacherCode) + "</strong></td>" +
                     "<td>" + escapeHtml(t.FullName) + "</td>" +
@@ -381,6 +388,7 @@ function renderTeachers() {
                     "<td>" + escapeHtml(t.Specialization || "—") + "</td>" +
                     "<td>" + escapeHtml(t.ClassCount || 0) + " lớp / " + escapeHtml(t.StudentCount || 0) + " HV</td>" +
                     "<td>" + badge(t.AccountStatus) + "</td>" +
+                    "<td>" + btnGenerateAccount + "</td>" +
                     '<td style="white-space:nowrap">' +
                     '<button class="btn-icon edit" title="Sửa" data-edit-teacher="' + t.TeacherId + '"><i class="fas fa-edit"></i></button> ' +
                     '<button class="btn-icon del" title="Xóa" data-delete-teacher="' + t.TeacherId + '"><i class="fas fa-trash-alt"></i></button>' +
@@ -420,11 +428,22 @@ function renderUsers() {
         var toggleLabel = isActive ? "Khóa" : "Mở";
         var toggleIcon = isActive ? "fa-lock" : "fa-lock-open";
         var toggleClass = isActive ? "btn-icon del" : "btn-icon edit";
+
+        // Chỉ hiện nút sửa vai trò nếu user đó KHÔNG PHẢI là tài khoản đang đăng nhập
+        var currentMeId = state.me ? String(state.me.UserId || state.me.userid || "") : "";
+        var rowUserId = String(u.UserId || "");
+        var isSelf = currentMeId !== "" && currentMeId === rowUserId;
+
+        if (isSelf) console.log("Detected self: ", u.Username, "ID:", rowUserId);
+
+        var roleEditBtn = isSelf ? "" : (" <button class='btn-icon edit-role' title='Sửa vai trò' data-user-role='" + u.UserId + "' data-current-role='" + u.RoleId + "'><i class='fas fa-pen'></i></button>");
+
         return "<tr>" +
             "<td><strong>" + escapeHtml(u.Username) + "</strong></td>" +
             "<td>" + escapeHtml(u.FullName || "—") + "</td>" +
             "<td style='font-size:.85rem'>" + escapeHtml(u.Email || "—") + "</td>" +
-            "<td><span style='background:" + roleColor + "22;color:" + roleColor + ";padding:3px 10px;border-radius:20px;font-size:.8rem;font-weight:600'>" + escapeHtml(u.RoleName || "—") + "</span></td>" +
+            "<td><span style='background:" + roleColor + "22;color:" + roleColor + ";padding:3px 10px;border-radius:20px;font-size:.8rem;font-weight:600'>" + escapeHtml(u.RoleName || "—") + "</span>" +
+            roleEditBtn + "</td>" +
             "<td>" + badge(u.Status) + "</td>" +
             "<td style='white-space:nowrap'>" +
             "<button class='btn-icon edit' title='Đổi mật khẩu' data-user-pwd='" + u.UserId + "' data-user-name='" + escapeHtml(u.FullName || u.Username) + "'><i class='fas fa-key'></i></button> " +
@@ -478,6 +497,20 @@ function renderOptions() {
         function (item) { return item.StudentCode + " - " + item.ClassName + " còn " + formatMoney(item.RemainingAmount); }
     );
 
+    fillSelect(
+        document.getElementById("class_scheduleClassSelect"),
+        state.classes,
+        "ClassId",
+        function (item) { return item.ClassCode + " - " + item.ClassName; }
+    );
+    fillSelect(
+        document.getElementById("class_scheduleRoomSelect"),
+        state.rooms,
+        "RoomId",
+        function (item) { return item.RoomName; },
+        true
+    );
+
     syncPaymentAmountLimit();
 }
 
@@ -493,6 +526,7 @@ function renderAll() {
     renderScores();
     renderNotifications();
     renderUsers();
+    renderClassSchedules();
     renderOptions();
 }
 
@@ -504,6 +538,10 @@ async function loadAll() {
                 state[entry[0]] = await getJson(entry[1]);
             })
         );
+        // Lấy thêm thông tin tài khoản hiện tại
+        state.me = await getJson("/api/auth/me");
+        console.log("Current User (state.me):", state.me);
+
         renderAll();
         setMessage(globalMessage, "Dữ liệu đã được cập nhật.", "success");
     } catch (error) {
@@ -531,9 +569,18 @@ function bindForms() {
                 setMessage(document.getElementById("studentMessage"), "Đã cập nhật sinh viên.", "success");
                 resetFormState("studentForm", "studentFormTitle", "Thêm sinh viên", "Lưu sinh viên");
             } else {
-                await sendJson("/api/students", "POST", studentPayload);
+                const newStudent = await sendJson("/api/students", "POST", studentPayload);
                 form.reset();
                 setMessage(document.getElementById("studentMessage"), "Đã thêm sinh viên.", "success");
+
+                if (newStudent && newStudent._loginUsername && newStudent._loginPassword) {
+                    showCredentialModal(
+                        newStudent.FullName,
+                        newStudent._loginUsername,
+                        newStudent._loginPassword
+                    );
+                }
+
             }
             await loadAll();
         } catch (error) {
@@ -558,20 +605,6 @@ function bindForms() {
 
     var teacherFormEl = document.getElementById("teacherForm");
     if (teacherFormEl) {
-        var teacherLastNameInput = teacherFormEl.elements["LastName"];
-        var teacherFirstNameInput = teacherFormEl.elements["FirstName"];
-        var teacherUsernameInput = teacherFormEl.elements["Username"];
-
-        var handleTeacherNameChange = function () {
-            var editId = teacherFormEl.elements["EditId"].value;
-            if (!editId) { // Chỉ tự sinh khi tạo mới
-                teacherUsernameInput.value = generateUsername(teacherLastNameInput.value, teacherFirstNameInput.value);
-            }
-        };
-
-        if (teacherLastNameInput) teacherLastNameInput.addEventListener("input", handleTeacherNameChange);
-        if (teacherFirstNameInput) teacherFirstNameInput.addEventListener("input", handleTeacherNameChange);
-
         teacherFormEl.addEventListener("submit", async function (event) {
             event.preventDefault();
             var form = event.currentTarget;
@@ -771,6 +804,34 @@ function bindForms() {
         }
     });
 
+    var class_scheduleFormEl = document.getElementById("class_scheduleForm");
+    if (class_scheduleFormEl) class_scheduleFormEl.addEventListener("submit", async function (event) {
+        event.preventDefault();
+        var form = event.currentTarget;
+        try {
+            var payload = readForm(form);
+            var editId = payload.EditId;
+            delete payload.EditId;
+            setNumeric(payload, ["ClassId", "RoomId"]);
+
+            var validationError = validateClassSchedulePayload(payload);
+            if (validationError) throw new Error(validationError);
+
+            if (editId) {
+                await sendJson("/api/schedules/" + editId, "PUT", payload);
+                setMessage(document.getElementById("class_scheduleMessage"), "Đã cập nhật lịch học.", "success");
+                resetFormState("class_scheduleForm", "class_scheduleFormTitle", "Thêm lịch học", "Lưu lịch");
+            } else {
+                await sendJson("/api/schedules", "POST", payload);
+                form.reset();
+                setMessage(document.getElementById("class_scheduleMessage"), "Đã thêm lịch học.", "success");
+            }
+            await loadAll();
+        } catch (error) {
+            setMessage(document.getElementById("class_scheduleMessage"), error.message, "error");
+        }
+    });
+
     var notificationFormEl = document.getElementById("notificationForm");
     if (notificationFormEl) notificationFormEl.addEventListener("submit", async function (event) {
         event.preventDefault();
@@ -810,7 +871,8 @@ function bindDeletes() {
         var roomButton = event.target.closest("[data-delete-room]");
         var scoreButton = event.target.closest("[data-delete-score]");
         var notifButton = event.target.closest("[data-delete-notification]");
-        var target = studentButton || teacherButton || courseButton || classButton || roomButton || scoreButton || notifButton;
+        var scheduleButton = event.target.closest("[data-delete-schedule]");
+        var target = studentButton || teacherButton || courseButton || classButton || roomButton || scoreButton || notifButton || scheduleButton;
         if (!target) return;
 
         var config;
@@ -821,6 +883,7 @@ function bindDeletes() {
         else if (roomButton) config = ["/api/rooms/", roomButton.dataset.deleteRoom, "phòng học"];
         else if (scoreButton) config = ["/api/scores/", scoreButton.dataset.deleteScore, "điểm số"];
         else if (notifButton) config = ["/api/notifications/", notifButton.dataset.deleteNotification, "thông báo"];
+        else if (scheduleButton) config = ["/api/schedules/", scheduleButton.dataset.deleteSchedule, "lịch học"];
 
         if (!window.confirm("Xóa " + config[2] + " này?")) return;
 
@@ -964,6 +1027,24 @@ function bindEdits() {
                 document.getElementById("notificationFormTitle").scrollIntoView({ behavior: "smooth", block: "start" });
             }
         }
+
+        var scheduleBtn = event.target.closest("[data-edit-schedule]");
+        if (scheduleBtn) {
+            var id = Number(scheduleBtn.dataset.editSchedule);
+            var schedule = state.class_schedules.find(function (s) { return s.ScheduleId === id; });
+            if (schedule) {
+                var form = document.getElementById("class_scheduleForm");
+                form.elements["EditId"].value = schedule.ScheduleId;
+                form.elements["ClassId"].value = schedule.ClassId || "";
+                form.elements["RoomId"].value = schedule.RoomId || "";
+                form.elements["Weekday"].value = schedule.Weekday || "";
+                form.elements["StartTime"].value = schedule.StartTime || "";
+                form.elements["EndTime"].value = schedule.EndTime || "";
+
+                setFormEditMode("class_scheduleForm", "class_scheduleFormTitle", "Sửa lịch học", "Cập nhật lịch");
+                document.getElementById("class_scheduleFormTitle").scrollIntoView({ behavior: "smooth", block: "start" });
+            }
+        }
     });
 
     document.querySelectorAll(".cancel-btn").forEach(function (btn) {
@@ -982,6 +1063,9 @@ function bindEdits() {
             if (formId === "notificationForm") {
                 resetFormState("notificationForm", "notificationFormTitle", "Tạo thông báo", "Gửi thông báo");
                 if (form.elements["Audience"]) form.elements["Audience"].disabled = false;
+            }
+            if (formId === "class_scheduleForm") {
+                resetFormState("class_scheduleForm", "class_scheduleFormTitle", "Thêm lịch học", "Lưu lịch");
             }
         });
     });
@@ -1018,6 +1102,7 @@ function bindSearch() {
         ["courseSearch", "coursesTableBody"],
         ["classSearch", "classesTableBody"],
         ["roomSearch", "roomsTableBody"],
+        ["class_scheduleSearch", "class_schedulesTableBody"],
     ].forEach(function (pair) {
         var input = document.getElementById(pair[0]);
         var tbody = document.getElementById(pair[1]);
@@ -1098,14 +1183,11 @@ function bindNavigation() {
 function validateTeacherPayload(payload, editId) {
     var firstName = String(payload.FirstName || "").trim();
     var lastName = String(payload.LastName || "").trim();
-    var username = String(payload.Username || "").trim().toLowerCase();
     var email = String(payload.Email || "").trim().toLowerCase();
     var phone = String(payload.PhoneNumber || "").trim();
 
     if (!firstName) return "Tên giảng viên là bắt buộc.";
     if (!lastName) return "Họ giảng viên là bắt buộc.";
-    if (!username) return "Username là bắt buộc.";
-    if (!/^[a-z0-9_]+$/.test(username)) return "Username chỉ chứa chữ thường, số và dấu gạch dưới.";
 
     if (!editId) {
         // Chỉ bắt buộc email khi thêm mới
@@ -1116,10 +1198,6 @@ function validateTeacherPayload(payload, editId) {
         });
         if (emailExists) return "Email này đã được sử dụng.";
 
-        var usernameExists = state.teachers.some(function (t) {
-            return String(t.Username || "").trim().toLowerCase() === username;
-        });
-        if (usernameExists) return "Username này đã tồn tại.";
     }
 
     if (phone) {
@@ -1297,6 +1375,14 @@ function validateNotificationPayload(payload) {
 }
 
 
+function validateClassSchedulePayload(payload) {
+    if (!payload.ClassId) return "Vui lòng chọn lớp học.";
+    if (!payload.Weekday) return "Vui lòng chọn ngày trong tuần.";
+    if (!payload.StartTime || !payload.EndTime) return "Vui lòng nhập đầy đủ giờ bắt đầu và kết thúc.";
+    if (payload.StartTime >= payload.EndTime) return "Giờ bắt đầu phải trước giờ kết thúc.";
+    return "";
+}
+
 function syncPaymentAmountLimit() {
     var select = document.getElementById("paymentTuitionSelect");
     var amountInput = document.querySelector("#paymentForm input[name='Amount']");
@@ -1347,6 +1433,55 @@ document.addEventListener("DOMContentLoaded", function () {
     var pwdMsg = document.getElementById("pwdModalMsg");
     var pwdName = document.getElementById("pwdModalName");
     var currentPwdUserId = null;
+
+    var roleModal = document.getElementById("roleModal");
+    var roleModalName = document.getElementById("roleModalName");
+    var roleModalSelect = document.getElementById("roleModalSelect");
+    var roleModalMsg = document.getElementById("roleModalMsg");
+    var currentRoleUserId = null;
+
+    function openRoleModal(userId, currentRoleId) {
+        currentRoleUserId = userId;
+        // Tìm tên user để hiển thị
+        var user = state.users.find(u => u.UserId == userId);
+        roleModalName.textContent = "Tài khoản: " + (user ? (user.FullName || user.Username) : userId);
+        roleModalSelect.value = currentRoleId;
+        roleModalMsg.textContent = "";
+        roleModal.style.display = "flex";
+    }
+
+    function closeRoleModal() {
+        roleModal.style.display = "none";
+        currentRoleUserId = null;
+    }
+
+    document.getElementById("roleModalClose").addEventListener("click", closeRoleModal);
+    if (roleModal) roleModal.addEventListener("click", function (e) { if (e.target === roleModal) closeRoleModal(); });
+
+    document.getElementById("roleModalSave").addEventListener("click", async function () {
+        var newRoleId = roleModalSelect.value;
+        if (!newRoleId) return;
+        try {
+            await sendJson("/api/users/" + currentRoleUserId + "/role", "PUT", { RoleId: parseInt(newRoleId) });
+            roleModalMsg.textContent = "Đã cập nhật vai trò!";
+            roleModalMsg.className = "message success";
+            setTimeout(closeRoleModal, 1000);
+            await loadAll(); // refresh lại toàn bộ
+        } catch (err) {
+            roleModalMsg.textContent = err.message;
+            roleModalMsg.className = "message error";
+        }
+    });
+
+    // Xử lý click vào nút edit-role
+    document.body.addEventListener("click", function (e) {
+        var roleBtn = e.target.closest("[data-user-role]");
+        if (roleBtn) {
+            var userId = roleBtn.dataset.userRole;
+            var currentRoleId = roleBtn.dataset.currentRole;
+            openRoleModal(userId, currentRoleId);
+        }
+    });
 
     function openPwdModal(userId, name) {
         currentPwdUserId = userId;
@@ -1420,28 +1555,124 @@ document.addEventListener("DOMContentLoaded", function () {
         var generateBtn = event.target.closest("[data-generate-account]");
         if (generateBtn) {
             var studentId = generateBtn.dataset.generateAccount;
+            var row = generateBtn.closest("tr");
+            var fullName = row.cells[1].textContent;
 
-            if (!window.confirm("Bạn có chắc muốn tự động tạo tài khoản cho sinh viên này?\nUsername: Mã SV\nMật khẩu mặc định: Student@123")) {
-                return;
-            }
+            if (!window.confirm("Bạn có chắc muốn tự động tạo tài khoản cho sinh viên này?")) return;
 
             try {
-                // Gọi API cấp tài khoản. (Đảm bảo backend có endpoint này)
-                var response = await fetch("/api/users/generate/student/" + studentId, {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" }
-                });
-
-                var result = await parseResponse(response); // Tận dụng hàm parseResponse có sẵn của bạn
-
-                // Hiển thị thông báo thành công
-                alert(result.message || "Cấp tài khoản thành công!");
-
-                // Tải lại toàn bộ dữ liệu để bảng Sinh viên và bảng Users được cập nhật
+                var result = await sendJson("/api/users/generate/student/" + studentId, "POST");
                 await loadAll();
+                if (result.username && result.password) {
+                    showCredentialModal(fullName, result.username, result.password);
+                } else if (result.data) {
+                    showCredentialModal(fullName, result.data.username, result.data.password);
+                }
             } catch (error) {
                 alert("Lỗi khi cấp tài khoản: " + error.message);
             }
         }
     });
+
+    // === Xử lý Cấp tài khoản tự động cho Giảng viên ===
+    document.body.addEventListener("click", async function (event) {
+        var generateBtn = event.target.closest("[data-generate-teacher-account]");
+        if (generateBtn) {
+            var teacherId = generateBtn.dataset.generateTeacherAccount;
+            var row = generateBtn.closest("tr");
+            var fullName = row.cells[1].textContent;
+
+            if (!window.confirm("Bạn có chắc muốn tự động tạo tài khoản cho giảng viên này?")) return;
+
+            try {
+                var result = await sendJson("/api/users/generate/teacher/" + teacherId, "POST");
+                await loadAll();
+                if (result.username && result.password) {
+                    showCredentialModal(fullName, result.username, result.password);
+                } else if (result.data) {
+                    showCredentialModal(fullName, result.data.username, result.data.password);
+                }
+            } catch (error) {
+                alert("Lỗi khi cấp tài khoản: " + error.message);
+            }
+        }
+    });
+
+    loadAll();
+    // ... handles for student/teacher generate account ...
 });
+
+function renderClassSchedules() {
+    var body = document.getElementById("class_schedulesCalendarBody");
+    if (!body) return;
+    body.innerHTML = "";
+
+    // 1. Tạo các nhãn thời gian và đường lưới (7h - 22h)
+    for (var h = 7; h <= 21; h++) {
+        var timeLabel = document.createElement("div");
+        timeLabel.className = "calendar-time-label";
+        timeLabel.style.gridRowStart = (h - 7) * 4 + 1;
+        timeLabel.style.gridRowEnd = (h - 7) * 4 + 5;
+        timeLabel.textContent = h + ":00";
+        body.appendChild(timeLabel);
+
+        var gridLine = document.createElement("div");
+        gridLine.className = "calendar-grid-line";
+        gridLine.style.gridRowStart = (h - 7) * 4 + 1;
+        body.appendChild(gridLine);
+    }
+
+    // 2. Map Thứ sang Cột
+    var dayMap = {
+        "Thứ 2": 2, "Monday": 2,
+        "Thứ 3": 3, "Tuesday": 3,
+        "Thứ 4": 4, "Wednesday": 4,
+        "Thứ 5": 5, "Thursday": 5,
+        "Thứ 6": 6, "Friday": 6,
+        "Thứ 7": 7, "Saturday": 7,
+        "Chủ Nhật": 8, "Sunday": 8
+    };
+
+    // 3. Render các mục lịch học
+    state.class_schedules.forEach(function (s, idx) {
+        var col = dayMap[s.Weekday];
+        if (!col) return;
+
+        // Tính toán hàng (Mỗi hàng 15ph)
+        function timeToRow(timeStr) {
+            if (!timeStr) return 1;
+            var parts = timeStr.split(":");
+            var hour = parseInt(parts[0]);
+            var min = parseInt(parts[1]);
+            // baseline là 7:00
+            return ((hour - 7) * 4 + Math.floor(min / 15)) + 1;
+        }
+
+        var rowStart = timeToRow(s.StartTime);
+        var rowEnd = timeToRow(s.EndTime);
+
+        // Giới hạn trong khung 7h-22h (row 1-61)
+        if (rowStart < 1) rowStart = 1;
+        if (rowEnd > 61) rowEnd = 61;
+        if (rowStart >= rowEnd) return;
+
+        var colorIdx = (idx % 7) + 1;
+        var item = document.createElement("div");
+        item.className = "calendar-item cal-bg-" + colorIdx;
+        item.style.setProperty("--col", col);
+        item.style.setProperty("--row-start", rowStart);
+        item.style.setProperty("--row-end", rowEnd);
+
+        item.innerHTML =
+            "<strong>" + escapeHtml(s.ClassName) + "</strong>" +
+            "<span><i class='fas fa-clock'></i> " + escapeHtml(s.StartTime) + " - " + escapeHtml(s.EndTime) + "</span>" +
+            "<span><i class='fas fa-map-marker-alt'></i> " + escapeHtml(s.RoomName || "N/A") + "</span>" +
+            "<span><i class='fas fa-user'></i> " + escapeHtml(s.TeacherName || "N/A") + "</span>" +
+            "<div class='actions'>" +
+            "<button title='Sửa' data-edit-schedule='" + s.ScheduleId + "'><i class='fas fa-pen'></i></button>" +
+            "<button title='Xóa' data-delete-schedule='" + s.ScheduleId + "'><i class='fas fa-trash'></i></button>" +
+            "</div>";
+
+        body.appendChild(item);
+    });
+}
