@@ -23,6 +23,9 @@
 <a href="/dashboard#rooms" class="nav-item">
     <i class="fas fa-door-open"></i><span>Phòng học</span>
 </a>
+<a href="/dashboard#class_schedules" class="nav-item">
+    <i class="fas fa-calendar-alt"></i><span>Lịch học</span>
+</a>
 <a href="/dashboard#enrollments" class="nav-item">
     <i class="fas fa-user-plus"></i><span>Ghi danh</span>
 </a>
@@ -36,7 +39,7 @@
     <i class="fas fa-bell"></i><span>Thông báo</span>
 </a>
 <a href="/dashboard#users" class="nav-item">
-    <i class="fas fa-user"></i><span>Tài khoản</span>
+    <i class="fas fa-user"></i><span>Người dùng</span>
 </a>
 {% endblock %}
 
@@ -80,6 +83,13 @@
             <div class="gc-info">
                 <div class="gc-label">Tổng lớp học</div>
                 <div class="gc-value">{{ summary.TotalClasses or 0 }}</div>
+            </div>
+        </div>
+        <div class="gradient-card gc-cyan">
+            <div class="gc-icon"><i class="fas fa-door-open"></i></div>
+            <div class="gc-info">
+                <div class="gc-label">Tổng phòng học</div>
+                <div class="gc-value">{{ summary.TotalRooms or 0 }}</div>
             </div>
         </div>
         <div class="gradient-card gc-green">
