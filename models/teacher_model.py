@@ -93,7 +93,7 @@ def create_teacher(payload: Dict[str, Any]) -> Dict[str, Any]:
     email = (payload.get("Email") or "").strip()
     phone = (payload.get("PhoneNumber") or "").strip() or None
     specialization = (payload.get("Specialization") or "").strip() or None
-    password_raw = (payload.get("Password") or "Teacher@123").strip()
+    password_raw = (payload.get("Password") or "123456").strip()
     username = (payload.get("Username") or "").strip().lower()
 
     if not first_name:
@@ -102,10 +102,6 @@ def create_teacher(payload: Dict[str, Any]) -> Dict[str, Any]:
         raise ValueError("Họ giảng viên là bắt buộc.")
     if not email:
         raise ValueError("Email giảng viên là bắt buộc.")
-    if not username:
-        raise ValueError("Username là bắt buộc.")
-    if not re.match(r"^[a-z0-9_]+$", username):
-        raise ValueError("Username chỉ chứa chữ thường, số và dấu gạch dưới.")
 
     password_hash = bcrypt.hashpw(password_raw.encode("utf-8"), bcrypt.gensalt()).decode("utf-8")
 
@@ -114,6 +110,10 @@ def create_teacher(payload: Dict[str, Any]) -> Dict[str, Any]:
 
         # Sinh mã giảng viên tự động
         teacher_code = _generate_teacher_code(cursor)
+        
+        # Nếu chưa có username thì lấy mã GV làm username
+        if not username:
+            username = teacher_code.lower()
 
         # Lấy RoleId cho giảng viên (tránh dùng số cứng 3)
         role_id = _get_role_id(cursor, "Teacher")

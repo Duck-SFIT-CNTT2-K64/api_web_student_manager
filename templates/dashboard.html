@@ -26,6 +26,9 @@
 <a href="#rooms" class="nav-item">
     <i class="fas fa-door-open"></i><span>Phòng học</span>
 </a>
+<a href="#class_schedules" class="nav-item">
+    <i class="fas fa-calendar-alt"></i><span>Lịch học</span>
+</a>
 <a href="#enrollments" class="nav-item">
     <i class="fas fa-user-plus"></i><span>Ghi danh</span>
 </a>
@@ -164,13 +167,11 @@
                 <input type="hidden" name="EditId" value="">
                 <label>Họ * <input name="LastName" required maxlength="50" placeholder="VD: Dương Yến"></label>
                 <label>Tên * <input name="FirstName" required maxlength="50" placeholder="VD: Nhi"></label>
-                <label>Username * <input name="Username" required maxlength="50" placeholder="VD: dynhi"></label>
                 <label>Email * <input name="Email" type="email" required maxlength="100"></label>
                 <label>Số điện thoại <input name="PhoneNumber" pattern="[0-9]{10,15}" maxlength="20"
                         title="Chỉ nhập số"></label>
                 <label>Chuyên ngành <input name="Specialization" maxlength="100"
                         placeholder="VD: Lập trình Web"></label>
-                <label>Mật khẩu <input name="Password" type="password" placeholder="Mặc định: Teacher@123"></label>
                 <div style="display:flex;gap:8px">
                     <button class="btn btn-primary submit-btn" type="submit"><i class="fas fa-save"></i> <span>Lưu giảng
                             viên</span></button>
@@ -350,6 +351,65 @@
                     </thead>
                     <tbody id="roomsTableBody"></tbody>
                 </table>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- ===== CLASS SCHEDULES ===== -->
+<section id="class_schedules" class="section">
+    <div class="section-heading">
+        <div>
+            <h2>Class schedules</h2>
+            <p>Manage class schedules.</p>
+        </div>
+    </div>
+    <div class="grid form-and-table">
+        <div class="panel">
+            <h3 id="class_scheduleFormTitle">Add schedule</h3>
+            <form id="class_scheduleForm" class="form-grid">
+                <input type="hidden" name="EditId" value="">
+                <label>Class <select name="ClassId" id="class_scheduleClassSelect" required></select></label>
+                <label>Room <select name="RoomId" id="class_scheduleRoomSelect"></select></label>
+                <label>Day <select name="Weekday" required>
+                        <option value="">Choose a day</option>
+                        <option value="Thứ 2">Monday</option>
+                        <option value="Thứ 3">Tuesday</option>
+                        <option value="Thứ 4">Wednesday</option>
+                        <option value="Thứ 5">Thursday</option>
+                        <option value="Thứ 6">Friday</option>
+                        <option value="Thứ 7">Saturday</option>
+                        <option value="Chủ Nhật">Sunday</option>
+                    </select></label>
+                <label>Start time * <input name="StartTime" type="time" required></label>
+                <label>End time * <input name="EndTime" type="time" required></label>
+                <div style="display:flex;gap:8px">
+                    <button class="btn btn-primary submit-btn" type="submit"><i class="fas fa-save"></i> <span>Save
+                            schedule</span></button>
+                    <button class="btn btn-outline cancel-btn" type="button" style="display:none"><i
+                            class="fas fa-times"></i> Cancel</button>
+                </div>
+            </form>
+            <p id="class_scheduleMessage" class="message"></p>
+        </div>
+        <div class="panel calendar-panel" style="min-width: 0;">
+            <div class="table-header">
+                <h3>Schedule list (7:00 - 22:00)</h3>
+            </div>
+            <div class="calendar-container">
+                <div class="calendar-header">
+                    <div class="calendar-header-day" style="border-left:none">Time</div>
+                    <div class="calendar-header-day">Mon</div>
+                    <div class="calendar-header-day">Tue</div>
+                    <div class="calendar-header-day">Wed</div>
+                    <div class="calendar-header-day">Thu</div>
+                    <div class="calendar-header-day">Fri</div>
+                    <div class="calendar-header-day">Sat</div>
+                    <div class="calendar-header-day">Sun</div>
+                </div>
+                <div id="class_schedulesCalendarBody" class="calendar-body">
+                    <!-- Được Render qua Javascript -->
+                </div>
             </div>
         </div>
     </div>
@@ -568,6 +628,29 @@
         <div style="display:flex;gap:10px">
             <button id="pwdModalSave" class="btn btn-primary" style="flex:1"><i class="fas fa-save"></i> Lưu</button>
             <button id="pwdModalClose"
+                style="flex:1;padding:9px 0;border-radius:8px;border:1px solid var(--border);background:transparent;color:var(--text);cursor:pointer">Hủy</button>
+        </div>
+    </div>
+</div>
+
+<!-- Modal thay đổi vai trò -->
+<div id="roleModal"
+    style="display:none;position:fixed;inset:0;z-index:9000;background:rgba(0,0,0,.55);backdrop-filter:blur(4px);align-items:center;justify-content:center">
+    <div
+        style="background:var(--surface,#1e2433);border:1px solid var(--border,#2d3550);border-radius:16px;padding:28px 32px;max-width:380px;width:90%;box-shadow:0 20px 50px rgba(0,0,0,.5)">
+        <h3 style="margin-bottom:16px;font-size:1rem"><i class="fas fa-user-tag"
+                style="color:var(--primary);margin-right:8px"></i>Thay đổi vai trò</h3>
+        <p id="roleModalName" style="font-size:.85rem;color:var(--text-muted);margin-bottom:16px"></p>
+        <select id="roleModalSelect"
+            style="width:100%;padding:9px 12px;border-radius:8px;border:1px solid var(--border);background:var(--surface-alt);color:var(--text);margin-bottom:12px">
+            <option value="1">Admin</option>
+            <option value="2">Teacher</option>
+            <option value="3">Student</option>
+        </select>
+        <p id="roleModalMsg" class="message" style="margin-bottom:12px"></p>
+        <div style="display:flex;gap:10px">
+            <button id="roleModalSave" class="btn btn-primary" style="flex:1"><i class="fas fa-save"></i> Lưu</button>
+            <button id="roleModalClose"
                 style="flex:1;padding:9px 0;border-radius:8px;border:1px solid var(--border);background:transparent;color:var(--text);cursor:pointer">Hủy</button>
         </div>
     </div>
