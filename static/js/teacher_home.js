@@ -230,6 +230,49 @@
         await Promise.all(tasks);
     }
 
+    function bindNavigation() {
+        var navItems = document.querySelectorAll(".sidebar-nav .nav-item");
+        if (!navItems.length) return;
+
+        function applyActiveState() {
+            var activeHash = window.location.hash;
+            if (!activeHash || !document.querySelector(activeHash)) {
+                activeHash = "#overview";
+            }
+
+            navItems.forEach(function (item) {
+                var href = item.getAttribute("href") || "";
+                item.classList.remove("active");
+                if (href === activeHash) {
+                    item.classList.add("active");
+                }
+            });
+
+            document.querySelectorAll(".section").forEach(function (sec) {
+                if ("#" + sec.id === activeHash) {
+                    sec.style.display = "block";
+                } else {
+                    sec.style.display = "none";
+                }
+            });
+
+            window.scrollTo(0, 0);
+        }
+
+        navItems.forEach(function (link) {
+            link.addEventListener("click", function () {
+                window.setTimeout(applyActiveState, 0);
+            });
+        });
+
+        if (!window.location.hash || !document.querySelector(window.location.hash)) {
+            history.replaceState(null, "", "#overview");
+        }
+
+        window.addEventListener("hashchange", applyActiveState);
+        applyActiveState();
+    }
+
     function bindEvents() {
         var classForm = document.getElementById("teacherClassForm");
         if (classForm) {
@@ -250,6 +293,7 @@
             var openBtn = event.target.closest("[data-open-score-class]");
             if (openBtn) {
                 var classId = Number(openBtn.getAttribute("data-open-score-class"));
+                window.location.hash = "#score-entry";
                 loadClassStudents(classId).catch(function (error) {
                     setMessage(error.message, "error");
                 });
@@ -315,17 +359,6 @@
             updateClassSelects();
         };
 
-        // 1. Xem role học sinh
-        var viewStudentSearch = document.getElementById('viewStudentSearch');
-        if (viewStudentSearch) {
-            viewStudentSearch.addEventListener('input', function (e) {
-                var body = document.getElementById('viewStudentTableBody');
-                if (body) {
-                    body.innerHTML = '<tr><td colspan="4" class="empty">Đang tìm: ' + escapeHtml(e.target.value) + '... (Tính năng đang phát triển)</td></tr>';
-                }
-            });
-        }
-
         // 2. Danh sách lớp
         var classListBtn = document.getElementById('classListBtn');
         if (classListBtn) {
@@ -384,6 +417,7 @@
         }
     }
 
+    bindNavigation();
     bindEvents();
     initNewUIMockEvents();
     loadDashboardData().catch(function (error) {

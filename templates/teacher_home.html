@@ -4,32 +4,29 @@
 {% block sidebar_subtitle %}Giảng viên{% endblock %}
 
 {% block sidebar_nav %}
-<a href="/teacher/home" class="nav-item active">
-    <i class="fas fa-home"></i><span>Trang chủ</span>
+<a href="#overview" class="nav-item active">
+    <i class="fas fa-home"></i><span>Tổng quan</span>
 </a>
 <div class="nav-divider">Giảng dạy</div>
-<a href="/teacher/home#my-classes" class="nav-item">
+<a href="#my-classes" class="nav-item">
     <i class="fas fa-chalkboard"></i><span>Lớp của tôi</span>
 </a>
-<a href="/teacher/home#teaching-schedule" class="nav-item">
+<a href="#teaching-schedule" class="nav-item">
     <i class="fas fa-calendar-days"></i><span>Xem lịch dạy</span>
 </a>
-<a href="/teacher/home#score-entry" class="nav-item">
+<a href="#score-entry" class="nav-item">
     <i class="fas fa-pen"></i><span>Nhập điểm</span>
 </a>
-<a href="/teacher/home#view-student-role" class="nav-item">
-    <i class="fas fa-user-graduate"></i><span>Xem role học sinh</span>
-</a>
-<a href="/teacher/home#class-list" class="nav-item">
+<a href="#class-list" class="nav-item">
     <i class="fas fa-users"></i><span>Xem danh sách lớp</span>
 </a>
-<a href="/teacher/home#exams" class="nav-item">
+<a href="#exams" class="nav-item">
     <i class="fas fa-file-alt"></i><span>Tạo bài kiểm tra</span>
 </a>
-<a href="/teacher/home#attendance" class="nav-item">
+<a href="#attendance" class="nav-item">
     <i class="fas fa-clipboard-check"></i><span>Điểm danh</span>
 </a>
-<a href="/teacher/home#notifications" class="nav-item">
+<a href="#notifications" class="nav-item">
     <i class="fas fa-bell"></i><span>Thông báo</span>
 </a>
 {% endblock %}
@@ -42,6 +39,13 @@
 {% if home_data.Profile %}
 <div id="teacherPortalRoot" data-user-id="{{ current_user.UserId }}"></div>
 
+<section class="section" id="overview">
+    <div class="section-heading">
+        <div>
+            <h2>Tổng quan</h2>
+            <p>Hồ sơ và thống kê giảng dạy.</p>
+        </div>
+    </div>
 <div class="grid two" style="margin-bottom:24px">
     <div class="card">
         <div class="card-header">
@@ -107,8 +111,16 @@
         </div>
     </div>
 </div>
+</section>
 
-<div class="card" id="my-classes" style="scroll-margin-top:80px">
+<section class="section" id="my-classes">
+    <div class="section-heading">
+        <div>
+            <h2>Lớp của tôi</h2>
+            <p>Danh sách các lớp được phân công.</p>
+        </div>
+    </div>
+<div class="card" style="scroll-margin-top:80px">
     <div class="card-header">
         <h3><i class="fas fa-list" style="color:var(--info);margin-right:8px"></i> Lớp được phân công</h3>
     </div>
@@ -151,6 +163,7 @@
     </div>
     {% endif %}
 </div>
+</section>
 
 <section class="section" id="teaching-schedule">
     <div class="section-heading">
@@ -249,42 +262,6 @@
                     <tbody id="scoreStudentTableBody">
                         <tr>
                             <td colspan="6" class="empty">Chọn lớp để bắt đầu nhập điểm.</td>
-                        </tr>
-                    </tbody>
-                </table>
-            </div>
-        </div>
-    </div>
-</section>
-
-<!-- View Student Role Section -->
-<section class="section" id="view-student-role">
-    <div class="section-heading">
-        <div>
-            <h2>Xem role học sinh</h2>
-            <p>Tra cứu thông tin học sinh và chức vụ trong lớp.</p>
-        </div>
-    </div>
-    <div class="card">
-        <div class="card-header" style="display:flex; justify-content:space-between; align-items:center;">
-            <h3><i class="fas fa-search" style="margin-right:8px; color:var(--primary);"></i> Tra cứu học sinh</h3>
-            <input type="text" id="viewStudentSearch" class="search-input" placeholder="Tìm kiếm học sinh..."
-                style="max-width:300px;">
-        </div>
-        <div class="card-body-flush">
-            <div class="table-wrap">
-                <table>
-                    <thead>
-                        <tr>
-                            <th>Mã SV</th>
-                            <th>Họ tên</th>
-                            <th>Email</th>
-                            <th>Chức vụ / Vai trò</th>
-                        </tr>
-                    </thead>
-                    <tbody id="viewStudentTableBody">
-                        <tr>
-                            <td colspan="4" class="empty">Chưa có dữ liệu.</td>
                         </tr>
                     </tbody>
                 </table>
