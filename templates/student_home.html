@@ -7,9 +7,18 @@
     <a href="/student/home" class="nav-item active">
         <i class="fas fa-home"></i><span>Trang chủ</span>
     </a>
-    <div class="nav-divider">Học tập</div>
-    <a href="/student/home#my-classes" class="nav-item">
-        <i class="fas fa-book-open"></i><span>Lớp học của tôi</span>
+    <div class="nav-divider">Sinh viên</div>
+    <a href="/student/home#learning" class="nav-item">
+        <i class="fas fa-book-open"></i><span>Học tập</span>
+    </a>
+    <a href="/student/home#registration" class="nav-item">
+        <i class="fas fa-pen-to-square"></i><span>Đăng ký lớp</span>
+    </a>
+    <a href="/student/home#schedule" class="nav-item">
+        <i class="fas fa-calendar-days"></i><span>Lịch học và thi</span>
+    </a>
+    <a href="/student/home#financial" class="nav-item">
+        <i class="fas fa-file-invoice-dollar"></i><span>Tài chính</span>
     </a>
 {% endblock %}
 
@@ -19,7 +28,8 @@
 
 {% block content %}
     {% if home_data.Profile %}
-        <!-- Profile + Stats -->
+        <div id="studentPortalRoot" data-user-id="{{ current_user.UserId }}"></div>
+
         <div class="grid two" style="margin-bottom:24px">
             <div class="card">
                 <div class="card-header">
@@ -52,6 +62,10 @@
                             <span class="value">{{ home_data.Profile.DateOfBirth[:10] if home_data.Profile.DateOfBirth else "—" }}</span>
                         </li>
                         <li>
+                            <span class="label">Địa chỉ</span>
+                            <span class="value">{{ home_data.Profile.Address or "—" }}</span>
+                        </li>
+                        <li>
                             <span class="label">Trạng thái</span>
                             <span class="value">
                                 {% set status_name = home_data.Profile.StatusName or 'N/A' %}
@@ -75,94 +89,252 @@
                     <div class="gc-icon"><i class="fas fa-book-open"></i></div>
                     <div class="gc-info">
                         <div class="gc-label">Lớp đã ghi danh</div>
-                        <div class="gc-value">{{ home_data.Totals.TotalEnrollments or 0 }}</div>
+                        <div class="gc-value" id="enrollmentCountValue">{{ home_data.Totals.TotalEnrollments or 0 }}</div>
                     </div>
                 </div>
                 <div class="gradient-card gc-orange">
                     <div class="gc-icon"><i class="fas fa-file-invoice-dollar"></i></div>
                     <div class="gc-info">
                         <div class="gc-label">Công nợ hiện tại</div>
-                        <div class="gc-value">{{ "{:,.0f}".format((home_data.Totals.OutstandingTuition or 0)|float) }} <span style="font-size:.85rem;font-weight:400">VNĐ</span></div>
+                        <div class="gc-value" id="debtValue">{{ "{:,.0f}".format((home_data.Totals.OutstandingTuition or 0)|float) }} <span style="font-size:.85rem;font-weight:400">VNĐ</span></div>
                     </div>
                 </div>
             </div>
         </div>
 
-        <!-- Enrollments Table -->
-        <div class="card" id="my-classes" style="scroll-margin-top:80px">
-            <div class="card-header">
-                <h3><i class="fas fa-list" style="color:var(--info);margin-right:8px"></i> Lớp học của tôi</h3>
-            </div>
-            {% if home_data.Enrollments %}
-            <div class="card-body-flush">
-                <div class="table-wrap">
-                    <table>
-                        <thead>
-                            <tr>
-                                <th>Lớp</th>
-                                <th>Khóa học</th>
-                                <th>Ngày ghi danh</th>
-                                <th>Điểm TB</th>
-                                <th>Học phí</th>
-                                <th>Trạng thái HP</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {% for item in home_data.Enrollments %}
-                            <tr>
-                                <td>
-                                    <strong>{{ item.ClassCode }}</strong><br>
-                                    <small>{{ item.ClassName }}</small>
-                                </td>
-                                <td>{{ item.CourseName }}</td>
-                                <td>{{ item.EnrollmentDate[:10] if item.EnrollmentDate else "—" }}</td>
-                                <td>
-                                    {% set avg = (item.AverageScore or 0)|float %}
-                                    {% if avg >= 8 %}
-                                        <span class="badge good">{{ "{:.1f}".format(avg) }}</span>
-                                    {% elif avg >= 5 %}
-                                        <span class="badge warn">{{ "{:.1f}".format(avg) }}</span>
-                                    {% elif avg > 0 %}
-                                        <span class="badge bad">{{ "{:.1f}".format(avg) }}</span>
-                                    {% else %}
-                                        <span class="badge">—</span>
-                                    {% endif %}
-                                </td>
-                                <td>
-                                    {{ "{:,.0f}".format((item.TotalFee or 0)|float) }}<br>
-                                    <small style="color:var(--success)">Đã đóng: {{ "{:,.0f}".format((item.AmountPaid or 0)|float) }}</small>
-                                </td>
-                                <td>
-                                    {% set ts = (item.TuitionStatus or 'N/A')|lower %}
-                                    {% if ts == 'paid' %}
-                                        <span class="badge good">Đã thanh toán</span>
-                                    {% elif ts == 'pending' %}
-                                        <span class="badge warn">Chờ xử lý</span>
-                                    {% elif ts == 'overdue' %}
-                                        <span class="badge bad">Quá hạn</span>
-                                    {% else %}
-                                        <span class="badge">{{ item.TuitionStatus or 'N/A' }}</span>
-                                    {% endif %}
-                                </td>
-                            </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
+        <section class="section" id="learning">
+            <div class="section-heading">
+                <div>
+                    <h2>Học tập</h2>
+                    <p>Thông tin lớp học, bảng điểm và nội dung khóa học.</p>
                 </div>
             </div>
-            {% else %}
-            <div class="card-body">
-                <p class="empty"><i class="fas fa-inbox" style="font-size:24px;display:block;margin-bottom:8px"></i>Bạn chưa có lớp nào được ghi danh.</p>
+
+            <div class="grid two">
+                <div class="card">
+                    <div class="card-header"><h3>Lớp học đã ghi danh</h3></div>
+                    <div class="card-body-flush">
+                        <div class="table-wrap">
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th>Lớp</th>
+                                        <th>Khóa học</th>
+                                        <th>Giảng viên</th>
+                                        <th>Trạng thái</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="learningEnrollmentsBody">
+                                    <tr><td colspan="4" class="empty">Đang tải dữ liệu...</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-header"><h3>Nội dung khóa học</h3></div>
+                    <div class="card-body" id="courseContentList">
+                        <p class="empty">Đang tải dữ liệu...</p>
+                    </div>
+                </div>
             </div>
-            {% endif %}
-        </div>
+
+            <div class="card" style="margin-top:16px">
+                <div class="card-header"><h3>Bảng điểm</h3></div>
+                <div class="card-body-flush">
+                    <div class="table-wrap">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Lớp</th>
+                                    <th>Chuyên cần</th>
+                                    <th>Giữa kỳ</th>
+                                    <th>Cuối kỳ</th>
+                                </tr>
+                            </thead>
+                            <tbody id="scoreTableBody">
+                                <tr><td colspan="4" class="empty">Đang tải dữ liệu...</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section class="section" id="registration">
+            <div class="section-heading">
+                <div>
+                    <h2>Đăng ký lớp học</h2>
+                    <p>Chọn lớp còn chỗ để đăng ký trực tiếp trên dashboard.</p>
+                </div>
+            </div>
+
+            <div class="grid form-and-table">
+                <div class="card">
+                    <div class="card-header"><h3>Form đăng ký</h3></div>
+                    <div class="card-body">
+                        <form id="registrationForm" class="form-grid">
+                            <label>
+                                Lớp học khả dụng
+                                <select id="registrationClassSelect" required>
+                                    <option value="">Chọn lớp để đăng ký</option>
+                                </select>
+                            </label>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-check"></i>
+                                <span>Đăng ký lớp</span>
+                            </button>
+                            <p id="registrationMessage" class="message"></p>
+                        </form>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-header"><h3>Trạng thái đăng ký</h3></div>
+                    <div class="card-body-flush">
+                        <div class="table-wrap">
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th>Lớp</th>
+                                        <th>Khóa học</th>
+                                        <th>Ngày đăng ký</th>
+                                        <th>Trạng thái</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="registrationStatusBody">
+                                    <tr><td colspan="4" class="empty">Đang tải dữ liệu...</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section class="section" id="schedule">
+            <div class="section-heading">
+                <div>
+                    <h2>Lịch học và lịch thi</h2>
+                    <p>Theo dõi lịch học hàng tuần và lịch thi dự kiến.</p>
+                </div>
+            </div>
+
+            <div class="grid two">
+                <div class="card">
+                    <div class="card-header"><h3>Lịch học cá nhân</h3></div>
+                    <div class="card-body-flush">
+                        <div class="table-wrap">
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th>Lớp</th>
+                                        <th>Thứ</th>
+                                        <th>Ca học</th>
+                                        <th>Phòng</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="scheduleTableBody">
+                                    <tr><td colspan="4" class="empty">Đang tải dữ liệu...</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-header"><h3>Lịch thi</h3></div>
+                    <div class="card-body-flush">
+                        <div class="table-wrap">
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th>Lớp</th>
+                                        <th>Môn</th>
+                                        <th>Ngày thi</th>
+                                        <th>Phòng</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="examTableBody">
+                                    <tr><td colspan="4" class="empty">Đang tải dữ liệu...</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section class="section" id="financial">
+            <div class="section-heading">
+                <div>
+                    <h2>Tài chính</h2>
+                    <p>Theo dõi học phí còn lại và gửi yêu cầu thanh toán.</p>
+                </div>
+            </div>
+
+            <div class="grid form-and-table">
+                <div class="card">
+                    <div class="card-header"><h3>Thanh toán học phí</h3></div>
+                    <div class="card-body">
+                        <form id="paymentForm" class="form-grid">
+                            <label>
+                                Khoản học phí
+                                <select id="paymentTuitionSelect" required>
+                                    <option value="">Chọn khoản học phí</option>
+                                </select>
+                            </label>
+                            <label>
+                                Số tiền thanh toán
+                                <input type="number" id="paymentAmountInput" min="1" step="1000" required>
+                            </label>
+                            <label>
+                                Ghi chú
+                                <input type="text" id="paymentNoteInput" placeholder="Ví dụ: Chuyển khoản online">
+                            </label>
+                            <button type="submit" class="btn btn-success">
+                                <i class="fas fa-money-bill-wave"></i>
+                                <span>Gửi thanh toán</span>
+                            </button>
+                            <p id="paymentMessage" class="message"></p>
+                        </form>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-header"><h3>Tình trạng công nợ</h3></div>
+                    <div class="card-body-flush">
+                        <div class="table-wrap">
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th>Lớp</th>
+                                        <th>Tổng phí</th>
+                                        <th>Đã đóng</th>
+                                        <th>Còn nợ</th>
+                                        <th>Trạng thái</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="financeTableBody">
+                                    <tr><td colspan="5" class="empty">Đang tải dữ liệu...</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
 
     {% else %}
-        <!-- No Profile Warning -->
         <div class="profile-warning">
             <i class="fas fa-exclamation-triangle"></i>
             <h2>Chưa có hồ sơ sinh viên</h2>
             <p>Tài khoản <strong>{{ current_user.Username }}</strong> đã đăng nhập thành công nhưng chưa được liên kết với hồ sơ sinh viên trong hệ thống. Vui lòng liên hệ quản trị viên để được thiết lập hồ sơ.</p>
         </div>
     {% endif %}
+{% endblock %}
+
+{% block extra_js %}
+    <script src="{{ url_for('static', filename='js/student_home.js') }}"></script>
 {% endblock %}

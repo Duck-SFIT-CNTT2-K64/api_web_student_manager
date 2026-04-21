@@ -1,5 +1,0 @@
--- Deprecated compatibility file.
--- The project now targets the latest database name and schema:
---     QLSV_TrungTamTinHoc.sql
---
--- Run QLSV_TrungTamTinHoc.sql instead of this older underscore database script.

@@ -215,3 +215,328 @@ def delete_teacher(teacher_id: int) -> bool:
             cursor.execute("DELETE FROM Users WHERE UserId = ?", (user_id,))
         connection.commit()
     return True
+
+
+def get_teacher_id_by_user_id(user_id: int) -> Optional[int]:
+    with get_db_connection() as connection:
+        cursor = connection.cursor()
+        cursor.execute("SELECT TOP 1 TeacherId FROM Teachers WHERE UserId = ?", int(user_id))
+        row = cursor.fetchone()
+        return int(row[0]) if row else None
+
+
+def get_teacher_classes_by_user_id(user_id: int) -> List[Dict[str, Any]]:
+    with get_db_connection() as connection:
+        cursor = connection.cursor()
+        cursor.execute(
+            """
+            SELECT
+                c.ClassId,
+                c.ClassCode,
+                c.ClassName,
+                co.CourseCode,
+                co.CourseName,
+                COUNT(e.EnrollmentId) AS StudentCount
+            FROM Classes c
+            INNER JOIN Teachers t ON c.TeacherId = t.TeacherId
+            INNER JOIN Courses co ON c.CourseId = co.CourseId
+            LEFT JOIN Enrollments e ON c.ClassId = e.ClassId
+            WHERE t.UserId = ?
+            GROUP BY
+                c.ClassId,
+                c.ClassCode,
+                c.ClassName,
+                co.CourseCode,
+                co.CourseName
+            ORDER BY c.ClassCode
+            """,
+            int(user_id),
+        )
+        rows = cursor.fetchall()
+        return rows_to_list(cursor, rows)
+
+
+def get_teacher_stats_by_user_id(user_id: int) -> Dict[str, Any]:
+    with get_db_connection() as connection:
+        cursor = connection.cursor()
+        cursor.execute(
+            """
+            SELECT
+                COUNT(DISTINCT c.ClassId) AS ClassCount,
+                COUNT(DISTINCT e.StudentId) AS StudentCount,
+                COUNT(sc.ScoreId) AS ScoreCount
+            FROM Teachers t
+            LEFT JOIN Classes c ON t.TeacherId = c.TeacherId
+            LEFT JOIN Enrollments e ON c.ClassId = e.ClassId
+            LEFT JOIN Scores sc ON e.EnrollmentId = sc.EnrollmentId
+            WHERE t.UserId = ?
+            """,
+            int(user_id),
+        )
+        row = cursor.fetchone()
+        return row_to_dict(cursor, row) if row else {"ClassCount": 0, "StudentCount": 0, "ScoreCount": 0}
+
+
+def get_teacher_schedule_by_user_id(user_id: int) -> List[Dict[str, Any]]:
+    with get_db_connection() as connection:
+        cursor = connection.cursor()
+        cursor.execute(
+            """
+            SELECT
+                c.ClassId,
+                c.ClassCode,
+                c.ClassName,
+                co.CourseName,
+                cs.Weekday,
+                cs.StartTime,
+                cs.EndTime,
+                r.RoomName
+            FROM Classes c
+            INNER JOIN Teachers t ON c.TeacherId = t.TeacherId
+            LEFT JOIN Courses co ON c.CourseId = co.CourseId
+            LEFT JOIN ClassSchedules cs ON c.ClassId = cs.ClassId
+            LEFT JOIN Rooms r ON cs.RoomId = r.RoomId
+            WHERE t.UserId = ?
+            ORDER BY
+                CASE
+                    WHEN cs.Weekday = N'Monday' THEN 1
+                    WHEN cs.Weekday = N'Tuesday' THEN 2
+                    WHEN cs.Weekday = N'Wednesday' THEN 3
+                    WHEN cs.Weekday = N'Thursday' THEN 4
+                    WHEN cs.Weekday = N'Friday' THEN 5
+                    WHEN cs.Weekday = N'Saturday' THEN 6
+                    ELSE 7
+                END,
+                cs.StartTime,
+                c.ClassCode
+            """,
+            int(user_id),
+        )
+        rows = cursor.fetchall()
+        return rows_to_list(cursor, rows)
+
+
+def get_class_students_with_scores(class_id: int) -> List[Dict[str, Any]]:
+    with get_db_connection() as connection:
+        cursor = connection.cursor()
+        cursor.execute(
+            """
+            SELECT
+                e.EnrollmentId,
+                s.StudentCode,
+                s.FullName,
+                s.DateOfBirth,      
+                s.Gender,
+                MAX(CASE WHEN st.ScoreTypeId = 1 THEN sc.ScoreValue END) AS ChuyenCan,
+                MAX(CASE WHEN st.ScoreTypeId = 2 THEN sc.ScoreValue END) AS GiuaKy,
+                MAX(CASE WHEN st.ScoreTypeId = 3 THEN sc.ScoreValue END) AS CuoiKy
+            FROM Enrollments e
+            INNER JOIN Students s ON e.StudentId = s.StudentId
+            LEFT JOIN Scores sc ON e.EnrollmentId = sc.EnrollmentId
+            LEFT JOIN ScoreTypes st ON sc.ScoreTypeId = st.ScoreTypeId
+            WHERE e.ClassId = ?
+            GROUP BY e.EnrollmentId, s.StudentCode, s.FullName, s.DateOfBirth, s.Gender
+            ORDER BY s.StudentCode
+            """,
+            int(class_id),
+        )
+        rows = cursor.fetchall()
+        return rows_to_list(cursor, rows)
+
+
+def save_score_entry(enrollment_id: int, score_type_id: int, score_value: Any) -> bool:
+    value = float(score_value)
+    if value < 0 or value > 10:
+        raise ValueError("Điểm phải nằm trong khoảng từ 0 đến 10.")
+
+    with get_db_connection() as connection:
+        cursor = connection.cursor()
+        cursor.execute(
+            """
+            MERGE Scores AS target
+            USING (SELECT ? AS EnrollmentId, ? AS ScoreTypeId) AS source
+            ON target.EnrollmentId = source.EnrollmentId
+               AND target.ScoreTypeId = source.ScoreTypeId
+            WHEN MATCHED THEN
+                UPDATE SET ScoreValue = ?
+            WHEN NOT MATCHED THEN
+                INSERT (EnrollmentId, ScoreTypeId, ScoreValue)
+                VALUES (?, ?, ?);
+            """,
+            int(enrollment_id),
+            int(score_type_id),
+            value,
+            int(enrollment_id),
+            int(score_type_id),
+            value,
+        )
+        connection.commit()
+        return True
+
+
+def is_class_owned_by_teacher(user_id: int, class_id: int) -> bool:
+    with get_db_connection() as connection:
+        cursor = connection.cursor()
+        cursor.execute(
+            """
+            SELECT TOP 1 1
+            FROM Classes c
+            INNER JOIN Teachers t ON c.TeacherId = t.TeacherId
+            WHERE t.UserId = ? AND c.ClassId = ?
+            """,
+            int(user_id),
+            int(class_id),
+        )
+        return cursor.fetchone() is not None
+
+
+def is_enrollment_owned_by_teacher(user_id: int, enrollment_id: int) -> bool:
+    with get_db_connection() as connection:
+        cursor = connection.cursor()
+        cursor.execute(
+            """
+            SELECT TOP 1 1
+            FROM Enrollments e
+            INNER JOIN Classes c ON e.ClassId = c.ClassId
+            INNER JOIN Teachers t ON c.TeacherId = t.TeacherId
+            WHERE t.UserId = ? AND e.EnrollmentId = ?
+            """,
+            int(user_id),
+            int(enrollment_id),
+        )
+        return cursor.fetchone() is not None
+
+def get_attendance_by_class_and_date(class_id: int, session_date: str):
+    with get_db_connection() as connection:
+        cursor = connection.cursor()
+        cursor.execute("""
+            SELECT
+                e.EnrollmentId,
+                s.StudentCode,
+                s.FullName,
+                a.Status AS AttendanceStatus
+            FROM Enrollments e
+            INNER JOIN Students s ON e.StudentId = s.StudentId
+            LEFT JOIN Attendances a 
+                ON a.EnrollmentId = e.EnrollmentId 
+                AND a.SessionDate = ?
+            WHERE e.ClassId = ?
+            ORDER BY s.StudentCode
+        """, session_date, int(class_id))
+        rows = cursor.fetchall()
+        return rows_to_list(cursor, rows)
+
+
+def save_attendance_records(records: list):
+    with get_db_connection() as connection:
+        cursor = connection.cursor()
+        for r in records:
+            cursor.execute("""
+                MERGE Attendances AS target
+                USING (SELECT ? AS EnrollmentId, ? AS SessionDate) AS source
+                ON target.EnrollmentId = source.EnrollmentId
+                   AND target.SessionDate = source.SessionDate
+                WHEN MATCHED THEN
+                    UPDATE SET Status = ?
+                WHEN NOT MATCHED THEN
+                    INSERT (EnrollmentId, SessionDate, Status)
+                    VALUES (?, ?, ?);
+            """,
+                r["EnrollmentId"], r["SessionDate"],
+                r["Status"],
+                r["EnrollmentId"], r["SessionDate"], r["Status"]
+            )
+        connection.commit()
+
+def get_notifications_by_creator(user_id: int) -> List[Dict[str, Any]]:
+    with get_db_connection() as connection:
+        cursor = connection.cursor()
+        cursor.execute("""
+            SELECT
+                n.NotificationId,
+                n.Title,
+                n.Content,
+                n.CreatedDate,
+                COUNT(nr.RecipientId) AS RecipientCount
+            FROM Notifications n
+            LEFT JOIN NotificationRecipients nr 
+                ON n.NotificationId = nr.NotificationId
+            WHERE n.CreatorId = ?
+            GROUP BY n.NotificationId, n.Title, n.Content, n.CreatedDate
+            ORDER BY n.CreatedDate DESC
+        """, int(user_id))
+        rows = cursor.fetchall()
+        return rows_to_list(cursor, rows)
+
+
+# Hàm tạo thông báo và gửi đến sinh viên của 1 lớp hoặc tất cả lớp của teacher
+def create_notification(user_id: int, title: str, 
+                        content: str, class_id=None) -> int:
+    with get_db_connection() as connection:
+        cursor = connection.cursor()
+
+        # 1. Tạo thông báo
+        cursor.execute("""
+            INSERT INTO Notifications (CreatorId, Title, Content)
+            OUTPUT INSERTED.NotificationId
+            VALUES (?, ?, ?)
+        """, int(user_id), title, content)
+        notif_id = cursor.fetchone()[0]
+
+        # 2. Lấy danh sách sinh viên cần gửi
+        if class_id:
+            # Chỉ gửi cho 1 lớp cụ thể
+            cursor.execute("""
+                SELECT DISTINCT s.UserId
+                FROM Enrollments e
+                INNER JOIN Students s ON e.StudentId = s.StudentId
+                WHERE e.ClassId = ?
+            """, int(class_id))
+        else:
+            # Gửi tất cả lớp của teacher
+            cursor.execute("""
+                SELECT DISTINCT s.UserId
+                FROM Enrollments e
+                INNER JOIN Students s ON e.StudentId = s.StudentId
+                INNER JOIN Classes c ON e.ClassId = c.ClassId
+                INNER JOIN Teachers t ON c.TeacherId = t.TeacherId
+                WHERE t.UserId = ?
+            """, int(user_id))
+
+        recipients = [row[0] for row in cursor.fetchall()]
+
+        # 3. Insert từng người nhận
+        for recipient_id in recipients:
+            cursor.execute("""
+                INSERT INTO NotificationRecipients 
+                    (NotificationId, RecipientId, IsRead)
+                VALUES (?, ?, 0)
+            """, notif_id, int(recipient_id))
+
+        connection.commit()
+        return notif_id
+    
+# Hàm lấy thông báo đã tạo bởi teacher, kèm số lượng người nhận (sinh viên) của mỗi thông báo
+def get_notifications_by_creator(user_id: int) -> List[Dict[str, Any]]:
+    with get_db_connection() as connection:
+        cursor = connection.cursor()
+        cursor.execute("""
+            SELECT
+                n.NotificationId,
+                n.Title,
+                n.Content,
+                n.CreatedDate,
+                CONCAT(t.FirstName, N' ', t.LastName) AS CreatorName,
+                COUNT(nr.RecipientId) AS RecipientCount
+            FROM Notifications n
+            LEFT JOIN NotificationRecipients nr 
+                ON n.NotificationId = nr.NotificationId
+            LEFT JOIN Teachers t
+                ON n.CreatorId = t.UserId
+            WHERE n.CreatorId = ?
+            GROUP BY n.NotificationId, n.Title, n.Content, n.CreatedDate,
+                     t.FirstName, t.LastName
+            ORDER BY n.CreatedDate DESC
+        """, int(user_id))
+        rows = cursor.fetchall()
+        return rows_to_list(cursor, rows)

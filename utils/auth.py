@@ -60,7 +60,7 @@ def role_required(*allowed_roles: str):
             if role_name not in normalized_roles:
                 if _is_api_request():
                     return jsonify({"success": False, "error": "Forbidden."}), 403
-                return redirect(url_for("pages.home"))
+                return redirect(url_for("pages.home_redirect"))
             return view(*args, **kwargs)
 
         return wrapped

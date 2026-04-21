@@ -3,6 +3,7 @@ from __future__ import annotations
 from flask import Blueprint, jsonify, redirect, render_template, request, url_for
 
 from models.auth_model import authenticate_user, get_navigation_path_by_role, get_user_by_id
+from models.student_model import create_student
 from utils.auth import clear_login_session, current_session_user, save_login_session
 
 auth_bp = Blueprint("auth", __name__)
@@ -27,14 +28,115 @@ def _login_payload() -> tuple[str, str]:
     return username, password
 
 
+def _register_payload() -> dict[str, str]:
+    if request.is_json:
+        payload = request.get_json(silent=True) or {}
+        return {
+            "full_name": (payload.get("full_name") or payload.get("FullName") or payload.get("name") or "").strip(),
+            "email": (payload.get("email") or payload.get("Email") or "").strip(),
+            "phone": (payload.get("phone") or payload.get("PhoneNumber") or "").strip(),
+            "username": (payload.get("username") or payload.get("Username") or "").strip(),
+            "password": str(payload.get("password") or payload.get("Password") or ""),
+            "confirm_password": str(
+                payload.get("confirm_password")
+                or payload.get("confirmPassword")
+                or payload.get("ConfirmPassword")
+                or ""
+            ),
+        }
+
+    return {
+        "full_name": (request.form.get("full_name") or "").strip(),
+        "email": (request.form.get("email") or "").strip(),
+        "phone": (request.form.get("phone") or "").strip(),
+        "username": (request.form.get("username") or "").strip(),
+        "password": str(request.form.get("password") or ""),
+        "confirm_password": str(request.form.get("confirm_password") or ""),
+    }
+
+
 @auth_bp.get("/login")
 def login_page():
-    if current_session_user().get("UserId"):
-        return redirect(url_for("pages.home"))
+    session_user = current_session_user()
+    if session_user.get("UserId"):
+        role_name = str(session_user.get("RoleName") or "").lower()
+        if role_name in {"admin", "teacher"}:
+            return redirect(url_for("pages.home"))
+        return redirect(url_for("pages.home_redirect"))
 
     error = request.args.get("error")
+    success = request.args.get("success")
     next_path = request.args.get("next") or ""
-    return render_template("login.html", error=error, next_path=next_path)
+    return render_template("login.html", error=error, success=success, next_path=next_path)
+
+
+@auth_bp.get("/register")
+def register_page():
+    session_user = current_session_user()
+    if session_user.get("UserId"):
+        role_name = str(session_user.get("RoleName") or "").lower()
+        if role_name in {"admin", "teacher"}:
+            return redirect(url_for("pages.home"))
+        return redirect(url_for("pages.home_redirect"))
+
+    error = request.args.get("error")
+    return render_template("register.html", error=error, form_data={})
+
+
+@auth_bp.post("/register")
+def register_submit():
+    payload = _register_payload()
+    full_name = payload["full_name"]
+    email = payload["email"]
+    password = payload["password"]
+    confirm_password = payload["confirm_password"]
+
+    if not full_name or not email or not password or not confirm_password:
+        message = "Vui lòng điền đầy đủ họ tên, email, mật khẩu và xác nhận mật khẩu."
+        if request.is_json:
+            return jsonify({"success": False, "error": message}), 400
+        return render_template("register.html", error=message, form_data=payload), 400
+
+    if password != confirm_password:
+        message = "Mật khẩu xác nhận không khớp."
+        if request.is_json:
+            return jsonify({"success": False, "error": message}), 400
+        return render_template("register.html", error=message, form_data=payload), 400
+
+    try:
+        created_student = create_student(
+            {
+                "FullName": full_name,
+                "Email": email,
+                "PhoneNumber": payload["phone"] or None,
+                "Username": payload["username"] or None,
+                "Password": password,
+                "AccountStatus": "Active",
+            }
+        )
+    except ValueError as exc:
+        if request.is_json:
+            return jsonify({"success": False, "error": str(exc)}), 400
+        return render_template("register.html", error=str(exc), form_data=payload), 400
+    except Exception:
+        message = "Đăng ký thất bại. Vui lòng thử lại sau."
+        if request.is_json:
+            return jsonify({"success": False, "error": message}), 500
+        return render_template("register.html", error=message, form_data=payload), 500
+
+    if request.is_json:
+        return jsonify(
+            {
+                "success": True,
+                "message": "Đăng ký thành công. Tài khoản mặc định role Student.",
+                "data": {
+                    "student": created_student,
+                    "redirectPath": "/login",
+                },
+            }
+        ), 201
+
+    return redirect(url_for("auth.login_page", success="Đăng ký thành công. Vui lòng đăng nhập."))
 
 
 @auth_bp.post("/login")
@@ -93,6 +195,11 @@ def logout_submit():
 @auth_bp.post("/api/auth/login")
 def api_login():
     return login_submit()
+
+
+@auth_bp.post("/api/auth/register")
+def api_register():
+    return register_submit()
 
 
 @auth_bp.post("/api/auth/logout")

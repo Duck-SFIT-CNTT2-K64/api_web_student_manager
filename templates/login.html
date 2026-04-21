@@ -5,6 +5,9 @@
 {% block content %}
 <div class="auth-container">
     <div class="auth-brand">
+        <a href="/" style="display:inline-flex;align-items:center;gap:6px;color:#4361ee;text-decoration:none;margin-bottom:14px;font-weight:600">
+            <i class="fas fa-arrow-left"></i> Về trang chủ
+        </a>
         <div class="auth-brand-logo">
             <div class="logo-icon">
                 <i class="fas fa-graduation-cap"></i>
@@ -31,6 +34,13 @@
         <div class="auth-alert error">
             <i class="fas fa-circle-exclamation"></i>
             {{ error }}
+        </div>
+        {% endif %}
+
+        {% if success %}
+        <div class="auth-alert success">
+            <i class="fas fa-circle-check"></i>
+            {{ success }}
         </div>
         {% endif %}
 
@@ -69,7 +79,7 @@
         </form>
 
         <div class="auth-footer">
-            Chưa có tài khoản? <a href="#">Liên hệ quản trị viên</a>
+            Chưa có tài khoản? <a href="/register">Đăng ký học viên</a>
         </div>
     </div>
 </div>

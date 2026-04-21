@@ -1,10 +1,10 @@
-from datetime import date, datetime
+from datetime import date, datetime, time
 from decimal import Decimal
 from typing import Any, Dict, Iterable, List
 
 
 def _serialize_value(value: Any) -> Any:
-    if isinstance(value, (date, datetime)):
+    if isinstance(value, (date, datetime, time)):
         return value.isoformat()
     if isinstance(value, Decimal):
         return float(value)
