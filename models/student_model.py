@@ -226,7 +226,10 @@ def create_student(payload: Dict[str, Any]) -> Dict[str, Any]:
 
         cursor.execute(STUDENT_SELECT_BASE + " WHERE s.StudentId = ?", student_id)
         row = cursor.fetchone()
-        return row_to_dict(cursor, row)
+        result = row_to_dict(cursor, row)
+        result["_loginUsername"] = username
+        result["_loginPassword"] = password
+        return result
 
 
 def update_student(student_id: int, payload: Dict[str, Any]) -> Optional[Dict[str, Any]]:
