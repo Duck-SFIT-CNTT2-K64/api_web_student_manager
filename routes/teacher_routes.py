@@ -1,5 +1,6 @@
 import pyodbc
 from flask import Blueprint, jsonify, request
+from models.notification_model import create_notification
 from models.teacher_model import (
     create_teacher,
     delete_teacher,
@@ -13,6 +14,9 @@ from models.teacher_model import (
     is_enrollment_owned_by_teacher,
     save_score_entry,
     update_teacher,
+    get_attendance_by_class_and_date,
+    save_attendance_records,
+    get_notifications_by_creator,
 )
 from utils.auth import current_session_user, role_required
 
@@ -205,3 +209,62 @@ def save_score():
         return jsonify({"success": False, "error": "Database error.", "details": str(exc)}), 500
     except Exception as exc:
         return jsonify({"success": False, "error": "Unexpected server error.", "details": str(exc)}), 500
+    
+@teacher_bp.get("/attendance/<int:class_id>")
+@role_required("Teacher", "Admin")
+def get_attendance(class_id: int):
+    session_date = request.args.get("date")  # ?date=2025-10-01
+    if not session_date:
+        return jsonify({"success": False, "error": "date is required."}), 400
+    try:
+        data = get_attendance_by_class_and_date(class_id, session_date)
+        return jsonify({"success": True, "data": data}), 200
+    except Exception as exc:
+        return jsonify({"success": False, "error": str(exc)}), 500
+
+
+@teacher_bp.post("/attendance/save")
+@role_required("Teacher", "Admin")
+def save_attendance():
+    payload = request.get_json(silent=True) or {}
+    # payload = { records: [{EnrollmentId, SessionDate, Status}, ...] }
+    records = payload.get("records", [])
+    if not records:
+        return jsonify({"success": False, "error": "Không có dữ liệu điểm danh."}), 400
+    try:
+        save_attendance_records(records)
+        return jsonify({"success": True, "message": "Đã lưu điểm danh."}), 200
+    except Exception as exc:
+        return jsonify({"success": False, "error": str(exc)}), 500
+    
+@teacher_bp.get("/notifications/<int:user_id>")
+@role_required("Teacher", "Admin")
+def get_notifications(user_id: int):
+    denied = _authorize_user_scope(user_id)
+    if denied:
+        return denied
+    try:
+        data = get_notifications_by_creator(user_id)
+        return jsonify({"success": True, "data": data}), 200
+    except Exception as exc:
+        return jsonify({"success": False, "error": str(exc)}), 500
+
+
+@teacher_bp.post("/notifications/send")
+@role_required("Teacher", "Admin")
+def send_notification():
+    payload = request.get_json(silent=True) or {}
+    title    = (payload.get("Title") or "").strip()
+    content  = (payload.get("Content") or "").strip()
+    class_id = payload.get("ClassId")  # None = gửi tất cả lớp
+
+    if not title or not content:
+        return jsonify({"success": False, "error": "Title và Content là bắt buộc."}), 400
+
+    try:
+        session_user = current_session_user()
+        user_id = session_user.get("UserId")
+        create_notification(int(user_id), title, content, class_id)
+        return jsonify({"success": True, "message": "Đã gửi thông báo."}), 200
+    except Exception as exc:
+        return jsonify({"success": False, "error": str(exc)}), 500

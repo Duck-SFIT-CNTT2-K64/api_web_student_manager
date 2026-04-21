@@ -147,6 +147,35 @@
         }).join("") || '<tr><td colspan="5" class="empty">Chua co lich day.</td></tr>';
     }
 
+    function renderCalendar() {
+        var container = document.getElementById("calendar");
+        if (!container) return;
+
+        var days = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+
+        var map = {};
+        days.forEach(function (d) { map[d] = []; });
+
+        (state.schedule || []).forEach(function (item) {
+            if (!map[item.Weekday]) return;
+
+            var start = item.StartTime ? item.StartTime.slice(0,5) : "--";
+            var end = item.EndTime ? item.EndTime.slice(0,5) : "--";
+
+            map[item.Weekday].push(
+                "<div class='calendar-item'>"
+                + "<strong>" + escapeHtml(item.ClassCode || "") + "</strong><br>"
+                + start + " - " + end + "<br>"
+                + "<small>" + escapeHtml(item.RoomName || "") + "</small>"
+                + "</div>"
+            );
+        });
+
+        container.innerHTML = "<div class='calendar-grid'>" + days.map(function (day) {
+            return "<div class='calendar-col'>..."
+        }).join("") + "</div>";
+    }
+
     function renderScoreStudents() {
         var tbody = document.getElementById("scoreStudentTableBody");
         if (!tbody) {
@@ -166,20 +195,27 @@
     }
 
     async function loadDashboardData() {
-        var results = await Promise.all([
-            getJson(endpoints.stats),
-            getJson(endpoints.classes),
-            getJson(endpoints.schedule),
-        ]);
+        try {
+            var results = await Promise.all([
+                getJson(endpoints.stats),
+                getJson(endpoints.classes),
+                getJson(endpoints.schedule),
+            ]);
 
-        state.stats = results[0] || { total_classes: 0, total_students: 0, total_scores: 0 };
-        state.classes = results[1] || [];
-        state.schedule = results[2] || [];
+            console.log("API OK:", results);
 
-        renderStats();
-        renderClassTable();
-        renderClassSelect();
-        renderSchedule();
+            state.stats = results[0] || {};
+            state.classes = results[1] || [];
+            state.schedule = results[2] || [];
+
+            renderStats();
+            renderClassTable();
+            renderClassSelect();
+            renderSchedule();
+            renderCalendar();
+        } catch (err) {
+            console.error("Lỗi load API:", err);
+        }
     }
 
     async function loadClassStudents(classId) {
@@ -365,11 +401,28 @@
             classListBtn.addEventListener('click', function () {
                 var val = document.getElementById('classListSelect').value;
                 var body = document.getElementById('classListTableBody');
+
                 if (!val) {
                     alert('Vui lòng chọn lớp!');
                     return;
                 }
-                body.innerHTML = '<tr><td colspan="4" class="empty">Đang tải cấu trúc danh sách sinh viên... (Mockup/Tính năng chờ API)</td></tr>';
+
+                body.innerHTML = '<tr><td colspan="4" class="empty">Đang tải...</td></tr>';
+
+                getJson(endpoints.classStudents + Number(val))
+                    .then(function (students) {
+                        body.innerHTML = (students || []).map(function (sv) {
+                            return "<tr>"
+                                + "<td><strong>" + escapeHtml(sv.StudentCode) + "</strong></td>"
+                                + "<td>" + escapeHtml(sv.FullName) + "</td>"
+                                + "<td>" + escapeHtml(sv.DateOfBirth || '—') + "</td>"
+                                + "<td>" + escapeHtml(sv.Gender || '—') + "</td>"
+                                + "</tr>";
+                        }).join('') || '<tr><td colspan="4" class="empty">Lớp chưa có sinh viên.</td></tr>';
+                    })
+                    .catch(function (err) {
+                        body.innerHTML = '<tr><td colspan="4" class="empty">Lỗi tải dữ liệu: ' + escapeHtml(err.message) + '</td></tr>';
+                    });
             });
         }
 
@@ -389,32 +442,137 @@
         var attSearchBtn = document.getElementById('attendanceSearchBtn');
         if (attSearchBtn) {
             attSearchBtn.addEventListener('click', function () {
-                var val = document.getElementById('attendanceClassSelect').value;
-                if (!val) {
-                    alert('Vui lòng chọn lớp và ngày học để điểm danh!');
+                var classId = document.getElementById('attendanceClassSelect').value;
+                var date    = document.querySelector('#attendanceForm input[type="date"]').value;
+                var body    = document.getElementById('attendanceTableBody');
+
+                if (!classId || !date) {
+                    alert('Vui lòng chọn lớp và ngày học!');
                     return;
                 }
-                var body = document.getElementById('attendanceTableBody');
-                body.innerHTML = '<tr><td>SV01</td><td>Nguyễn Văn A</td><td style="text-align:center"><input type="radio" name="att_1" checked></td><td style="text-align:center"><input type="radio" name="att_1"></td><td style="text-align:center"><input type="radio" name="att_1"></td></tr>';
+
+                body.innerHTML = '<tr><td colspan="5" class="empty">Đang tải...</td></tr>';
+
+                getJson('/api/teachers/attendance/' + classId + '?date=' + date)
+                    .then(function (students) {
+                        body.innerHTML = (students || []).map(function (sv) {
+                            var present  = sv.AttendanceStatus === 'Present'  ? 'checked' : '';
+                            var absent   = sv.AttendanceStatus === 'Absent'   ? 'checked' : '';
+                            var late     = sv.AttendanceStatus === 'Late'      ? 'checked' : '';
+                            return "<tr data-enrollment-id='" + sv.EnrollmentId + "'>"
+                                + "<td><strong>" + escapeHtml(sv.StudentCode) + "</strong></td>"
+                                + "<td>" + escapeHtml(sv.FullName) + "</td>"
+                                + "<td style='text-align:center'><input type='radio' name='att_" + sv.EnrollmentId + "' value='Present' " + present + "></td>"
+                                + "<td style='text-align:center'><input type='radio' name='att_" + sv.EnrollmentId + "' value='Absent' " + absent + "></td>"
+                                + "<td style='text-align:center'><input type='radio' name='att_" + sv.EnrollmentId + "' value='Late' " + late + "></td>"
+                                + "</tr>";
+                        }).join('') || '<tr><td colspan="5" class="empty">Lớp chưa có sinh viên.</td></tr>';
+                    })
+                    .catch(function (err) {
+                        body.innerHTML = '<tr><td colspan="5" class="empty">Lỗi: ' + escapeHtml(err.message) + '</td></tr>';
+                    });
             });
         }
 
         var attSaveBtn = document.getElementById('attendanceSaveBtn');
         if (attSaveBtn) {
             attSaveBtn.addEventListener('click', function () {
-                alert('Đã lưu điểm danh!');
+                var date = document.querySelector('#attendanceForm input[type="date"]').value;
+                var rows = document.querySelectorAll('#attendanceTableBody tr[data-enrollment-id]');
+
+                if (!rows.length || !date) {
+                    alert('Chưa có dữ liệu điểm danh!');
+                    return;
+                }
+
+                var records = [];
+                rows.forEach(function (row) {
+                    var enrollmentId = Number(row.dataset.enrollmentId);
+                    var checked = row.querySelector('input[type="radio"]:checked');
+                    if (checked) {
+                        records.push({
+                            EnrollmentId: enrollmentId,
+                            SessionDate: date,
+                            Status: checked.value
+                        });
+                    }
+                });
+
+                postJson('/api/teachers/attendance/save', { records: records })
+                    .then(function () {
+                        alert('Đã lưu điểm danh thành công!');
+                    })
+                    .catch(function (err) {
+                        alert('Lỗi: ' + err.message);
+                    });
             });
         }
-
         // 5. Notifications
+        // Load danh sách thông báo đã gửi
+        function loadNotifications() {
+            var body = document.getElementById('notificationTableBody');
+            getJson('/api/teachers/notifications/' + userId)
+                .then(function (items) {
+                    body.innerHTML = (items || []).map(function (n) {
+                        var date = new Date(n.CreatedDate).toLocaleDateString('vi-VN');
+                        return "<tr>"
+                            + "<td>" + escapeHtml(n.Title) + "</td>"
+                            + "<td><span class='badge info'>" 
+                            +     Number(n.RecipientCount) + " SV"
+                            + "</span></td>"
+                            + "<td>" + date + "</td>"
+                            + "</tr>";
+                    }).join('') 
+                    || '<tr><td colspan="3" class="empty">Bạn chưa gửi thông báo nào.</td></tr>';
+                })
+                .catch(function () {
+                    body.innerHTML = '<tr><td colspan="3" class="empty">Lỗi tải dữ liệu.</td></tr>';
+                });
+        }
+
+        // Gửi thông báo
         var notifSendBtn = document.getElementById('notificationSendBtn');
         if (notifSendBtn) {
             notifSendBtn.addEventListener('click', function () {
-                alert('Thông báo đã được gửi đến sinh viên!');
-                var body = document.getElementById('notificationTableBody');
-                body.innerHTML = '<tr><td>Thông báo giả lập</td><td>Tất cả lớp</td><td>Vừa xong</td></tr>';
+                var target  = document.getElementById('notificationTargetSelect').value;
+                var title   = document.querySelector('#notificationForm input[required]').value.trim();
+                var content = document.querySelector('#notificationForm textarea').value.trim();
+
+                if (!title || !content) {
+                    alert('Vui lòng nhập tiêu đề và nội dung!');
+                    return;
+                }
+
+                // Nếu chọn "all" thì classId = null, ngược lại lấy classId
+                var classId = (target === 'all' || !Number(target)) 
+                            ? null 
+                            : Number(target);
+
+                notifSendBtn.disabled = true;
+                notifSendBtn.textContent = 'Đang gửi...';
+
+                postJson('/api/teachers/notifications/send', {
+                    Title:   title,
+                    Content: content,
+                    ClassId: classId
+                })
+                .then(function () {
+                    alert('Thông báo đã được gửi thành công!');
+                    document.getElementById('notificationForm').reset();
+                    loadNotifications(); // Reload danh sách
+                })
+                .catch(function (err) {
+                    alert('Lỗi: ' + err.message);
+                })
+                .finally(function () {
+                    notifSendBtn.disabled = false;
+                    notifSendBtn.textContent = 'Gửi thông báo';
+                });
             });
         }
+
+        // Load lần đầu khi trang khởi động
+        loadNotifications();
     }
 
     bindNavigation();

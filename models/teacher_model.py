@@ -325,6 +325,8 @@ def get_class_students_with_scores(class_id: int) -> List[Dict[str, Any]]:
                 e.EnrollmentId,
                 s.StudentCode,
                 s.FullName,
+                s.DateOfBirth,      
+                s.Gender,
                 MAX(CASE WHEN st.ScoreTypeId = 1 THEN sc.ScoreValue END) AS ChuyenCan,
                 MAX(CASE WHEN st.ScoreTypeId = 2 THEN sc.ScoreValue END) AS GiuaKy,
                 MAX(CASE WHEN st.ScoreTypeId = 3 THEN sc.ScoreValue END) AS CuoiKy
@@ -403,3 +405,112 @@ def is_enrollment_owned_by_teacher(user_id: int, enrollment_id: int) -> bool:
             int(enrollment_id),
         )
         return cursor.fetchone() is not None
+
+def get_attendance_by_class_and_date(class_id: int, session_date: str):
+    with get_db_connection() as connection:
+        cursor = connection.cursor()
+        cursor.execute("""
+            SELECT
+                e.EnrollmentId,
+                s.StudentCode,
+                s.FullName,
+                a.Status AS AttendanceStatus
+            FROM Enrollments e
+            INNER JOIN Students s ON e.StudentId = s.StudentId
+            LEFT JOIN Attendances a 
+                ON a.EnrollmentId = e.EnrollmentId 
+                AND a.SessionDate = ?
+            WHERE e.ClassId = ?
+            ORDER BY s.StudentCode
+        """, session_date, int(class_id))
+        rows = cursor.fetchall()
+        return rows_to_list(cursor, rows)
+
+
+def save_attendance_records(records: list):
+    with get_db_connection() as connection:
+        cursor = connection.cursor()
+        for r in records:
+            cursor.execute("""
+                MERGE Attendances AS target
+                USING (SELECT ? AS EnrollmentId, ? AS SessionDate) AS source
+                ON target.EnrollmentId = source.EnrollmentId
+                   AND target.SessionDate = source.SessionDate
+                WHEN MATCHED THEN
+                    UPDATE SET Status = ?
+                WHEN NOT MATCHED THEN
+                    INSERT (EnrollmentId, SessionDate, Status)
+                    VALUES (?, ?, ?);
+            """,
+                r["EnrollmentId"], r["SessionDate"],
+                r["Status"],
+                r["EnrollmentId"], r["SessionDate"], r["Status"]
+            )
+        connection.commit()
+
+def get_notifications_by_creator(user_id: int) -> List[Dict[str, Any]]:
+    with get_db_connection() as connection:
+        cursor = connection.cursor()
+        cursor.execute("""
+            SELECT
+                n.NotificationId,
+                n.Title,
+                n.Content,
+                n.CreatedDate,
+                COUNT(nr.RecipientId) AS RecipientCount
+            FROM Notifications n
+            LEFT JOIN NotificationRecipients nr 
+                ON n.NotificationId = nr.NotificationId
+            WHERE n.CreatorId = ?
+            GROUP BY n.NotificationId, n.Title, n.Content, n.CreatedDate
+            ORDER BY n.CreatedDate DESC
+        """, int(user_id))
+        rows = cursor.fetchall()
+        return rows_to_list(cursor, rows)
+
+
+def create_notification(user_id: int, title: str, 
+                        content: str, class_id=None) -> int:
+    with get_db_connection() as connection:
+        cursor = connection.cursor()
+
+        # 1. Tạo thông báo
+        cursor.execute("""
+            INSERT INTO Notifications (CreatorId, Title, Content)
+            OUTPUT INSERTED.NotificationId
+            VALUES (?, ?, ?)
+        """, int(user_id), title, content)
+        notif_id = cursor.fetchone()[0]
+
+        # 2. Lấy danh sách sinh viên cần gửi
+        if class_id:
+            # Chỉ gửi cho 1 lớp cụ thể
+            cursor.execute("""
+                SELECT DISTINCT s.UserId
+                FROM Enrollments e
+                INNER JOIN Students s ON e.StudentId = s.StudentId
+                WHERE e.ClassId = ?
+            """, int(class_id))
+        else:
+            # Gửi tất cả lớp của teacher
+            cursor.execute("""
+                SELECT DISTINCT s.UserId
+                FROM Enrollments e
+                INNER JOIN Students s ON e.StudentId = s.StudentId
+                INNER JOIN Classes c ON e.ClassId = c.ClassId
+                INNER JOIN Teachers t ON c.TeacherId = t.TeacherId
+                WHERE t.UserId = ?
+            """, int(user_id))
+
+        recipients = [row[0] for row in cursor.fetchall()]
+
+        # 3. Insert từng người nhận
+        for recipient_id in recipients:
+            cursor.execute("""
+                INSERT INTO NotificationRecipients 
+                    (NotificationId, RecipientId, IsRead)
+                VALUES (?, ?, 0)
+            """, notif_id, int(recipient_id))
+
+        connection.commit()
+        return notif_id

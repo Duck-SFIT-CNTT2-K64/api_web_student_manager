@@ -1,0 +1,27 @@
+#calendar {
+    display: grid;
+    grid-template-columns: repeat(6, 1fr);
+    gap: 10px;
+    overflow-x: auto;
+}
+
+.calendar-col {
+    background: #f9fafb;
+    border-radius: 10px;
+    padding: 10px;
+}
+
+.calendar-col h4 {
+    text-align: center;
+    margin-bottom: 8px;
+    font-size: 14px;
+    color: #2563eb;
+}
+
+.calendar-item {
+    background: #e0f2fe;
+    padding: 6px;
+    border-radius: 6px;
+    margin-bottom: 6px;
+    font-size: 12px;
+}
