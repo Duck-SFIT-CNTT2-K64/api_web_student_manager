@@ -26,13 +26,13 @@
     };
 
     var weekdayMap = {
-        Monday: "Thu Hai",
-        Tuesday: "Thu Ba",
-        Wednesday: "Thu Tu",
-        Thursday: "Thu Nam",
-        Friday: "Thu Sau",
-        Saturday: "Thu Bay",
-        Sunday: "Chu Nhat",
+        "Thứ 2": "Thứ Hai",
+        "Thứ 3": "Thứ Ba",
+        "Thứ 4": "Thứ Tư",
+        "Thứ 5": "Thứ Năm",
+        "Thứ 6": "Thứ Sáu",
+        "Thứ 7": "Thứ Bảy",
+        "Chủ nhật": "Chủ Nhật"
     };
 
     function escapeHtml(value) {
@@ -161,47 +161,153 @@
         var container = document.getElementById("calendar");
         if (!container) return;
 
-        var days = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+        var days = ["Thứ 2", "Thứ 3", "Thứ 4", "Thứ 5", "Thứ 6", "Thứ 7"];
+        var dayLabels = {
+            "Thứ 2": "Thứ Hai",
+            "Thứ 3": "Thứ Ba",
+            "Thứ 4": "Thứ Tư",
+            "Thứ 5": "Thứ Năm",
+            "Thứ 6": "Thứ Sáu",
+            "Thứ 7": "Thứ Bảy"
+        };
 
         var map = {};
-        days.forEach(function (d) { map[d] = []; });
+        days.forEach(function(d) { map[d] = []; });
 
-        (state.schedule || []).forEach(function (item) {
+        (state.schedule || []).forEach(function(item) {
             if (!map[item.Weekday]) return;
-
-            var start = item.StartTime ? item.StartTime.slice(0,5) : "--";
-            var end = item.EndTime ? item.EndTime.slice(0,5) : "--";
-
+            var start = item.StartTime ? item.StartTime.slice(0, 5) : "--";
+            var end   = item.EndTime   ? item.EndTime.slice(0, 5)   : "--";
             map[item.Weekday].push(
                 "<div class='calendar-item'>"
                 + "<strong>" + escapeHtml(item.ClassCode || "") + "</strong><br>"
-                + start + " - " + end + "<br>"
-                + "<small>" + escapeHtml(item.RoomName || "") + "</small>"
+                + start + " – " + end + "<br>"
+                + "<small>" + escapeHtml(item.RoomName || "") + "</small><br>"
+                + "<div class='calendar-item-actions'>"
+                + "<button class='btn-cal' data-cal-list='" + Number(item.ClassId) + "'>"
+                + "<i class='fas fa-users'></i> Danh sách"
+                + "</button>"
+                + "<button class='btn-cal btn-cal-score' data-cal-score='" + Number(item.ClassId) + "'>"
+                + "<i class='fas fa-pen'></i> Nhập điểm"
+                + "</button>"
+                + "<button class='btn-cal btn-cal-attend'"
+                + " data-cal-attend='" + Number(item.ClassId) + "'"
+                + " data-cal-weekday='" + escapeHtml(item.Weekday) + "'>"  // truyền thêm Weekday
+                + "<i class='fas fa-clipboard-check'></i> Điểm danh"
+                + "</button>"
+                + "</div>"
                 + "</div>"
             );
         });
 
-        container.innerHTML = "<div class='calendar-grid'>" + days.map(function (day) {
-            return "<div class='calendar-col'>..."
-        }).join("") + "</div>";
+        container.innerHTML = "<div class='calendar-grid'>"
+            + days.map(function(day) {
+                return "<div class='calendar-col'>"
+                    + "<div class='calendar-day-header'>" + dayLabels[day] + "</div>"
+                    + (map[day].length
+                        ? map[day].join("")
+                        : "<div class='calendar-empty'>Không có lịch</div>")
+                    + "</div>";
+            }).join("")
+            + "</div>";
     }
 
     function renderScoreStudents() {
         var tbody = document.getElementById("scoreStudentTableBody");
-        if (!tbody) {
+        if (!tbody) return;
+
+        var saveAllBtn = document.getElementById("saveAllScoresBtn");
+
+        if (!state.classStudents || !state.classStudents.length) {
+            tbody.innerHTML = '<tr><td colspan="5" class="empty">Lớp chưa có sinh viên.</td></tr>';
+            if (saveAllBtn) saveAllBtn.style.display = "none";
             return;
         }
 
-        tbody.innerHTML = (state.classStudents || []).map(function (item) {
+        tbody.innerHTML = state.classStudents.map(function(item) {
             return "<tr data-enrollment-id=\"" + Number(item.EnrollmentId) + "\">"
                 + "<td><strong>" + escapeHtml(item.StudentCode) + "</strong></td>"
                 + "<td>" + escapeHtml(item.FullName) + "</td>"
                 + "<td><input type=\"number\" min=\"0\" max=\"10\" step=\"0.1\" data-score-type=\"1\" value=\"" + (item.ChuyenCan ?? "") + "\"></td>"
                 + "<td><input type=\"number\" min=\"0\" max=\"10\" step=\"0.1\" data-score-type=\"2\" value=\"" + (item.GiuaKy ?? "") + "\"></td>"
                 + "<td><input type=\"number\" min=\"0\" max=\"10\" step=\"0.1\" data-score-type=\"3\" value=\"" + (item.CuoiKy ?? "") + "\"></td>"
-                + "<td><button class=\"btn btn-primary\" type=\"button\" data-save-row=\"" + Number(item.EnrollmentId) + "\">Luu</button></td>"
                 + "</tr>";
-        }).join("") || '<tr><td colspan="6" class="empty">Lop chua co sinh vien.</td></tr>';
+        }).join("");
+
+        if (saveAllBtn) saveAllBtn.style.display = "inline-flex";
+    }
+
+    function exportClassListToExcel() {
+        var select = document.getElementById("classListSelect");
+        var classId = Number(select.value);
+        var className = select.options[select.selectedIndex]
+            ? select.options[select.selectedIndex].text
+            : "DanhSachLop";
+
+        if (!classId) {
+            alert("Vui lòng chọn lớp trước!");
+            return;
+        }
+
+        var exportBtn = document.getElementById("exportClassListBtn");
+        if (exportBtn) {
+            exportBtn.disabled = true;
+            exportBtn.innerHTML = "<i class='fas fa-spinner fa-spin'></i> Đang xuất...";
+        }
+
+        getJson(endpoints.classStudents + classId)
+            .then(function(students) {
+                if (!students || !students.length) {
+                    alert("Lớp chưa có sinh viên!");
+                    return;
+                }
+
+                var data = [
+                    ["STT", "Mã SV", "Họ tên", "Ngày sinh", "Giới tính", "Chuyên cần", "Giữa kỳ", "Cuối kỳ"]
+                ];
+
+                // Rows
+                students.forEach(function(sv, idx) {
+                    data.push([
+                        idx + 1,
+                        sv.StudentCode   || "",
+                        sv.FullName      || "",
+                        sv.DateOfBirth   || "",
+                        sv.Gender        || "",
+                        sv.ChuyenCan     !== null && sv.ChuyenCan     !== undefined ? Number(sv.ChuyenCan)  : "",
+                        sv.GiuaKy        !== null && sv.GiuaKy        !== undefined ? Number(sv.GiuaKy)     : "",
+                        sv.CuoiKy        !== null && sv.CuoiKy        !== undefined ? Number(sv.CuoiKy)     : "",
+                    ]);
+                });
+
+                var ws = XLSX.utils.aoa_to_sheet(data);
+
+                ws["!cols"] = [
+                    { wch: 5  },  
+                    { wch: 12 },  
+                    { wch: 30 },  
+                    { wch: 15 },  
+                    { wch: 10 },  
+                    { wch: 12 },  
+                    { wch: 12 },  
+                    { wch: 12 },  
+                ];
+
+                var wb = XLSX.utils.book_new();
+                XLSX.utils.book_append_sheet(wb, ws, "Danh sách & Điểm");
+
+                var fileName = "DanhSach_" + className.replace(/[^a-zA-Z0-9_]/g, "_") + ".xlsx";
+                XLSX.writeFile(wb, fileName);
+            })
+            .catch(function(err) {
+                alert("Lỗi xuất Excel: " + err.message);
+            })
+            .finally(function() {
+                if (exportBtn) {
+                    exportBtn.disabled = false;
+                    exportBtn.innerHTML = "<i class='fas fa-file-excel'></i> Xuất Excel";
+                }
+            });
     }
 
     async function loadDashboardData() {
@@ -319,6 +425,25 @@
         applyActiveState();
     }
 
+    function getLastOccurrence(weekdayStr) {
+        var weekdayToJs = {
+            "Thứ 2": 1, "Thứ 3": 2, "Thứ 4": 3,
+            "Thứ 5": 4, "Thứ 6": 5, "Thứ 7": 6, "Chủ nhật": 0
+        };
+
+        var targetDay = weekdayToJs[weekdayStr];
+        if (targetDay === undefined) return new Date().toISOString().slice(0, 10);
+
+        var today = new Date();
+        var todayDay = today.getDay();
+
+        var diff = (todayDay - targetDay + 7) % 7;
+
+        var result = new Date(today);
+        result.setDate(today.getDate() - diff);
+        return result.toISOString().slice(0, 10);
+    }
+
     function bindEvents() {
         var classForm = document.getElementById("teacherClassForm");
         if (classForm) {
@@ -346,32 +471,122 @@
                 return;
             }
 
-            var saveBtn = event.target.closest("[data-save-row]");
-            if (!saveBtn) {
+            var calListBtn = event.target.closest("[data-cal-list]");
+            if (calListBtn) {
+                var classId = Number(calListBtn.getAttribute("data-cal-list"));
+
+                var classListSelect = document.getElementById("classListSelect");
+                if (classListSelect) classListSelect.value = String(classId);
+
+                window.location.hash = "#class-list";
+
+                var classListBtn = document.getElementById("classListBtn");
+                if (classListBtn) classListBtn.click();
                 return;
             }
 
-            var enrollmentId = Number(saveBtn.getAttribute("data-save-row"));
-            var row = saveBtn.closest("tr");
-            if (!row || !enrollmentId) {
-                return;
-            }
+            var calScoreBtn = event.target.closest("[data-cal-score]");
+            if (calScoreBtn) {
+                var classId = Number(calScoreBtn.getAttribute("data-cal-score"));
 
-            saveBtn.disabled = true;
-            saveBtn.textContent = "Dang luu...";
+                var teacherClassSelect = document.getElementById("teacherClassSelect");
+                if (teacherClassSelect) teacherClassSelect.value = String(classId);
 
-            saveScoreForEnrollment(enrollmentId, row)
-                .then(function () {
-                    setMessage("Da luu diem thanh cong.", "success");
-                    return Promise.all([loadClassStudents(state.selectedClassId), loadDashboardData()]);
-                })
-                .catch(function (error) {
-                    setMessage(error.message, "error");
-                })
-                .finally(function () {
-                    saveBtn.disabled = false;
-                    saveBtn.textContent = "Luu";
+                window.location.hash = "#score-entry";
+
+                loadClassStudents(classId).catch(function(err) {
+                    setMessage(err.message, "error");
                 });
+                return;
+            }
+
+            var calAttendBtn = event.target.closest("[data-cal-attend]");
+            if (calAttendBtn) {
+                var classId  = Number(calAttendBtn.getAttribute("data-cal-attend"));
+                var weekday  = calAttendBtn.getAttribute("data-cal-weekday");
+
+                var attendanceClassSelect = document.getElementById("attendanceClassSelect");
+                if (attendanceClassSelect) attendanceClassSelect.value = String(classId);
+
+                var dateInput = document.querySelector("#attendanceForm input[type='date']");
+                if (dateInput) {
+                    dateInput.value = getLastOccurrence(weekday);
+                }
+
+                window.location.hash = "#attendance";
+
+                var attendSearchBtn = document.getElementById("attendanceSearchBtn");
+                if (attendSearchBtn) attendSearchBtn.click();
+                return;
+            }
+
+            var exportBtn = document.getElementById("exportClassListBtn");
+            if (exportBtn) {
+                exportBtn.addEventListener("click", function() {
+                    exportClassListToExcel();
+                });
+            }
+            
+            // Save
+            var saveAllBtn = document.getElementById("saveAllScoresBtn");
+            if (saveAllBtn) {
+                saveAllBtn.addEventListener("click", function() {
+                    var rows = document.querySelectorAll("#scoreStudentTableBody tr[data-enrollment-id]");
+                    if (!rows.length) {
+                        setMessage("Không có dữ liệu để lưu.", "error");
+                        return;
+                    }
+
+                    var tasks = [];
+                    var hasError = false;
+
+                    rows.forEach(function(row) {
+                        var enrollmentId = Number(row.dataset.enrollmentId);
+                        row.querySelectorAll("input[data-score-type]").forEach(function(input) {
+                            if (input.value === "") return;
+                            var score = Number(input.value);
+                            if (Number.isNaN(score) || score < 0 || score > 10) {
+                                hasError = true;
+                                return;
+                            }
+                            tasks.push(postJson(endpoints.saveScore, {
+                                EnrollmentId: enrollmentId,
+                                ScoreTypeId: Number(input.dataset.scoreType),
+                                ScoreValue: score,
+                            }));
+                        });
+                    });
+
+                    if (hasError) {
+                        setMessage("Điểm phải nằm trong khoảng 0 đến 10.", "error");
+                        return;
+                    }
+                    if (!tasks.length) {
+                        setMessage("Chưa có điểm nào được nhập.", "error");
+                        return;
+                    }
+
+                    saveAllBtn.disabled = true;
+                    saveAllBtn.innerHTML = "<i class='fas fa-spinner fa-spin'></i> Đang lưu...";
+                    setMessage("", "");
+
+                    Promise.all(tasks)
+                        .then(function() {
+                            setMessage("Đã lưu tất cả điểm thành công!", "success");
+                            return Promise.all([
+                                loadClassStudents(state.selectedClassId),
+                                loadDashboardData()
+                            ]);
+                        })
+                        .catch(function(err) {
+                            setMessage(err.message, "error");
+                        })
+                        .finally(function() {
+                            saveAllBtn.disabled = false;
+                            saveAllBtn.innerHTML = "<i class='fas fa-save'></i> Lưu tất cả điểm";
+                        });
+                });
+            }
         });
 
         // 2. Class List
@@ -388,18 +603,26 @@
                 body.innerHTML = '<tr><td colspan="4" class="empty">Đang tải...</td></tr>';
 
                 getJson(endpoints.classStudents + Number(val))
-                    .then(function (students) {
-                        body.innerHTML = (students || []).map(function (sv) {
+                    .then(function(students) {
+                        body.innerHTML = (students || []).map(function(sv) {
                             return "<tr>"
                                 + "<td><strong>" + escapeHtml(sv.StudentCode) + "</strong></td>"
                                 + "<td>" + escapeHtml(sv.FullName) + "</td>"
-                                + "<td>" + escapeHtml(sv.DateOfBirth || '—') + "</td>"
-                                + "<td>" + escapeHtml(sv.Gender || '—') + "</td>"
+                                + "<td>" + escapeHtml(sv.DateOfBirth || "—") + "</td>"
+                                + "<td>" + escapeHtml(sv.Gender || "—") + "</td>"
                                 + "</tr>";
-                        }).join('') || '<tr><td colspan="4" class="empty">Lớp chưa có sinh viên.</td></tr>';
+                        }).join("") || '<tr><td colspan="4" class="empty">Lớp chưa có sinh viên.</td></tr>';
+
+                        // Hiện nút xuất nếu có dữ liệu
+                        var exportBtn = document.getElementById("exportClassListBtn");
+                        if (exportBtn) {
+                            exportBtn.style.display = students && students.length ? "inline-flex" : "none";
+                        }
                     })
-                    .catch(function (err) {
-                        body.innerHTML = '<tr><td colspan="4" class="empty">Lỗi tải dữ liệu: ' + escapeHtml(err.message) + '</td></tr>';
+                    .catch(function(err) {
+                        body.innerHTML = '<tr><td colspan="4" class="empty">Lỗi: ' + escapeHtml(err.message) + '</td></tr>';
+                        var exportBtn = document.getElementById("exportClassListBtn");
+                        if (exportBtn) exportBtn.style.display = "none";
                     });
             });
         }

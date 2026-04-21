@@ -1,6 +1,5 @@
 import pyodbc
 from flask import Blueprint, jsonify, request
-from models.notification_model import create_notification
 from models.teacher_model import (
     create_teacher,
     delete_teacher,
@@ -17,6 +16,7 @@ from models.teacher_model import (
     get_attendance_by_class_and_date,
     save_attendance_records,
     get_notifications_by_creator,
+    create_notification,
 )
 from utils.auth import current_session_user, role_required
 

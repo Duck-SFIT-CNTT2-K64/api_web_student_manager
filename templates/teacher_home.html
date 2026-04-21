@@ -88,13 +88,15 @@
     </div>
 
     <div style="display:grid;gap:16px;align-content:start">
-        <div class="gradient-card gc-blue">
-            <div class="gc-icon"><i class="fas fa-chalkboard"></i></div>
-            <div class="gc-info">
-                <div class="gc-label">Lớp phụ trách</div>
-                <div class="gc-value" id="teacherClassCount">{{ home_data.Totals.TotalClasses or 0 }}</div>
+        <a href="#my-classes" style="text-decoration:none;">
+            <div class="gradient-card gc-blue" style="cursor:pointer;">
+                <div class="gc-icon"><i class="fas fa-chalkboard"></i></div>
+                <div class="gc-info">
+                    <div class="gc-label">Lớp phụ trách</div>
+                    <div class="gc-value" id="teacherClassCount">{{ home_data.Totals.TotalClasses or 0 }}</div>
+                </div>
             </div>
-        </div>
+        </a>
         <div class="gradient-card gc-green">
             <div class="gc-icon"><i class="fas fa-user-graduate"></i></div>
             <div class="gc-info">
@@ -177,7 +179,7 @@
             </div>
         </div>
     </div>
-    
+
     <div class="card" style="margin-top:20px">
         <div class="card-header">
             <h3><i class="fas fa-calendar-alt"></i> Lịch dạng Calendar</h3>
@@ -225,9 +227,9 @@
             <div class="card-body">
                 <ul class="info-list">
                     <li><span class="label">Thang điểm</span><span class="value">0 - 10</span></li>
-                    <li><span class="label">Chuyên cần</span><span class="value">ScoreTypeId = 1</span></li>
-                    <li><span class="label">Giữa kỳ</span><span class="value">ScoreTypeId = 2</span></li>
-                    <li><span class="label">Cuối kỳ</span><span class="value">ScoreTypeId = 3</span></li>
+                    <li><span class="label">Chuyên cần</span><span class="value">0 - 10</span></li>
+                    <li><span class="label">Giữa kỳ</span><span class="value">0 - 10</span></li>
+                    <li><span class="label">Cuối kỳ</span><span class="value">0 - 10</span></li>
                 </ul>
             </div>
         </div>
@@ -247,7 +249,6 @@
                             <th>Chuyên cần</th>
                             <th>Giữa kỳ</th>
                             <th>Cuối kỳ</th>
-                            <th>Lưu</th>
                         </tr>
                     </thead>
                     <tbody id="scoreStudentTableBody">
@@ -257,6 +258,11 @@
                     </tbody>
                 </table>
             </div>
+        </div>
+        <div class="card-footer" style="display:flex; justify-content:flex-end; padding:16px;">
+            <button class="btn btn-primary" id="saveAllScoresBtn" style="display:none;">
+                <i class="fas fa-save"></i> Lưu tất cả điểm
+            </button>
         </div>
     </div>
 </section>
@@ -286,8 +292,11 @@
             </form>
         </div>
         <div class="panel table-panel">
-            <div class="table-header">
+            <div class="table-header" style="display:flex; justify-content:space-between; align-items:center;">
                 <h3>Danh sách sinh viên</h3>
+                <button class="btn btn-success" id="exportClassListBtn" style="display:none;">
+                    <i class="fas fa-file-excel"></i> Xuất Excel
+                </button>
             </div>
             <div class="table-wrap">
                 <table>
@@ -462,8 +471,10 @@
         giảng viên trong hệ thống. Vui lòng liên hệ quản trị viên để được hỗ trợ.</p>
 </div>
 {% endif %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/teacher.css') }}">
 {% endblock %}
 
 {% block extra_js %}
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script src="{{ url_for('static', filename='js/teacher_home.js') }}"></script>
 {% endblock %}
