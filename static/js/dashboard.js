@@ -440,7 +440,7 @@ function renderUsers() {
 
         return "<tr>" +
             "<td><strong>" + escapeHtml(u.Username) + "</strong></td>" +
-            "<td>" + escapeHtml(u.FullName || "—") + "</td>" +
+            "<td>" + escapeHtml(u.FullName || "—") + "<br>" + escapeHtml(u.PhoneNumber || "—") + "</td>" +
             "<td style='font-size:.85rem'>" + escapeHtml(u.Email || "—") + "</td>" +
             "<td><span style='background:" + roleColor + "22;color:" + roleColor + ";padding:3px 10px;border-radius:20px;font-size:.8rem;font-weight:600'>" + escapeHtml(u.RoleName || "—") + "</span>" +
             roleEditBtn + "</td>" +
@@ -934,12 +934,9 @@ function bindEdits() {
                 form.elements["EditId"].value = teacher.TeacherId;
                 form.elements["LastName"].value = teacher.LastName || "";
                 form.elements["FirstName"].value = teacher.FirstName || "";
-                form.elements["Username"].value = teacher.Username || "";
                 form.elements["Email"].value = teacher.Email || "";
                 form.elements["PhoneNumber"].value = teacher.PhoneNumber || "";
                 form.elements["Specialization"].value = teacher.Specialization || "";
-                form.elements["Password"].value = "";
-                form.elements["Password"].placeholder = "Bỏ trống để giữ mật khẩu cũ";
                 setFormEditMode("teacherForm", "teacherFormTitle", "Sửa giảng viên", "Cập nhật giảng viên");
                 document.getElementById("teacherFormTitle").scrollIntoView({ behavior: "smooth", block: "start" });
             }
