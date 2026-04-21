@@ -335,7 +335,7 @@ def get_class_students_with_scores(class_id: int) -> List[Dict[str, Any]]:
             LEFT JOIN Scores sc ON e.EnrollmentId = sc.EnrollmentId
             LEFT JOIN ScoreTypes st ON sc.ScoreTypeId = st.ScoreTypeId
             WHERE e.ClassId = ?
-            GROUP BY e.EnrollmentId, s.StudentCode, s.FullName
+            GROUP BY e.EnrollmentId, s.StudentCode, s.FullName, s.DateOfBirth, s.Gender
             ORDER BY s.StudentCode
             """,
             int(class_id),

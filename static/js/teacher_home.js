@@ -112,21 +112,31 @@
     }
 
     function renderClassSelect() {
-        var select = document.getElementById("teacherClassSelect");
-        if (!select) {
-            return;
-        }
+        var baseOption = '<option value="">Chọn lớp...</option>';
+        var options = (state.classes || []).reduce(function(acc, item) {
+            return acc + '<option value="' + item.ClassId + '">' + escapeHtml(item.ClassCode + " - " + item.ClassName) + ' (' + Number(item.StudentCount || 0) + ' SV)</option>';
+        }, "");
 
-        select.innerHTML = '<option value="">Chon lop de nhap diem</option>';
-        (state.classes || []).forEach(function (item) {
-            var option = document.createElement("option");
-            option.value = item.ClassId;
-            option.textContent = item.ClassCode + " - " + item.ClassName + " (" + Number(item.StudentCount || 0) + " SV)";
-            select.appendChild(option);
+        var selects = [
+            { id: 'teacherClassSelect', def: '<option value="">Chọn lớp để nhập điểm</option>' },
+            { id: 'classListSelect', def: baseOption },
+            { id: 'examClassSelect', def: baseOption },
+            { id: 'attendanceClassSelect', def: baseOption }
+        ];
+
+        selects.forEach(function(s) {
+            var el = document.getElementById(s.id);
+            if (el) el.innerHTML = s.def + options;
         });
 
-        if (state.selectedClassId) {
-            select.value = String(state.selectedClassId);
+        var notifSelect = document.getElementById('notificationTargetSelect');
+        if (notifSelect) {
+            notifSelect.innerHTML = '<option value="all">Tất cả sinh viên</option>' + options;
+        }
+
+        var teacherSelect = document.getElementById("teacherClassSelect");
+        if (teacherSelect && state.selectedClassId) {
+            teacherSelect.value = String(state.selectedClassId);
         }
     }
 
@@ -363,47 +373,15 @@
                     saveBtn.textContent = "Luu";
                 });
         });
-    }
 
-    function initNewUIMockEvents() {
-        // Populate ALL class dropdowns when state.classes updates
-        function updateClassSelects() {
-            var options = '<option value="">Chọn lớp...</option>';
-            (state.classes || []).forEach(function (c) {
-                options += '<option value="' + c.ClassId + '">' + escapeHtml(c.ClassName) + '</option>';
-            });
-
-            var classListSelect = document.getElementById('classListSelect');
-            if (classListSelect) classListSelect.innerHTML = options;
-
-            var examClassSelect = document.getElementById('examClassSelect');
-            if (examClassSelect) examClassSelect.innerHTML = options;
-
-            var attClassSelect = document.getElementById('attendanceClassSelect');
-            if (attClassSelect) attClassSelect.innerHTML = options;
-
-            var notifSelect = document.getElementById('notificationTargetSelect');
-            if (notifSelect) {
-                notifSelect.innerHTML = '<option value="all">Tất cả lớp của tôi</option>' + options;
-            }
-        }
-
-        // Listen to original class generation to reuse
-        var origRenderClassSelect = renderClassSelect;
-        renderClassSelect = function () {
-            origRenderClassSelect();
-            updateClassSelects();
-        };
-
-        // 2. Danh sách lớp
-        var classListBtn = document.getElementById('classListBtn');
+        // 2. Class List
+        var classListBtn = document.getElementById("classListBtn");
         if (classListBtn) {
-            classListBtn.addEventListener('click', function () {
-                var val = document.getElementById('classListSelect').value;
-                var body = document.getElementById('classListTableBody');
-
+            classListBtn.addEventListener("click", async function () {
+                var val = document.getElementById("classListSelect").value;
+                var body = document.getElementById("classListTableBody");
                 if (!val) {
-                    alert('Vui lòng chọn lớp!');
+                    alert("Vui lòng chọn lớp!");
                     return;
                 }
 
@@ -427,19 +405,29 @@
         }
 
         // 3. Exams
-        var examForm = document.getElementById('examForm');
+        var examForm = document.getElementById("examForm");
         if (examForm) {
-            examForm.addEventListener('submit', function (e) {
+            examForm.addEventListener("submit", function (e) {
                 e.preventDefault();
-                alert("Tạo bài kiểm tra thành công! (Tính năng mô phỏng)");
-                var body = document.getElementById('examTableBody');
-                body.innerHTML = '<tr><td>Bài kiểm tra giả lập</td><td>---</td><td>---</td><td><span class="badge good">Đã giao</span></td></tr>';
+                var title = examForm.querySelector("input[placeholder]").value;
+                var classSel = document.getElementById("examClassSelect");
+                var className = classSel.options[classSel.selectedIndex].text;
+                var dueDate = examForm.querySelector('input[type="datetime-local"]').value;
+                
+                var body = document.getElementById("examTableBody");
+                if (body.querySelector(".empty")) body.innerHTML = "";
+                
+                var row = document.createElement("tr");
+                row.innerHTML = "<td>" + escapeHtml(title) + "</td><td>" + escapeHtml(className) + "</td><td>" + escapeHtml(dueDate.replace("T", " ")) + "</td><td><span class=\"badge good\">Đã giao</span></td>";
+                body.prepend(row);
+                
+                alert("Tạo bài kiểm tra thành công! (Mô phỏng UI)");
                 examForm.reset();
             });
         }
 
         // 4. Attendance
-        var attSearchBtn = document.getElementById('attendanceSearchBtn');
+        var attSearchBtn = document.getElementById("attendanceSearchBtn");
         if (attSearchBtn) {
             attSearchBtn.addEventListener('click', function () {
                 var classId = document.getElementById('attendanceClassSelect').value;
@@ -474,7 +462,7 @@
             });
         }
 
-        var attSaveBtn = document.getElementById('attendanceSaveBtn');
+        var attSaveBtn = document.getElementById("attendanceSaveBtn");
         if (attSaveBtn) {
             attSaveBtn.addEventListener('click', function () {
                 var date = document.querySelector('#attendanceForm input[type="date"]').value;
@@ -577,7 +565,6 @@
 
     bindNavigation();
     bindEvents();
-    initNewUIMockEvents();
     loadDashboardData().catch(function (error) {
         setMessage(error.message, "error");
     });
