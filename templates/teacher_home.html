@@ -236,9 +236,18 @@
     </div>
 
     <div class="card">
-        <div class="card-header">
-            <h3>Danh sách sinh viên và điểm</h3>
+        <div class="card-header" style="display:flex; justify-content:space-between; align-items:center;">
+        <h3>Danh sách sinh viên và điểm</h3>
+        <div style="display:flex; gap:8px;">
+            <button class="btn btn-ghost" id="downloadTemplateBtn" style="display:none;">
+                <i class="fas fa-download"></i> Tải file mẫu
+            </button>
+            <label class="btn btn-ghost" id="importExcelLabel" style="display:none; cursor:pointer;">
+                <i class="fas fa-file-import"></i> Import Excel
+                <input type="file" id="importExcelInput" accept=".xlsx,.xls" style="display:none;">
+            </label>
         </div>
+    </div>
         <div class="card-body-flush">
             <div class="table-wrap">
                 <table>
@@ -459,6 +468,28 @@
                     </tbody>
                 </table>
             </div>
+        </div>
+    </div>
+    <!-- Modal xem thông báo -->
+    <div id="notifModal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.5); z-index:9999; align-items:center; justify-content:center;">
+        <div style="background:var(--surface, #fff); border-radius:12px; padding:28px; max-width:520px; width:90%; box-shadow:0 8px 32px rgba(0,0,0,0.2); position:relative;">
+            <button id="notifModalClose" style="position:absolute; top:14px; right:16px; background:none; border:none; font-size:1.4rem; cursor:pointer; color:var(--text-muted);">&times;</button>
+            <h3 id="notifModalTitle" style="margin-bottom:16px; padding-right:24px;"></h3>
+            <ul class="info-list" style="margin-bottom:16px;">
+                <li>
+                    <span class="label">Người gửi</span>
+                    <span class="value" id="notifModalCreator"></span>
+                </li>
+                <li>
+                    <span class="label">Đối tượng</span>
+                    <span class="value" id="notifModalTarget"></span>
+                </li>
+                <li>
+                    <span class="label">Ngày gửi</span>
+                    <span class="value" id="notifModalDate"></span>
+                </li>
+            </ul>
+            <div style="background:var(--bg, #f8fafc); border-radius:8px; padding:14px; font-size:0.95rem; line-height:1.7; white-space:pre-wrap;" id="notifModalContent"></div>
         </div>
     </div>
 </section>

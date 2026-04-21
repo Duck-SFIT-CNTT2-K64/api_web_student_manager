@@ -469,6 +469,7 @@ def get_notifications_by_creator(user_id: int) -> List[Dict[str, Any]]:
         return rows_to_list(cursor, rows)
 
 
+# Hàm tạo thông báo và gửi đến sinh viên của 1 lớp hoặc tất cả lớp của teacher
 def create_notification(user_id: int, title: str, 
                         content: str, class_id=None) -> int:
     with get_db_connection() as connection:
@@ -514,3 +515,28 @@ def create_notification(user_id: int, title: str,
 
         connection.commit()
         return notif_id
+    
+# Hàm lấy thông báo đã tạo bởi teacher, kèm số lượng người nhận (sinh viên) của mỗi thông báo
+def get_notifications_by_creator(user_id: int) -> List[Dict[str, Any]]:
+    with get_db_connection() as connection:
+        cursor = connection.cursor()
+        cursor.execute("""
+            SELECT
+                n.NotificationId,
+                n.Title,
+                n.Content,
+                n.CreatedDate,
+                CONCAT(t.FirstName, N' ', t.LastName) AS CreatorName,
+                COUNT(nr.RecipientId) AS RecipientCount
+            FROM Notifications n
+            LEFT JOIN NotificationRecipients nr 
+                ON n.NotificationId = nr.NotificationId
+            LEFT JOIN Teachers t
+                ON n.CreatorId = t.UserId
+            WHERE n.CreatorId = ?
+            GROUP BY n.NotificationId, n.Title, n.Content, n.CreatedDate,
+                     t.FirstName, t.LastName
+            ORDER BY n.CreatedDate DESC
+        """, int(user_id))
+        rows = cursor.fetchall()
+        return rows_to_list(cursor, rows)
