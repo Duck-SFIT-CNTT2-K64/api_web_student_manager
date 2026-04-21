@@ -137,33 +137,15 @@
                     </tr>
                 </thead>
                 <tbody id="teacherClassesBody">
-                    {% for item in home_data.Classes %}
                     <tr>
-                        <td><strong>{{ item.ClassCode }}</strong></td>
-                        <td>{{ item.ClassName }}</td>
-                        <td>{{ item.CourseName }}</td>
-                        <td>
-                            <span class="badge info">{{ item.StudentCount or 0 }}</span>
-                        </td>
-                        <td>
-                            <button class="btn btn-ghost" type="button" data-open-score-class="{{ item.ClassId }}">
-                                <i class="fas fa-pen"></i> Nhập điểm
-                            </button>
-                        </td>
+                        <td colspan="5" class="empty">Đang tải dữ liệu...</td>
                     </tr>
-                    {% endfor %}
                 </tbody>
-            </table>
-        </div>
-    </div>
-    {% if not home_data.Classes %}
-    <div class="card-body">
-        <p class="empty"><i class="fas fa-inbox" style="font-size:24px;display:block;margin-bottom:8px"></i>Hiện chưa có
-            lớp nào được phân công.</p>
-    </div>
-    {% endif %}
-</div>
-</section>
+             </table>
+         </div>
+     </div>
+ </div>
+ </section>
 
 <section class="section" id="teaching-schedule">
     <div class="section-heading">

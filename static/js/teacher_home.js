@@ -112,21 +112,31 @@
     }
 
     function renderClassSelect() {
-        var select = document.getElementById("teacherClassSelect");
-        if (!select) {
-            return;
-        }
+        var baseOption = '<option value="">Chọn lớp...</option>';
+        var options = (state.classes || []).reduce(function(acc, item) {
+            return acc + '<option value="' + item.ClassId + '">' + escapeHtml(item.ClassCode + " - " + item.ClassName) + ' (' + Number(item.StudentCount || 0) + ' SV)</option>';
+        }, "");
 
-        select.innerHTML = '<option value="">Chon lop de nhap diem</option>';
-        (state.classes || []).forEach(function (item) {
-            var option = document.createElement("option");
-            option.value = item.ClassId;
-            option.textContent = item.ClassCode + " - " + item.ClassName + " (" + Number(item.StudentCount || 0) + " SV)";
-            select.appendChild(option);
+        var selects = [
+            { id: 'teacherClassSelect', def: '<option value="">Chọn lớp để nhập điểm</option>' },
+            { id: 'classListSelect', def: baseOption },
+            { id: 'examClassSelect', def: baseOption },
+            { id: 'attendanceClassSelect', def: baseOption }
+        ];
+
+        selects.forEach(function(s) {
+            var el = document.getElementById(s.id);
+            if (el) el.innerHTML = s.def + options;
         });
 
-        if (state.selectedClassId) {
-            select.value = String(state.selectedClassId);
+        var notifSelect = document.getElementById('notificationTargetSelect');
+        if (notifSelect) {
+            notifSelect.innerHTML = '<option value="all">Tất cả sinh viên</option>' + options;
+        }
+
+        var teacherSelect = document.getElementById("teacherClassSelect");
+        if (teacherSelect && state.selectedClassId) {
+            teacherSelect.value = String(state.selectedClassId);
         }
     }
 
@@ -327,99 +337,144 @@
                     saveBtn.textContent = "Luu";
                 });
         });
-    }
 
-    function initNewUIMockEvents() {
-        // Populate ALL class dropdowns when state.classes updates
-        function updateClassSelects() {
-            var options = '<option value="">Chọn lớp...</option>';
-            (state.classes || []).forEach(function (c) {
-                options += '<option value="' + c.ClassId + '">' + escapeHtml(c.ClassName) + '</option>';
-            });
-
-            var classListSelect = document.getElementById('classListSelect');
-            if (classListSelect) classListSelect.innerHTML = options;
-
-            var examClassSelect = document.getElementById('examClassSelect');
-            if (examClassSelect) examClassSelect.innerHTML = options;
-
-            var attClassSelect = document.getElementById('attendanceClassSelect');
-            if (attClassSelect) attClassSelect.innerHTML = options;
-
-            var notifSelect = document.getElementById('notificationTargetSelect');
-            if (notifSelect) {
-                notifSelect.innerHTML = '<option value="all">Tất cả lớp của tôi</option>' + options;
-            }
-        }
-
-        // Listen to original class generation to reuse
-        var origRenderClassSelect = renderClassSelect;
-        renderClassSelect = function () {
-            origRenderClassSelect();
-            updateClassSelects();
-        };
-
-        // 2. Danh sách lớp
-        var classListBtn = document.getElementById('classListBtn');
+        // 2. Class List
+        var classListBtn = document.getElementById("classListBtn");
         if (classListBtn) {
-            classListBtn.addEventListener('click', function () {
-                var val = document.getElementById('classListSelect').value;
-                var body = document.getElementById('classListTableBody');
+            classListBtn.addEventListener("click", async function () {
+                var val = document.getElementById("classListSelect").value;
+                var body = document.getElementById("classListTableBody");
                 if (!val) {
-                    alert('Vui lòng chọn lớp!');
+                    alert("Vui lòng chọn lớp!");
                     return;
                 }
-                body.innerHTML = '<tr><td colspan="4" class="empty">Đang tải cấu trúc danh sách sinh viên... (Mockup/Tính năng chờ API)</td></tr>';
+                body.innerHTML = '<tr><td colspan="4" class="empty">Đang tải danh sách sinh viên...</td></tr>';
+                try {
+                    var students = await getJson(endpoints.classStudents + Number(val));
+                    body.innerHTML = students.map(function(s) {
+                        return "<tr>" +
+                               "<td><strong>" + escapeHtml(s.StudentCode) + "</strong></td>" +
+                               "<td>" + escapeHtml(s.FullName) + "</td>" +
+                               "<td>" + escapeHtml(s.DateOfBirth ? String(s.DateOfBirth).slice(0, 10) : "Chưa cập nhật") + "</td>" +
+                               "<td>" + escapeHtml(s.Gender || "---") + "</td>" +
+                               "</tr>";
+                    }).join("") || '<tr><td colspan="4" class="empty">Lớp chưa có sinh viên.</td></tr>';
+                } catch (e) {
+                    body.innerHTML = '<tr><td colspan="4" class="empty error" style="color:var(--error)">Lỗi: ' + escapeHtml(e.message) + "</td></tr>";
+                }
             });
         }
 
         // 3. Exams
-        var examForm = document.getElementById('examForm');
+        var examForm = document.getElementById("examForm");
         if (examForm) {
-            examForm.addEventListener('submit', function (e) {
+            examForm.addEventListener("submit", function (e) {
                 e.preventDefault();
-                alert("Tạo bài kiểm tra thành công! (Tính năng mô phỏng)");
-                var body = document.getElementById('examTableBody');
-                body.innerHTML = '<tr><td>Bài kiểm tra giả lập</td><td>---</td><td>---</td><td><span class="badge good">Đã giao</span></td></tr>';
+                var title = examForm.querySelector("input[placeholder]").value;
+                var classSel = document.getElementById("examClassSelect");
+                var className = classSel.options[classSel.selectedIndex].text;
+                var dueDate = examForm.querySelector('input[type="datetime-local"]').value;
+                
+                var body = document.getElementById("examTableBody");
+                if (body.querySelector(".empty")) body.innerHTML = "";
+                
+                var row = document.createElement("tr");
+                row.innerHTML = "<td>" + escapeHtml(title) + "</td><td>" + escapeHtml(className) + "</td><td>" + escapeHtml(dueDate.replace("T", " ")) + "</td><td><span class=\"badge good\">Đã giao</span></td>";
+                body.prepend(row);
+                
+                alert("Tạo bài kiểm tra thành công! (Mô phỏng UI)");
                 examForm.reset();
             });
         }
 
         // 4. Attendance
-        var attSearchBtn = document.getElementById('attendanceSearchBtn');
+        var attSearchBtn = document.getElementById("attendanceSearchBtn");
         if (attSearchBtn) {
-            attSearchBtn.addEventListener('click', function () {
-                var val = document.getElementById('attendanceClassSelect').value;
+            attSearchBtn.addEventListener("click", async function () {
+                var val = document.getElementById("attendanceClassSelect").value;
+                var body = document.getElementById("attendanceTableBody");
                 if (!val) {
-                    alert('Vui lòng chọn lớp và ngày học để điểm danh!');
+                    alert("Vui lòng chọn lớp và ngày học để điểm danh!");
                     return;
                 }
-                var body = document.getElementById('attendanceTableBody');
-                body.innerHTML = '<tr><td>SV01</td><td>Nguyễn Văn A</td><td style="text-align:center"><input type="radio" name="att_1" checked></td><td style="text-align:center"><input type="radio" name="att_1"></td><td style="text-align:center"><input type="radio" name="att_1"></td></tr>';
+                body.innerHTML = '<tr><td colspan="5" class="empty">Đang tải danh sách sinh viên...</td></tr>';
+                try {
+                    var students = await getJson(endpoints.classStudents + Number(val));
+                    body.innerHTML = students.map(function(s, idx) {
+                        return "<tr>" +
+                               "<td><strong>" + escapeHtml(s.StudentCode) + "</strong></td>" +
+                               "<td>" + escapeHtml(s.FullName) + "</td>" +
+                               "<td style=\"text-align:center\"><input type=\"radio\" name=\"att_" + idx + "\" value=\"present\" checked></td>" +
+                               "<td style=\"text-align:center\"><input type=\"radio\" name=\"att_" + idx + "\" value=\"absent\"></td>" +
+                               "<td style=\"text-align:center\"><input type=\"radio\" name=\"att_" + idx + "\" value=\"late\"></td>" +
+                               "</tr>";
+                    }).join("") || '<tr><td colspan="5" class="empty">Lớp chưa có sinh viên.</td></tr>';
+                } catch (e) {
+                    body.innerHTML = '<tr><td colspan="5" class="empty error" style="color:var(--error)">Lỗi: ' + escapeHtml(e.message) + "</td></tr>";
+                }
             });
         }
 
-        var attSaveBtn = document.getElementById('attendanceSaveBtn');
+        var attSaveBtn = document.getElementById("attendanceSaveBtn");
         if (attSaveBtn) {
-            attSaveBtn.addEventListener('click', function () {
-                alert('Đã lưu điểm danh!');
+            attSaveBtn.addEventListener("click", function () {
+                var body = document.getElementById("attendanceTableBody");
+                if (body.querySelector(".empty")) {
+                    alert("Không có dữ liệu để lưu!");
+                    return;
+                }
+                alert("Đã lưu điểm danh thành công! (Mô phỏng UI)");
             });
         }
 
         // 5. Notifications
-        var notifSendBtn = document.getElementById('notificationSendBtn');
+        var notifSendBtn = document.getElementById("notificationSendBtn");
         if (notifSendBtn) {
-            notifSendBtn.addEventListener('click', function () {
-                alert('Thông báo đã được gửi đến sinh viên!');
-                var body = document.getElementById('notificationTableBody');
-                body.innerHTML = '<tr><td>Thông báo giả lập</td><td>Tất cả lớp</td><td>Vừa xong</td></tr>';
+            notifSendBtn.addEventListener("click", async function () {
+                var notifForm = document.getElementById("notificationForm");
+                var titleInput = notifForm.querySelector("input[placeholder]");
+                var targetSel = document.getElementById("notificationTargetSelect");
+                var contentText = notifForm.querySelector("textarea");
+                
+                if (!titleInput.value || !contentText.value) {
+                    alert("Vui lòng nhập đầy đủ tiêu đề và nội dung.");
+                    return;
+                }
+                
+                try {
+                    notifSendBtn.disabled = true;
+                    notifSendBtn.textContent = "Đang gửi...";
+                    
+                    var payload = {
+                        Title: titleInput.value,
+                        Content: contentText.value,
+                        CreatorId: userId,
+                        Audience: "students"
+                    };
+                    await postJson("/api/notifications", payload);
+                    
+                    var body = document.getElementById("notificationTableBody");
+                    if (body.querySelector(".empty")) body.innerHTML = "";
+                    
+                    var row = document.createElement("tr");
+                    var targetName = targetSel.options[targetSel.selectedIndex].text;
+                    row.innerHTML = "<td>" + escapeHtml(titleInput.value) + "</td><td>" + escapeHtml(targetName) + "</td><td>Vừa xong</td>";
+                    body.prepend(row);
+                    
+                    alert("Gửi thông báo thành công!");
+                    notifForm.reset();
+                } catch (e) {
+                    alert("Lỗi: " + e.message);
+                } finally {
+                    notifSendBtn.disabled = false;
+                    notifSendBtn.innerHTML = '<i class="fas fa-paper-plane"></i> Gửi thông báo';
+                }
             });
         }
     }
 
     bindNavigation();
     bindEvents();
-    initNewUIMockEvents();
     loadDashboardData().catch(function (error) {
         setMessage(error.message, "error");
     });
