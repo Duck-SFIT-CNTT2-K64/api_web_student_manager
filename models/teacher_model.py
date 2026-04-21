@@ -325,6 +325,8 @@ def get_class_students_with_scores(class_id: int) -> List[Dict[str, Any]]:
                 e.EnrollmentId,
                 s.StudentCode,
                 s.FullName,
+                s.DateOfBirth,
+                s.Gender,
                 MAX(CASE WHEN st.ScoreTypeId = 1 THEN sc.ScoreValue END) AS ChuyenCan,
                 MAX(CASE WHEN st.ScoreTypeId = 2 THEN sc.ScoreValue END) AS GiuaKy,
                 MAX(CASE WHEN st.ScoreTypeId = 3 THEN sc.ScoreValue END) AS CuoiKy
@@ -333,7 +335,7 @@ def get_class_students_with_scores(class_id: int) -> List[Dict[str, Any]]:
             LEFT JOIN Scores sc ON e.EnrollmentId = sc.EnrollmentId
             LEFT JOIN ScoreTypes st ON sc.ScoreTypeId = st.ScoreTypeId
             WHERE e.ClassId = ?
-            GROUP BY e.EnrollmentId, s.StudentCode, s.FullName
+            GROUP BY e.EnrollmentId, s.StudentCode, s.FullName, s.DateOfBirth, s.Gender
             ORDER BY s.StudentCode
             """,
             int(class_id),
