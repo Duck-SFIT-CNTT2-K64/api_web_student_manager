@@ -344,10 +344,12 @@
                         <option value="">Chọn lớp...</option>
                     </select></label>
                 <label>Tiêu đề <input required placeholder="VD: Kiểm tra giữa kỳ"></label>
-                <label>Loại bài <select>
-                        <option>Trắc nghiệm</option>
-                        <option>Tự luận</option>
-                    </select></label>
+                <label>Loại bài 
+                    <select id="examTypeSelect">
+                        <option value="Trắc nghiệm">Trắc nghiệm</option>
+                        <option value="Tự luận">Tự luận</option>
+                    </select>
+                </label>
                 <label>Hạn nộp <input type="datetime-local" required></label>
                 <label>Ghi chú <textarea rows="2"></textarea></label>
                 <button class="btn btn-primary" type="submit"><i class="fas fa-plus"></i> Tạo bài kiểm tra</button>
@@ -363,8 +365,10 @@
                         <tr>
                             <th>Tiêu đề</th>
                             <th>Lớp</th>
+                            <th>Loại</th>
                             <th>Hạn nộp</th>
                             <th>Trạng thái</th>
+                            <th>Xóa</th>
                         </tr>
                     </thead>
                     <tbody id="examTableBody">
@@ -490,6 +494,44 @@
                 </li>
             </ul>
             <div style="background:var(--bg, #f8fafc); border-radius:8px; padding:14px; font-size:0.95rem; line-height:1.7; white-space:pre-wrap;" id="notifModalContent"></div>
+        </div>
+    </div>
+
+    <!-- Modal Chi tiết lớp từ Calendar -->
+    <div id="calDetailModal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.5); z-index:9999; align-items:center; justify-content:center;">
+        <div style="background:var(--surface,#fff); border-radius:12px; padding:28px; max-width:700px; width:95%; max-height:85vh; overflow-y:auto; box-shadow:0 8px 32px rgba(0,0,0,0.2); position:relative;">
+            <button id="calDetailModalClose" style="position:absolute; top:14px; right:16px; background:none; border:none; font-size:1.4rem; cursor:pointer; color:var(--text-muted);">&times;</button>
+            
+            <div style="margin-bottom:16px;">
+                <h3 id="calDetailModalTitle" style="margin-bottom:4px;"></h3>
+                <p id="calDetailModalSubtitle" style="color:var(--text-muted); font-size:0.9rem; margin:0;"></p>
+            </div>
+
+            <div style="display:flex; gap:8px; margin-bottom:20px;">
+                <button class="btn btn-primary" id="calDetailGoScore">
+                    <i class="fas fa-pen"></i> Nhập điểm
+                </button>
+                <button class="btn btn-ghost" id="calDetailGoAttend">
+                    <i class="fas fa-clipboard-check"></i> Điểm danh
+                </button>
+            </div>
+
+            <div class="table-wrap">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>STT</th>
+                            <th>Mã SV</th>
+                            <th>Họ tên</th>
+                            <th>Ngày sinh</th>
+                            <th>Giới tính</th>
+                        </tr>
+                    </thead>
+                    <tbody id="calDetailTableBody">
+                        <tr><td colspan="5" class="empty">Đang tải...</td></tr>
+                    </tbody>
+                </table>
+            </div>
         </div>
     </div>
 </section>

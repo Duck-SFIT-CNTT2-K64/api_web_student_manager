@@ -23,6 +23,8 @@
         schedule: "/api/teachers/schedule/" + userId,
         classStudents: "/api/teachers/class-students/",
         saveScore: "/api/teachers/save-score",
+        exams: "/api/exams",
+        examsByUser:   "/api/exams/user/"        + userId,
     };
 
     var weekdayMap = {
@@ -184,16 +186,9 @@
                 + start + " – " + end + "<br>"
                 + "<small>" + escapeHtml(item.RoomName || "") + "</small><br>"
                 + "<div class='calendar-item-actions'>"
-                + "<button class='btn-cal' data-cal-list='" + Number(item.ClassId) + "'>"
-                + "<i class='fas fa-users'></i> Danh sách"
-                + "</button>"
-                + "<button class='btn-cal btn-cal-score' data-cal-score='" + Number(item.ClassId) + "'>"
-                + "<i class='fas fa-pen'></i> Nhập điểm"
-                + "</button>"
-                + "<button class='btn-cal btn-cal-attend'"
-                + " data-cal-attend='" + Number(item.ClassId) + "'"
-                + " data-cal-weekday='" + escapeHtml(item.Weekday) + "'>"  
-                + "<i class='fas fa-clipboard-check'></i> Điểm danh"
+                + "<button class='btn-cal' data-cal-detail='" + Number(item.ClassId) + "'"
+                + " data-cal-weekday='" + escapeHtml(item.Weekday) + "'>"
+                + "<i class='fas fa-eye'></i> Xem chi tiết"
                 + "</button>"
                 + "</div>"
                 + "</div>"
@@ -451,6 +446,88 @@
         return result.toISOString().slice(0, 10);
     }
 
+    // Load danh sách bài kiểm tra
+    function loadExams() {
+        var body = document.getElementById("examTableBody");
+        if (!body) return;
+
+        getJson(endpoints.examsByUser)   // <-- đổi từ endpoints.exams
+            .then(function(exams) {
+                body.innerHTML = (exams || []).map(function(ex) {
+                    var due   = new Date(ex.DueDate).toLocaleString("vi-VN");
+                    var now   = new Date();
+                    var isDue = new Date(ex.DueDate) < now;
+                    var badge = ex.Status === "Active" && !isDue
+                        ? "<span class='badge good'>Đang mở</span>"
+                        : "<span class='badge bad'>Đã đóng</span>";
+                    return "<tr>"
+                        + "<td>" + escapeHtml(ex.Title) + "</td>"
+                        + "<td>" + escapeHtml(ex.ClassCode + " - " + ex.ClassName) + "</td>"
+                        + "<td>" + escapeHtml(ex.ExamType) + "</td>"
+                        + "<td>" + due + "</td>"
+                        + "<td>" + badge + "</td>"
+                        + "<td>"
+                        +   "<button class='btn btn-ghost' data-delete-exam='" + ex.ExamId + "'>"
+                        +   "<i class='fas fa-trash'></i></button>"
+                        + "</td>"
+                        + "</tr>";
+                }).join("")
+                || '<tr><td colspan="6" class="empty">Chưa có bài kiểm tra nào.</td></tr>';
+            })
+            .catch(function(err) {
+                var body = document.getElementById("examTableBody");
+                if (body) body.innerHTML = '<tr><td colspan="6" class="empty">Lỗi tải dữ liệu.</td></tr>';
+            });
+    }
+    // Sửa examForm submit
+    var examForm = document.getElementById("examForm");
+    if (examForm) {
+        examForm.addEventListener("submit", function(e) {
+            e.preventDefault();
+            var classId     = document.getElementById("examClassSelect").value;
+            var title       = examForm.querySelector("input[placeholder]").value.trim();
+            var examType    = document.getElementById("examTypeSelect").value;
+            var dueDate     = examForm.querySelector('input[type="datetime-local"]').value;
+            var description = examForm.querySelector("textarea").value.trim();
+
+            if (!classId || !title || !dueDate) {
+                alert("Vui lòng điền đầy đủ thông tin!");
+                return;
+            }
+
+            postJson(endpoints.exams, {
+                ClassId:     Number(classId),
+                Title:       title,
+                ExamType:    examType,
+                Description: description,
+                DueDate:     dueDate,
+            })
+            .then(function() {
+                alert("Tạo bài kiểm tra thành công!");
+                examForm.reset();
+                loadExams();
+            })
+            .catch(function(err) {
+                alert("Lỗi: " + err.message);
+            });
+        });
+    }
+
+    // Xóa bài kiểm tra
+    document.addEventListener("click", function(e) {
+        var deleteBtn = e.target.closest("[data-delete-exam]");
+        if (deleteBtn) {
+            var examId = Number(deleteBtn.getAttribute("data-delete-exam"));
+            if (!confirm("Xóa bài kiểm tra này?")) return;
+            fetch(endpoints.exams + "/" + examId, { method: "DELETE" })
+                .then(function() { loadExams(); })
+                .catch(function(err) { alert("Lỗi: " + err.message); });
+        }
+    });
+
+    // Gọi load lần đầu
+    loadExams();
+
     // Hàm tải danh sách sinh viên của lớp và hiển thị form nhập điểm
     function downloadScoreTemplate() {
         var select = document.getElementById("teacherClassSelect");
@@ -613,6 +690,68 @@
             });
         }
 
+        // Tải file mẫu
+        var downloadTemplateBtn = document.getElementById("downloadTemplateBtn");
+        if (downloadTemplateBtn) {
+            downloadTemplateBtn.addEventListener("click", function() {
+                downloadScoreTemplate();
+            });
+        }
+
+        // Import Excel
+        var importExcelInput = document.getElementById("importExcelInput");
+        if (importExcelInput) {
+            importExcelInput.addEventListener("change", function() {
+                var file = this.files[0];
+                if (!file) return;
+                importScoreFromExcel(file);
+            });
+        }
+
+        // Xuất Excel
+        var exportBtn = document.getElementById("exportClassListBtn");
+        if (exportBtn) {
+            exportBtn.addEventListener("click", function() {
+                exportClassListToExcel();
+            });
+        }
+
+        // 4. Attendance
+        var attSearchBtn = document.getElementById("attendanceSearchBtn");
+        if (attSearchBtn) {
+            attSearchBtn.addEventListener('click', function () {
+                var classId = document.getElementById('attendanceClassSelect').value;
+                var date    = document.querySelector('#attendanceForm input[type="date"]').value;
+                var body    = document.getElementById('attendanceTableBody');
+
+                if (!classId || !date) {
+                    alert('Vui lòng chọn lớp và ngày học!');
+                    return;
+                }
+
+                body.innerHTML = '<tr><td colspan="5" class="empty">Đang tải...</td></tr>';
+
+                getJson('/api/teachers/attendance/' + classId + '?date=' + date)
+                    .then(function (students) {
+                        body.innerHTML = (students || []).map(function (sv) {
+                            var present  = sv.AttendanceStatus === 'Present'  ? 'checked' : '';
+                            var absent   = sv.AttendanceStatus === 'Absent'   ? 'checked' : '';
+                            var late     = sv.AttendanceStatus === 'Late'      ? 'checked' : '';
+                            return "<tr data-enrollment-id='" + sv.EnrollmentId + "'>"
+                                + "<td><strong>" + escapeHtml(sv.StudentCode) + "</strong></td>"
+                                + "<td>" + escapeHtml(sv.FullName) + "</td>"
+                                + "<td style='text-align:center'><input type='radio' name='att_" + sv.EnrollmentId + "' value='Present' " + present + "></td>"
+                                + "<td style='text-align:center'><input type='radio' name='att_" + sv.EnrollmentId + "' value='Absent' " + absent + "></td>"
+                                + "<td style='text-align:center'><input type='radio' name='att_" + sv.EnrollmentId + "' value='Late' " + late + "></td>"
+                                + "</tr>";
+                        }).join('') || '<tr><td colspan="5" class="empty">Lớp chưa có sinh viên.</td></tr>';
+                    })
+                    .catch(function (err) {
+                        body.innerHTML = '<tr><td colspan="5" class="empty">Lỗi: ' + escapeHtml(err.message) + '</td></tr>';
+                    });
+            });
+        }
+
         document.addEventListener("click", function (event) {
             var openBtn = event.target.closest("[data-open-score-class]");
             if (openBtn) {
@@ -624,80 +763,84 @@
                 return;
             }
 
-            // Nhập điểm
-            // Tải file mẫu
-            var downloadTemplateBtn = document.getElementById("downloadTemplateBtn");
-            if (downloadTemplateBtn) {
-                downloadTemplateBtn.addEventListener("click", function() {
-                    downloadScoreTemplate();
+            // Xử lý click vào "Xem chi tiết" trong lịch
+            var calDetailBtn = event.target.closest("[data-cal-detail]");
+            if (calDetailBtn) {
+                var classId = Number(calDetailBtn.getAttribute("data-cal-detail"));
+                var weekday = calDetailBtn.getAttribute("data-cal-weekday");
+
+                var classInfo = (state.classes || []).find(function(c) {
+                    return Number(c.ClassId) === classId;
                 });
-            }
-
-            // Import Excel
-            var importExcelInput = document.getElementById("importExcelInput");
-            if (importExcelInput) {
-                importExcelInput.addEventListener("change", function() {
-                    var file = this.files[0];
-                    if (!file) return;
-                    importScoreFromExcel(file);
+                var schedInfo = (state.schedule || []).find(function(s) {
+                    return Number(s.ClassId) === classId && s.Weekday === weekday;
                 });
-            }
 
-            var calListBtn = event.target.closest("[data-cal-list]");
-            if (calListBtn) {
-                var classId = Number(calListBtn.getAttribute("data-cal-list"));
+                // Set tiêu đề modal
+                var modalTitle = document.getElementById("calDetailModalTitle");
+                var modalSub   = document.getElementById("calDetailModalSubtitle");
+                if (modalTitle) modalTitle.textContent = classInfo
+                    ? (classInfo.ClassCode + " - " + classInfo.ClassName)
+                    : "Chi tiết lớp";
+                if (modalSub && schedInfo) modalSub.textContent =
+                    (weekdayMap[schedInfo.Weekday] || schedInfo.Weekday)
+                    + " · " + (schedInfo.StartTime || "").slice(0, 5)
+                    + " – " + (schedInfo.EndTime || "").slice(0, 5)
+                    + " · " + (schedInfo.RoomName || "");
 
-                var classListSelect = document.getElementById("classListSelect");
-                if (classListSelect) classListSelect.value = String(classId);
+                // Load danh sách sinh viên
+                var tbody = document.getElementById("calDetailTableBody");
+                if (tbody) tbody.innerHTML = '<tr><td colspan="5" class="empty">Đang tải...</td></tr>';
 
-                window.location.hash = "#class-list";
+                getJson(endpoints.classStudents + classId)
+                    .then(function(students) {
+                        if (!tbody) return;
+                        tbody.innerHTML = (students || []).map(function(sv, idx) {
+                            return "<tr>"
+                                + "<td>" + (idx + 1) + "</td>"
+                                + "<td><strong>" + escapeHtml(sv.StudentCode) + "</strong></td>"
+                                + "<td>" + escapeHtml(sv.FullName) + "</td>"
+                                + "<td>" + escapeHtml(sv.DateOfBirth || "—") + "</td>"
+                                + "<td>" + escapeHtml(sv.Gender || "—") + "</td>"
+                                + "</tr>";
+                        }).join("") || '<tr><td colspan="5" class="empty">Lớp chưa có sinh viên.</td></tr>';
+                    })
+                    .catch(function() {
+                        if (tbody) tbody.innerHTML = '<tr><td colspan="5" class="empty">Lỗi tải dữ liệu.</td></tr>';
+                    });
 
-                var classListBtn = document.getElementById("classListBtn");
-                if (classListBtn) classListBtn.click();
-                return;
-            }
-
-            var calScoreBtn = event.target.closest("[data-cal-score]");
-            if (calScoreBtn) {
-                var classId = Number(calScoreBtn.getAttribute("data-cal-score"));
-
-                var teacherClassSelect = document.getElementById("teacherClassSelect");
-                if (teacherClassSelect) teacherClassSelect.value = String(classId);
-
-                window.location.hash = "#score-entry";
-
-                loadClassStudents(classId).catch(function(err) {
-                    setMessage(err.message, "error");
-                });
-                return;
-            }
-
-            var calAttendBtn = event.target.closest("[data-cal-attend]");
-            if (calAttendBtn) {
-                var classId  = Number(calAttendBtn.getAttribute("data-cal-attend"));
-                var weekday  = calAttendBtn.getAttribute("data-cal-weekday");
-
-                var attendanceClassSelect = document.getElementById("attendanceClassSelect");
-                if (attendanceClassSelect) attendanceClassSelect.value = String(classId);
-
-                var dateInput = document.querySelector("#attendanceForm input[type='date']");
-                if (dateInput) {
-                    dateInput.value = getLastOccurrence(weekday);
+                // Gán logic cho 2 button trong modal
+                var goScoreBtn = document.getElementById("calDetailGoScore");
+                if (goScoreBtn) {
+                    goScoreBtn.onclick = function() {
+                        document.getElementById("calDetailModal").style.display = "none";
+                        var sel = document.getElementById("teacherClassSelect");
+                        if (sel) sel.value = String(classId);
+                        window.location.hash = "#score-entry";
+                        loadClassStudents(classId).catch(function(err) {
+                            setMessage(err.message, "error");
+                        });
+                    };
                 }
 
-                window.location.hash = "#attendance";
+                var goAttendBtn = document.getElementById("calDetailGoAttend");
+                if (goAttendBtn) {
+                    goAttendBtn.onclick = function() {
+                        document.getElementById("calDetailModal").style.display = "none";
+                        var sel = document.getElementById("attendanceClassSelect");
+                        if (sel) sel.value = String(classId);
+                        var dateInput = document.querySelector("#attendanceForm input[type='date']");
+                        if (dateInput) dateInput.value = getLastOccurrence(weekday);
+                        window.location.hash = "#attendance";
+                        var attendSearchBtn = document.getElementById("attendanceSearchBtn");
+                        if (attendSearchBtn) attendSearchBtn.click();
+                    };
+                }
 
-                var attendSearchBtn = document.getElementById("attendanceSearchBtn");
-                if (attendSearchBtn) attendSearchBtn.click();
+                // Mở modal
+                var modal = document.getElementById("calDetailModal");
+                if (modal) modal.style.display = "flex";
                 return;
-            }
-            
-            // Xuất Excel
-            var exportBtn = document.getElementById("exportClassListBtn");
-            if (exportBtn) {
-                exportBtn.addEventListener("click", function() {
-                    exportClassListToExcel();
-                });
             }
             
             // Save button for scores
@@ -762,6 +905,22 @@
             }
         });
 
+        // Đóng modal khi click nền
+        var calDetailModal = document.getElementById("calDetailModal");
+        if (calDetailModal) {
+            calDetailModal.addEventListener("click", function(e) {
+                if (e.target === calDetailModal) calDetailModal.style.display = "none";
+            });
+        }
+
+        // Đóng modal bằng nút X
+        var calDetailClose = document.getElementById("calDetailModalClose");
+        if (calDetailClose) {
+            calDetailClose.addEventListener("click", function() {
+                document.getElementById("calDetailModal").style.display = "none";
+            });
+        }
+
         // 2. Class List
         var classListBtn = document.getElementById("classListBtn");
         if (classListBtn) {
@@ -796,65 +955,6 @@
                         body.innerHTML = '<tr><td colspan="4" class="empty">Lỗi: ' + escapeHtml(err.message) + '</td></tr>';
                         var exportBtn = document.getElementById("exportClassListBtn");
                         if (exportBtn) exportBtn.style.display = "none";
-                    });
-            });
-        }
-        
-
-        // 3. Exams
-        var examForm = document.getElementById("examForm");
-        if (examForm) {
-            examForm.addEventListener("submit", function (e) {
-                e.preventDefault();
-                var title = examForm.querySelector("input[placeholder]").value;
-                var classSel = document.getElementById("examClassSelect");
-                var className = classSel.options[classSel.selectedIndex].text;
-                var dueDate = examForm.querySelector('input[type="datetime-local"]').value;
-                
-                var body = document.getElementById("examTableBody");
-                if (body.querySelector(".empty")) body.innerHTML = "";
-                
-                var row = document.createElement("tr");
-                row.innerHTML = "<td>" + escapeHtml(title) + "</td><td>" + escapeHtml(className) + "</td><td>" + escapeHtml(dueDate.replace("T", " ")) + "</td><td><span class=\"badge good\">Đã giao</span></td>";
-                body.prepend(row);
-                
-                alert("Tạo bài kiểm tra thành công! (Mô phỏng UI)");
-                examForm.reset();
-            });
-        }
-
-        // 4. Attendance
-        var attSearchBtn = document.getElementById("attendanceSearchBtn");
-        if (attSearchBtn) {
-            attSearchBtn.addEventListener('click', function () {
-                var classId = document.getElementById('attendanceClassSelect').value;
-                var date    = document.querySelector('#attendanceForm input[type="date"]').value;
-                var body    = document.getElementById('attendanceTableBody');
-
-                if (!classId || !date) {
-                    alert('Vui lòng chọn lớp và ngày học!');
-                    return;
-                }
-
-                body.innerHTML = '<tr><td colspan="5" class="empty">Đang tải...</td></tr>';
-
-                getJson('/api/teachers/attendance/' + classId + '?date=' + date)
-                    .then(function (students) {
-                        body.innerHTML = (students || []).map(function (sv) {
-                            var present  = sv.AttendanceStatus === 'Present'  ? 'checked' : '';
-                            var absent   = sv.AttendanceStatus === 'Absent'   ? 'checked' : '';
-                            var late     = sv.AttendanceStatus === 'Late'      ? 'checked' : '';
-                            return "<tr data-enrollment-id='" + sv.EnrollmentId + "'>"
-                                + "<td><strong>" + escapeHtml(sv.StudentCode) + "</strong></td>"
-                                + "<td>" + escapeHtml(sv.FullName) + "</td>"
-                                + "<td style='text-align:center'><input type='radio' name='att_" + sv.EnrollmentId + "' value='Present' " + present + "></td>"
-                                + "<td style='text-align:center'><input type='radio' name='att_" + sv.EnrollmentId + "' value='Absent' " + absent + "></td>"
-                                + "<td style='text-align:center'><input type='radio' name='att_" + sv.EnrollmentId + "' value='Late' " + late + "></td>"
-                                + "</tr>";
-                        }).join('') || '<tr><td colspan="5" class="empty">Lớp chưa có sinh viên.</td></tr>';
-                    })
-                    .catch(function (err) {
-                        body.innerHTML = '<tr><td colspan="5" class="empty">Lỗi: ' + escapeHtml(err.message) + '</td></tr>';
                     });
             });
         }
