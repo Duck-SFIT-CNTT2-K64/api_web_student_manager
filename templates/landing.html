@@ -21,6 +21,11 @@
     {% set slider_count = slide_programs|length if slide_programs|length > 0 else 1 %}
     {% set user_id = current_user.get('UserId') if current_user else None %}
     {% set role_name = (current_user.get('RoleName') if current_user else '')|lower %}
+    {% set user_full_name = (current_user.get('FullName') if current_user else '')|trim %}
+    {% set user_initial = (user_full_name[:1] if user_full_name else 'U')|upper %}
+    {% set user_role_label = 'Quản trị viên' if role_name == 'admin' else 'Giảng viên' if role_name == 'teacher' else 'Sinh viên' if role_name == 'student' else 'Khách' %}
+    {% set account_home_path = '/home' if role_name in ['admin', 'teacher'] else '/student/home' if role_name == 'student' else '/login' %}
+    {% set account_settings_path = '/settings' %}
     {% set show_dashboard = user_id and role_name in ['admin', 'teacher'] %}
     {% macro course_image_filename(item) -%}
         {%- set source = ((item.CourseCode or '') ~ ' ' ~ (item.CourseName or '') ~ ' ' ~ (item.Description or ''))|lower -%}
@@ -76,17 +81,182 @@
                 </form>
 
                 <div class="header-auth-actions">
-                    {% if not user_id %}
-                    <a class="header-secondary" href="/register">Dang ky</a>
-                    <a class="header-login" href="/login">Dang nhap</a>
-                    {% else %}
-                        {% if show_dashboard %}
-                        <a class="header-login" href="/home">Vao dashboard</a>
-                        {% endif %}
-                        <form method="post" action="/logout" class="header-logout-form">
-                            <button type="submit" class="header-secondary">Dang xuat</button>
-                        </form>
-                    {% endif %}
+                    <div class="user-menu" data-user-menu>
+                        <button
+                            class="user-menu-trigger"
+                            id="userMenuTrigger"
+                            type="button"
+                            aria-haspopup="menu"
+                            aria-expanded="false"
+                            aria-controls="userMenuDropdown"
+                        >
+                            <span class="user-menu-avatar" aria-hidden="true">
+                                {% if user_full_name %}
+                                    {{ user_initial }}
+                                {% else %}
+                                    <i class="fas fa-user"></i>
+                                {% endif %}
+                            </span>
+                            <span class="user-menu-copy">
+                                <strong>{{ user_full_name or 'Khách' }}</strong>
+                                <small>{{ user_role_label }}</small>
+                            </span>
+                            <i class="fas fa-chevron-down user-menu-chevron" aria-hidden="true"></i>
+                        </button>
+
+                        <div class="user-menu-dropdown" id="userMenuDropdown" role="menu" hidden>
+                            {% if not user_id %}
+                            <div class="user-menu-section">
+                                <p class="user-menu-section-title">Tài khoản</p>
+                                <a href="/login" role="menuitem">
+                                    <i class="fas fa-right-to-bracket"></i>
+                                    <span>Đăng nhập</span>
+                                </a>
+                                <a href="/register" role="menuitem">
+                                    <i class="fas fa-user-plus"></i>
+                                    <span>Đăng ký</span>
+                                </a>
+                            </div>
+                            {% else %}
+                            <div class="user-menu-header">
+                                <span class="user-menu-header-avatar">{{ user_initial }}</span>
+                                <div class="user-menu-header-copy">
+                                    <strong>{{ user_full_name or 'Thành viên' }}</strong>
+                                    <small>{{ user_role_label }}</small>
+                                </div>
+                            </div>
+
+                            <div class="user-menu-section">
+                                <p class="user-menu-section-title">Tài khoản</p>
+                                <a href="{{ account_home_path }}" role="menuitem">
+                                    <i class="fas fa-user-circle"></i>
+                                    <span>Hồ sơ cá nhân</span>
+                                </a>
+                                <a href="{{ account_settings_path }}" role="menuitem">
+                                    <i class="fas fa-gear"></i>
+                                    <span>Cài đặt tài khoản</span>
+                                </a>
+                                {% if show_dashboard %}
+                                <a href="/home" role="menuitem">
+                                    <i class="fas fa-gauge-high"></i>
+                                    <span>Vào dashboard</span>
+                                </a>
+                                {% endif %}
+                            </div>
+
+                            {% if role_name == 'student' %}
+                            <div class="user-menu-section">
+                                <p class="user-menu-section-title">Học tập</p>
+                                <div class="user-menu-grid">
+                                    <a href="/student/scores" role="menuitem" class="user-menu-tile tile-blue">
+                                        <i class="fas fa-magnifying-glass-chart"></i>
+                                        <span>Tra cứu điểm</span>
+                                    </a>
+                                    <a href="/student/register" role="menuitem" class="user-menu-tile tile-green">
+                                        <i class="fas fa-pen-to-square"></i>
+                                        <span>Đăng ký học</span>
+                                    </a>
+                                    <a href="/student/enrollments" role="menuitem" class="user-menu-tile tile-teal">
+                                        <i class="fas fa-list-check"></i>
+                                        <span>Tra cứu đăng ký</span>
+                                    </a>
+                                    <a href="/student/schedule" role="menuitem" class="user-menu-tile tile-indigo">
+                                        <i class="fas fa-calendar-days"></i>
+                                        <span>Lịch học</span>
+                                    </a>
+                                    <a href="/student/exams" role="menuitem" class="user-menu-tile tile-purple">
+                                        <i class="fas fa-calendar-check"></i>
+                                        <span>Lịch thi</span>
+                                    </a>
+                                </div>
+                            </div>
+
+                            <div class="user-menu-section">
+                                <p class="user-menu-section-title">Tài chính</p>
+                                <div class="user-menu-grid">
+                                    <a href="/student/tuition" role="menuitem" class="user-menu-tile tile-orange">
+                                        <i class="fas fa-file-invoice-dollar"></i>
+                                        <span>Học phí</span>
+                                    </a>
+                                    <a href="/student/payment" role="menuitem" class="user-menu-tile tile-red">
+                                        <i class="fas fa-credit-card"></i>
+                                        <span>Thanh toán online</span>
+                                    </a>
+                                </div>
+                            </div>
+                            {% elif role_name == 'teacher' %}
+                            <div class="user-menu-section">
+                                <p class="user-menu-section-title">Giảng dạy</p>
+                                <div class="user-menu-grid">
+                                    <a href="/teacher/home#my-classes" role="menuitem" class="user-menu-tile tile-blue">
+                                        <i class="fas fa-chalkboard-user"></i>
+                                        <span>Lớp phụ trách</span>
+                                    </a>
+                                    <a href="/teacher/home#teaching-schedule" role="menuitem" class="user-menu-tile tile-indigo">
+                                        <i class="fas fa-calendar-days"></i>
+                                        <span>Lịch dạy</span>
+                                    </a>
+                                    <a href="/teacher/home#score-entry" role="menuitem" class="user-menu-tile tile-purple">
+                                        <i class="fas fa-square-poll-vertical"></i>
+                                        <span>Nhập điểm</span>
+                                    </a>
+                                    <a href="/teacher/home#class-list" role="menuitem" class="user-menu-tile tile-teal">
+                                        <i class="fas fa-users"></i>
+                                        <span>Danh sách học viên</span>
+                                    </a>
+                                    <a href="/teacher/home#exams" role="menuitem" class="user-menu-tile tile-orange">
+                                        <i class="fas fa-file-signature"></i>
+                                        <span>Lịch thi</span>
+                                    </a>
+                                    <a href="/teacher/home#attendance" role="menuitem" class="user-menu-tile tile-green">
+                                        <i class="fas fa-clipboard-check"></i>
+                                        <span>Điểm danh</span>
+                                    </a>
+                                </div>
+                            </div>
+                            {% elif role_name == 'admin' %}
+                            <div class="user-menu-section">
+                                <p class="user-menu-section-title">Quản trị</p>
+                                <div class="user-menu-grid">
+                                    <a href="/dashboard#overview" role="menuitem" class="user-menu-tile tile-blue">
+                                        <i class="fas fa-gauge-high"></i>
+                                        <span>Tổng quan</span>
+                                    </a>
+                                    <a href="/dashboard#users" role="menuitem" class="user-menu-tile tile-indigo">
+                                        <i class="fas fa-users-gear"></i>
+                                        <span>Người dùng</span>
+                                    </a>
+                                    <a href="/dashboard#classes" role="menuitem" class="user-menu-tile tile-teal">
+                                        <i class="fas fa-school"></i>
+                                        <span>Lớp học</span>
+                                    </a>
+                                    <a href="/dashboard#tuitions" role="menuitem" class="user-menu-tile tile-orange">
+                                        <i class="fas fa-coins"></i>
+                                        <span>Học phí</span>
+                                    </a>
+                                    <a href="/dashboard#enrollments" role="menuitem" class="user-menu-tile tile-green">
+                                        <i class="fas fa-user-graduate"></i>
+                                        <span>Ghi danh</span>
+                                    </a>
+                                    <a href="/dashboard#scores" role="menuitem" class="user-menu-tile tile-purple">
+                                        <i class="fas fa-square-poll-vertical"></i>
+                                        <span>Bảng điểm</span>
+                                    </a>
+                                </div>
+                            </div>
+                            {% endif %}
+
+                            <div class="user-menu-section user-menu-footer">
+                                <form method="post" action="/logout" class="header-logout-form user-menu-logout">
+                                    <button type="submit" role="menuitem">
+                                        <i class="fas fa-right-from-bracket"></i>
+                                        <span>Đăng xuất</span>
+                                    </button>
+                                </form>
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>

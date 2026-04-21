@@ -4,10 +4,177 @@ import pyodbc
 from flask import Blueprint, jsonify, request
 
 from db import get_db_connection
-from models.helpers import rows_to_list
-from utils.auth import role_required
+from models.auth_model import get_user_by_id
+from models.helpers import row_to_dict, rows_to_list
+from utils.auth import current_session_user, login_required, role_required
 
 user_bp = Blueprint("users", __name__)
+
+
+def _verify_password(plain: str, stored: str) -> bool:
+    if not stored:
+        return False
+    normalized = stored.strip()
+    if normalized.startswith("$2a$") or normalized.startswith("$2b$") or normalized.startswith("$2y$"):
+        try:
+            return bcrypt.checkpw(plain.encode("utf-8"), normalized.encode("utf-8"))
+        except ValueError:
+            return False
+    return plain == normalized
+
+
+@user_bp.get("/me")
+@login_required
+def get_my_profile():
+    try:
+        session_user = current_session_user()
+        user_id = int(session_user["UserId"])
+        user = get_user_by_id(user_id)
+        if not user:
+            return jsonify({"success": False, "error": "Không tìm thấy người dùng."}), 404
+
+        role_name = str(user.get("RoleName") or "").lower()
+        extra = {}
+        with get_db_connection() as conn:
+            cursor = conn.cursor()
+            if role_name == "student":
+                cursor.execute(
+                    "SELECT DateOfBirth, Gender, Address FROM Students WHERE UserId = ?",
+                    user_id,
+                )
+                row = cursor.fetchone()
+                if row:
+                    extra = row_to_dict(cursor, row)
+            elif role_name == "teacher":
+                cursor.execute(
+                    "SELECT Specialization FROM Teachers WHERE UserId = ?",
+                    user_id,
+                )
+                row = cursor.fetchone()
+                if row:
+                    extra = row_to_dict(cursor, row)
+
+        user.update(extra)
+        return jsonify({"success": True, "data": user}), 200
+    except pyodbc.Error as exc:
+        return jsonify({"success": False, "error": "Database error.", "details": str(exc)}), 500
+    except Exception as exc:
+        return jsonify({"success": False, "error": "Unexpected error.", "details": str(exc)}), 500
+
+
+@user_bp.put("/me")
+@login_required
+def update_my_profile():
+    try:
+        payload = request.get_json(silent=True) or {}
+        full_name = (payload.get("FullName") or "").strip()
+        email = (payload.get("Email") or "").strip()
+        phone = (payload.get("PhoneNumber") or "").strip()
+        gender = (payload.get("Gender") or "").strip() or None
+        address = (payload.get("Address") or "").strip() or None
+        date_of_birth = (payload.get("DateOfBirth") or "").strip() or None
+
+        if not full_name:
+            return jsonify({"success": False, "error": "Họ tên không được để trống."}), 400
+        if not email:
+            return jsonify({"success": False, "error": "Email không được để trống."}), 400
+
+        session_user = current_session_user()
+        user_id = int(session_user["UserId"])
+        role_name = str(session_user.get("RoleName") or "").lower()
+
+        with get_db_connection() as conn:
+            cursor = conn.cursor()
+
+            cursor.execute(
+                "SELECT UserId FROM Users WHERE Email = ? AND UserId <> ?",
+                (email, user_id),
+            )
+            if cursor.fetchone():
+                return jsonify({"success": False, "error": "Email đã được sử dụng bởi tài khoản khác."}), 400
+
+            cursor.execute(
+                """
+                UPDATE Users
+                SET FullName = ?, Email = ?, PhoneNumber = ?
+                WHERE UserId = ?
+                """,
+                (full_name, email, phone or None, user_id),
+            )
+
+            if role_name == "student":
+                cursor.execute(
+                    """
+                    UPDATE Students
+                    SET FullName = ?, Email = ?, PhoneNumber = ?, Gender = ?, Address = ?,
+                        DateOfBirth = COALESCE(?, DateOfBirth)
+                    WHERE UserId = ?
+                    """,
+                    (full_name, email, phone or None, gender, address, date_of_birth, user_id),
+                )
+            elif role_name == "teacher":
+                cursor.execute(
+                    """
+                    UPDATE Teachers
+                    SET Email = ?, PhoneNumber = ?
+                    WHERE UserId = ?
+                    """,
+                    (email, phone or None, user_id),
+                )
+
+            conn.commit()
+
+        from flask import session as flask_session
+        flask_session["full_name"] = full_name
+
+        return jsonify({"success": True, "message": "Đã cập nhật thông tin tài khoản."}), 200
+    except pyodbc.Error as exc:
+        return jsonify({"success": False, "error": "Database error.", "details": str(exc)}), 500
+    except Exception as exc:
+        return jsonify({"success": False, "error": "Unexpected error.", "details": str(exc)}), 500
+
+
+@user_bp.put("/me/password")
+@login_required
+def change_my_password():
+    try:
+        payload = request.get_json(silent=True) or {}
+        current_password = str(payload.get("CurrentPassword") or "")
+        new_password = str(payload.get("NewPassword") or "").strip()
+        confirm_password = str(payload.get("ConfirmPassword") or "").strip()
+
+        if not current_password:
+            return jsonify({"success": False, "error": "Vui lòng nhập mật khẩu hiện tại."}), 400
+        if not new_password:
+            return jsonify({"success": False, "error": "Mật khẩu mới không được để trống."}), 400
+        if len(new_password) < 6:
+            return jsonify({"success": False, "error": "Mật khẩu phải có ít nhất 6 ký tự."}), 400
+        if new_password != confirm_password:
+            return jsonify({"success": False, "error": "Mật khẩu xác nhận không khớp."}), 400
+
+        session_user = current_session_user()
+        user_id = int(session_user["UserId"])
+
+        with get_db_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute("SELECT PasswordHash FROM Users WHERE UserId = ?", (user_id,))
+            row = cursor.fetchone()
+            if not row:
+                return jsonify({"success": False, "error": "Không tìm thấy tài khoản."}), 404
+
+            stored_hash = str(row[0] or "")
+            if not _verify_password(current_password, stored_hash):
+                return jsonify({"success": False, "error": "Mật khẩu hiện tại không đúng."}), 400
+
+            new_hash = bcrypt.hashpw(new_password.encode("utf-8"), bcrypt.gensalt()).decode("utf-8")
+            cursor.execute("UPDATE Users SET PasswordHash = ? WHERE UserId = ?", (new_hash, user_id))
+            conn.commit()
+
+        return jsonify({"success": True, "message": "Đã đổi mật khẩu thành công."}), 200
+    except pyodbc.Error as exc:
+        return jsonify({"success": False, "error": "Database error.", "details": str(exc)}), 500
+    except Exception as exc:
+        return jsonify({"success": False, "error": "Unexpected error.", "details": str(exc)}), 500
 
 
 def _get_all_users():

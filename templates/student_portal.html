@@ -1,0 +1,550 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ page_title or 'Khu vực sinh viên' }} | CLASSES369</title>
+    <link rel="icon" type="image/png" href="{{ url_for('static', filename='image/logo.png') }}">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&family=Exo+2:wght@600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/landing.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/student_portal.css') }}">
+</head>
+<body class="portal-body">
+    {% set full_name = (current_user.FullName or current_user.Username or '')|trim %}
+    {% set user_initial = (full_name[:1] if full_name else 'S')|upper %}
+    {% set active = active_section or 'overview' %}
+
+    <header class="site-header">
+        <div class="header-inner">
+            <a class="brand" href="/" aria-label="Trang chủ">
+                <img class="brand-logo" src="{{ url_for('static', filename='image/logo.png') }}" alt="CLASSES369">
+            </a>
+
+            <nav class="main-nav portal-top-nav">
+                <a href="/"><i class="fas fa-house"></i> Trang chủ</a>
+                <a href="/#programs">Chương trình đào tạo</a>
+                <a href="/#schedules">Lịch khai giảng</a>
+                <a href="/#payment-guide">Hướng dẫn thanh toán</a>
+                <a href="/#contact">Liên hệ</a>
+            </nav>
+
+            <div class="header-tools">
+                <div class="user-menu" data-user-menu>
+                    <button
+                        class="user-menu-trigger"
+                        id="userMenuTrigger"
+                        type="button"
+                        aria-haspopup="menu"
+                        aria-expanded="false"
+                        aria-controls="userMenuDropdown"
+                    >
+                        <span class="user-menu-avatar" aria-hidden="true">{{ user_initial }}</span>
+                        <span class="user-menu-copy">
+                            <strong>{{ full_name or 'Sinh viên' }}</strong>
+                            <small>Sinh viên</small>
+                        </span>
+                        <i class="fas fa-chevron-down user-menu-chevron" aria-hidden="true"></i>
+                    </button>
+
+                    <div class="user-menu-dropdown" id="userMenuDropdown" role="menu" hidden>
+                        <div class="user-menu-header">
+                            <span class="user-menu-header-avatar">{{ user_initial }}</span>
+                            <div class="user-menu-header-copy">
+                                <strong>{{ full_name or 'Sinh viên' }}</strong>
+                                <small>Sinh viên</small>
+                            </div>
+                        </div>
+                        <div class="user-menu-section">
+                            <p class="user-menu-section-title">Tài khoản</p>
+                            <a href="/student/home" role="menuitem">
+                                <i class="fas fa-user-circle"></i><span>Trang cá nhân</span>
+                            </a>
+                            <a href="/settings" role="menuitem">
+                                <i class="fas fa-gear"></i><span>Cài đặt tài khoản</span>
+                            </a>
+                        </div>
+                        <div class="user-menu-section user-menu-footer">
+                            <form method="post" action="/logout" class="header-logout-form user-menu-logout">
+                                <button type="submit" role="menuitem">
+                                    <i class="fas fa-right-from-bracket"></i><span>Đăng xuất</span>
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <main class="portal-main">
+        <section class="portal-hero section-shell">
+            <div class="portal-hero-text">
+                <span class="portal-hero-badge">
+                    <i class="fas fa-user-graduate"></i>
+                    Khu vực sinh viên · Chế độ cá nhân
+                </span>
+                <h1>Xin chào, {{ full_name or 'bạn' }}</h1>
+                <p>Đây là không gian dành riêng cho bạn để tra cứu thông tin học tập, đăng ký lớp và theo dõi học phí — gọn gàng và dễ sử dụng.</p>
+                <div class="portal-hero-meta">
+                    {% if home_data and home_data.Profile %}
+                        {% if home_data.Profile.StudentCode %}<span><i class="fas fa-id-badge"></i> Mã SV: <strong>{{ home_data.Profile.StudentCode }}</strong></span>{% endif %}
+                        {% if home_data.Profile.StatusName %}<span><i class="fas fa-circle-check"></i> {{ home_data.Profile.StatusName }}</span>{% endif %}
+                    {% endif %}
+                    <span><i class="fas fa-shield-halved"></i> Chỉ xem và thao tác cá nhân</span>
+                </div>
+            </div>
+            <div class="portal-hero-stats">
+                <article class="stat-card stat-blue">
+                    <i class="fas fa-book-open"></i>
+                    <div>
+                        <p>Lớp đã ghi danh</p>
+                        <strong id="enrollmentCountValue">{{ home_data.Totals.TotalEnrollments if home_data and home_data.Totals else 0 }}</strong>
+                    </div>
+                </article>
+                <article class="stat-card stat-orange">
+                    <i class="fas fa-file-invoice-dollar"></i>
+                    <div>
+                        <p>Công nợ hiện tại</p>
+                        <strong id="debtValue">
+                            {% if home_data and home_data.Totals %}
+                                {{ "{:,.0f}".format((home_data.Totals.OutstandingTuition or 0)|float) }}
+                            {% else %}
+                                0
+                            {% endif %}
+                            <span>VNĐ</span>
+                        </strong>
+                    </div>
+                </article>
+            </div>
+        </section>
+
+        {% if home_data and home_data.Profile %}
+        <div id="studentPortalRoot" data-user-id="{{ current_user.UserId }}" hidden></div>
+
+        <section class="portal-layout section-shell">
+            <aside class="portal-sidebar">
+                <p class="portal-sidebar-title">Tiện ích của bạn</p>
+                <nav class="portal-nav" id="portalNav">
+                    <a href="/student/home" data-section="overview" class="{{ 'is-active' if active == 'overview' else '' }}">
+                        <i class="fas fa-id-card"></i><span>Tổng quan</span>
+                    </a>
+                    <a href="/student/scores" data-section="scores" class="{{ 'is-active' if active == 'scores' else '' }}">
+                        <i class="fas fa-magnifying-glass-chart"></i><span>Tra cứu điểm</span>
+                    </a>
+                    <a href="/student/register" data-section="register" class="{{ 'is-active' if active == 'register' else '' }}">
+                        <i class="fas fa-pen-to-square"></i><span>Đăng ký học</span>
+                    </a>
+                    <a href="/student/enrollments" data-section="enrollments" class="{{ 'is-active' if active == 'enrollments' else '' }}">
+                        <i class="fas fa-list-check"></i><span>Tra cứu đăng ký</span>
+                    </a>
+                    <a href="/student/schedule" data-section="schedule" class="{{ 'is-active' if active == 'schedule' else '' }}">
+                        <i class="fas fa-calendar-days"></i><span>Lịch học</span>
+                    </a>
+                    <a href="/student/exams" data-section="exams" class="{{ 'is-active' if active == 'exams' else '' }}">
+                        <i class="fas fa-calendar-check"></i><span>Lịch thi</span>
+                    </a>
+                    <a href="/student/tuition" data-section="tuition" class="{{ 'is-active' if active == 'tuition' else '' }}">
+                        <i class="fas fa-file-invoice-dollar"></i><span>Học phí</span>
+                    </a>
+                    <a href="/student/payment" data-section="payment" class="{{ 'is-active' if active == 'payment' else '' }}">
+                        <i class="fas fa-credit-card"></i><span>Thanh toán online</span>
+                    </a>
+                </nav>
+
+                <div class="portal-sidebar-help">
+                    <i class="fas fa-headset"></i>
+                    <div>
+                        <strong>Cần hỗ trợ?</strong>
+                        <p>Hotline <span>0901 234 369</span></p>
+                    </div>
+                </div>
+            </aside>
+
+            <section class="portal-content">
+                {# OVERVIEW #}
+                <article class="portal-panel {{ 'is-active' if active == 'overview' else '' }}" data-panel="overview">
+                    <header class="portal-panel-head">
+                        <div>
+                            <p class="eyebrow">Tổng quan</p>
+                            <h2>Hồ sơ &amp; tiến độ học tập</h2>
+                        </div>
+                    </header>
+
+                    <div class="portal-cards portal-cards-2">
+                        <div class="portal-card">
+                            <div class="portal-card-head">
+                                <h3><i class="fas fa-id-card"></i> Hồ sơ sinh viên</h3>
+                            </div>
+                            <ul class="info-list">
+                                <li><span>Họ tên</span><strong>{{ home_data.Profile.FullName }}</strong></li>
+                                <li><span>Mã sinh viên</span><strong>{{ home_data.Profile.StudentCode }}</strong></li>
+                                <li><span>Email</span><strong>{{ home_data.Profile.Email or '—' }}</strong></li>
+                                <li><span>Số điện thoại</span><strong>{{ home_data.Profile.PhoneNumber or '—' }}</strong></li>
+                                <li><span>Giới tính</span><strong>{{ home_data.Profile.Gender or '—' }}</strong></li>
+                                <li><span>Ngày sinh</span><strong>{{ home_data.Profile.DateOfBirth[:10] if home_data.Profile.DateOfBirth else '—' }}</strong></li>
+                                <li><span>Địa chỉ</span><strong>{{ home_data.Profile.Address or '—' }}</strong></li>
+                                <li><span>Trạng thái</span>
+                                    <strong>
+                                        {% set status_name = home_data.Profile.StatusName or 'N/A' %}
+                                        <span class="portal-chip {{ 'chip-green' if status_name in ['Đang học', 'Active'] else 'chip-yellow' if status_name == 'Bảo lưu' else 'chip-red' if status_name == 'Đã nghỉ học' else '' }}">{{ status_name }}</span>
+                                    </strong>
+                                </li>
+                            </ul>
+                            <div class="portal-card-footer">
+                                <a href="/settings" class="portal-link">
+                                    <i class="fas fa-pen"></i> Cập nhật thông tin trong Cài đặt tài khoản
+                                </a>
+                            </div>
+                        </div>
+
+                        <div class="portal-card">
+                            <div class="portal-card-head">
+                                <h3><i class="fas fa-bolt"></i> Truy cập nhanh</h3>
+                            </div>
+                            <div class="portal-grid">
+                                <a href="/student/scores" class="portal-tile tile-blue">
+                                    <i class="fas fa-magnifying-glass-chart"></i>
+                                    <span>Tra cứu điểm</span>
+                                </a>
+                                <a href="/student/register" class="portal-tile tile-green">
+                                    <i class="fas fa-pen-to-square"></i>
+                                    <span>Đăng ký học</span>
+                                </a>
+                                <a href="/student/enrollments" class="portal-tile tile-teal">
+                                    <i class="fas fa-list-check"></i>
+                                    <span>Tra cứu đăng ký</span>
+                                </a>
+                                <a href="/student/schedule" class="portal-tile tile-indigo">
+                                    <i class="fas fa-calendar-days"></i>
+                                    <span>Lịch học</span>
+                                </a>
+                                <a href="/student/exams" class="portal-tile tile-purple">
+                                    <i class="fas fa-calendar-check"></i>
+                                    <span>Lịch thi</span>
+                                </a>
+                                <a href="/student/tuition" class="portal-tile tile-orange">
+                                    <i class="fas fa-file-invoice-dollar"></i>
+                                    <span>Học phí</span>
+                                </a>
+                                <a href="/student/payment" class="portal-tile tile-red">
+                                    <i class="fas fa-credit-card"></i>
+                                    <span>Thanh toán</span>
+                                </a>
+                                <a href="/settings" class="portal-tile tile-gray">
+                                    <i class="fas fa-gear"></i>
+                                    <span>Cài đặt</span>
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </article>
+
+                {# SCORES #}
+                <article class="portal-panel {{ 'is-active' if active == 'scores' else '' }}" data-panel="scores">
+                    <header class="portal-panel-head">
+                        <div>
+                            <p class="eyebrow">Tra cứu điểm</p>
+                            <h2>Bảng điểm cá nhân</h2>
+                            <small class="portal-readonly-note"><i class="fas fa-eye"></i> Dữ liệu được cập nhật bởi giảng viên — chế độ chỉ xem.</small>
+                        </div>
+                    </header>
+
+                    <div class="portal-card">
+                        <div class="table-wrap">
+                            <table class="portal-table">
+                                <thead>
+                                    <tr>
+                                        <th>Lớp</th>
+                                        <th>Chuyên cần</th>
+                                        <th>Giữa kỳ</th>
+                                        <th>Cuối kỳ</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="scoreTableBody">
+                                    <tr><td colspan="4" class="empty">Đang tải dữ liệu…</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </article>
+
+                {# REGISTER #}
+                <article class="portal-panel {{ 'is-active' if active == 'register' else '' }}" data-panel="register">
+                    <header class="portal-panel-head">
+                        <div>
+                            <p class="eyebrow">Đăng ký học</p>
+                            <h2>Chọn lớp khả dụng để đăng ký</h2>
+                            <small class="portal-readonly-note"><i class="fas fa-circle-info"></i> Chỉ đăng ký cho chính tài khoản của bạn — không thao tác thay người khác.</small>
+                        </div>
+                    </header>
+
+                    <div class="portal-cards portal-cards-2">
+                        <div class="portal-card">
+                            <div class="portal-card-head">
+                                <h3><i class="fas fa-pen-to-square"></i> Form đăng ký</h3>
+                            </div>
+                            <form id="registrationForm" class="portal-form">
+                                <label>
+                                    <span>Lớp học khả dụng</span>
+                                    <select id="registrationClassSelect" required>
+                                        <option value="">Chọn lớp để đăng ký</option>
+                                    </select>
+                                </label>
+                                <button type="submit" class="btn btn-primary">
+                                    <i class="fas fa-check"></i> Gửi đăng ký
+                                </button>
+                                <p id="registrationMessage" class="portal-message"></p>
+                            </form>
+                        </div>
+
+                        <div class="portal-card">
+                            <div class="portal-card-head">
+                                <h3><i class="fas fa-circle-info"></i> Lưu ý khi đăng ký</h3>
+                            </div>
+                            <ul class="portal-hints">
+                                <li>Chỉ đăng ký được lớp còn chỗ trống.</li>
+                                <li>Mỗi lớp chỉ có thể đăng ký một lần, không trùng thời gian biểu.</li>
+                                <li>Sau khi đăng ký, xem trạng thái tại mục <a href="/student/enrollments">Tra cứu đăng ký</a>.</li>
+                                <li>Hỏi tư vấn qua hotline <strong>0901 234 369</strong> nếu cần hỗ trợ.</li>
+                            </ul>
+                        </div>
+                    </div>
+                </article>
+
+                {# ENROLLMENTS #}
+                <article class="portal-panel {{ 'is-active' if active == 'enrollments' else '' }}" data-panel="enrollments">
+                    <header class="portal-panel-head">
+                        <div>
+                            <p class="eyebrow">Tra cứu đăng ký</p>
+                            <h2>Trạng thái các đăng ký của bạn</h2>
+                            <small class="portal-readonly-note"><i class="fas fa-eye"></i> Chỉ hiển thị đăng ký của chính bạn.</small>
+                        </div>
+                    </header>
+
+                    <div class="portal-cards portal-cards-2">
+                        <div class="portal-card">
+                            <div class="portal-card-head">
+                                <h3><i class="fas fa-list-check"></i> Lớp đã ghi danh</h3>
+                            </div>
+                            <div class="table-wrap">
+                                <table class="portal-table">
+                                    <thead>
+                                        <tr>
+                                            <th>Lớp</th>
+                                            <th>Khóa học</th>
+                                            <th>Giảng viên</th>
+                                            <th>Trạng thái</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="learningEnrollmentsBody">
+                                        <tr><td colspan="4" class="empty">Đang tải dữ liệu…</td></tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                        <div class="portal-card">
+                            <div class="portal-card-head">
+                                <h3><i class="fas fa-timeline"></i> Lịch sử đăng ký</h3>
+                            </div>
+                            <div class="table-wrap">
+                                <table class="portal-table">
+                                    <thead>
+                                        <tr>
+                                            <th>Lớp</th>
+                                            <th>Khóa học</th>
+                                            <th>Ngày đăng ký</th>
+                                            <th>Trạng thái</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="registrationStatusBody">
+                                        <tr><td colspan="4" class="empty">Đang tải dữ liệu…</td></tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </article>
+
+                {# SCHEDULE #}
+                <article class="portal-panel {{ 'is-active' if active == 'schedule' else '' }}" data-panel="schedule">
+                    <header class="portal-panel-head">
+                        <div>
+                            <p class="eyebrow">Lịch học</p>
+                            <h2>Lịch học cá nhân trong tuần</h2>
+                            <small class="portal-readonly-note"><i class="fas fa-eye"></i> Chỉ hiển thị lịch của các lớp bạn đã ghi danh.</small>
+                        </div>
+                    </header>
+
+                    <div class="portal-cards portal-cards-2">
+                        <div class="portal-card">
+                            <div class="portal-card-head">
+                                <h3><i class="fas fa-calendar-days"></i> Lịch học hàng tuần</h3>
+                            </div>
+                            <div class="table-wrap">
+                                <table class="portal-table">
+                                    <thead>
+                                        <tr>
+                                            <th>Lớp</th>
+                                            <th>Thứ</th>
+                                            <th>Ca học</th>
+                                            <th>Phòng</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="scheduleTableBody">
+                                        <tr><td colspan="4" class="empty">Đang tải dữ liệu…</td></tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                        <div class="portal-card">
+                            <div class="portal-card-head">
+                                <h3><i class="fas fa-book-open"></i> Nội dung khóa học</h3>
+                            </div>
+                            <div id="courseContentList" class="portal-content-list">
+                                <p class="empty">Đang tải dữ liệu…</p>
+                            </div>
+                        </div>
+                    </div>
+                </article>
+
+                {# EXAMS #}
+                <article class="portal-panel {{ 'is-active' if active == 'exams' else '' }}" data-panel="exams">
+                    <header class="portal-panel-head">
+                        <div>
+                            <p class="eyebrow">Lịch thi</p>
+                            <h2>Lịch thi dự kiến</h2>
+                            <small class="portal-readonly-note"><i class="fas fa-eye"></i> Lịch thi do trung tâm công bố, chỉ xem.</small>
+                        </div>
+                    </header>
+
+                    <div class="portal-card">
+                        <div class="table-wrap">
+                            <table class="portal-table">
+                                <thead>
+                                    <tr>
+                                        <th>Lớp</th>
+                                        <th>Môn</th>
+                                        <th>Ngày thi</th>
+                                        <th>Phòng</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="examTableBody">
+                                    <tr><td colspan="4" class="empty">Đang tải dữ liệu…</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </article>
+
+                {# TUITION #}
+                <article class="portal-panel {{ 'is-active' if active == 'tuition' else '' }}" data-panel="tuition">
+                    <header class="portal-panel-head">
+                        <div>
+                            <p class="eyebrow">Học phí</p>
+                            <h2>Tình trạng công nợ</h2>
+                            <small class="portal-readonly-note"><i class="fas fa-eye"></i> Số liệu được phòng tài vụ cập nhật.</small>
+                        </div>
+                    </header>
+
+                    <div class="portal-card">
+                        <div class="table-wrap">
+                            <table class="portal-table">
+                                <thead>
+                                    <tr>
+                                        <th>Lớp</th>
+                                        <th>Tổng phí</th>
+                                        <th>Đã đóng</th>
+                                        <th>Còn nợ</th>
+                                        <th>Trạng thái</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="financeTableBody">
+                                    <tr><td colspan="5" class="empty">Đang tải dữ liệu…</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                        <div class="portal-card-footer">
+                            <a href="/student/payment" class="btn btn-primary">
+                                <i class="fas fa-credit-card"></i> Đi tới thanh toán online
+                            </a>
+                        </div>
+                    </div>
+                </article>
+
+                {# PAYMENT #}
+                <article class="portal-panel {{ 'is-active' if active == 'payment' else '' }}" data-panel="payment">
+                    <header class="portal-panel-head">
+                        <div>
+                            <p class="eyebrow">Thanh toán online</p>
+                            <h2>Nộp học phí trực tuyến</h2>
+                            <small class="portal-readonly-note"><i class="fas fa-shield-halved"></i> Giao dịch chỉ được tạo cho khoản học phí của tài khoản bạn.</small>
+                        </div>
+                    </header>
+
+                    <div class="portal-cards portal-cards-2">
+                        <div class="portal-card">
+                            <div class="portal-card-head">
+                                <h3><i class="fas fa-credit-card"></i> Form thanh toán</h3>
+                            </div>
+                            <form id="paymentForm" class="portal-form">
+                                <label>
+                                    <span>Khoản học phí</span>
+                                    <select id="paymentTuitionSelect" required>
+                                        <option value="">Chọn khoản học phí</option>
+                                    </select>
+                                </label>
+                                <label>
+                                    <span>Số tiền thanh toán</span>
+                                    <input type="number" id="paymentAmountInput" min="1" step="1000" required placeholder="Ví dụ: 3000000">
+                                </label>
+                                <label>
+                                    <span>Ghi chú</span>
+                                    <input type="text" id="paymentNoteInput" placeholder="Ví dụ: Chuyển khoản Vietcombank">
+                                </label>
+                                <button type="submit" class="btn btn-primary">
+                                    <i class="fas fa-money-bill-wave"></i> Gửi thanh toán
+                                </button>
+                                <p id="paymentMessage" class="portal-message"></p>
+                            </form>
+                        </div>
+
+                        <div class="portal-card">
+                            <div class="portal-card-head">
+                                <h3><i class="fas fa-building-columns"></i> Kênh thanh toán hỗ trợ</h3>
+                            </div>
+                            <ul class="portal-hints">
+                                <li><i class="fas fa-mobile-screen"></i> Chuyển khoản qua ngân hàng hoặc ví điện tử (Momo, ZaloPay, VNPay).</li>
+                                <li><i class="fas fa-receipt"></i> Ghi rõ <strong>mã sinh viên</strong> và <strong>mã lớp</strong> trong nội dung chuyển khoản.</li>
+                                <li><i class="fas fa-rotate"></i> Sau khi ghi nhận, trạng thái sẽ cập nhật trong mục Học phí.</li>
+                                <li><i class="fas fa-headset"></i> Hỗ trợ đối soát: hotline <strong>0901 234 369</strong>.</li>
+                            </ul>
+                        </div>
+                    </div>
+                </article>
+            </section>
+        </section>
+        {% else %}
+        <section class="section-shell">
+            <div class="portal-card portal-warning">
+                <i class="fas fa-exclamation-triangle"></i>
+                <h2>Chưa có hồ sơ sinh viên</h2>
+                <p>Tài khoản <strong>{{ current_user.Username }}</strong> đã đăng nhập thành công nhưng chưa được liên kết với hồ sơ sinh viên trong hệ thống. Vui lòng liên hệ quản trị viên để được thiết lập hồ sơ.</p>
+            </div>
+        </section>
+        {% endif %}
+    </main>
+
+    <footer class="site-footer">
+        <p>&copy; 2026 CLASSES369 — Khu vực sinh viên.</p>
+    </footer>
+
+    <script src="{{ url_for('static', filename='js/landing.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/student_home.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/student_portal.js') }}"></script>
+</body>
+</html>

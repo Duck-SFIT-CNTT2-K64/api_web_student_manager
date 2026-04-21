@@ -1,10 +1,74 @@
 from flask import Blueprint, redirect, render_template, session, url_for
 
-from models.auth_model import get_admin_home_data, get_student_home_data, get_teacher_home_data
+from db import get_db_connection
+from models.auth_model import (
+    get_admin_home_data,
+    get_student_home_data,
+    get_teacher_home_data,
+    get_user_by_id,
+)
+from models.helpers import row_to_dict
 from models.public_model import get_public_landing_data
 from utils.auth import current_session_user, login_required, role_required
 
 page_bp = Blueprint("pages", __name__)
+
+
+def _get_settings_profile(user_id: int) -> dict:
+    base = get_user_by_id(user_id) or {}
+    profile = {
+        "UserId": base.get("UserId"),
+        "Username": base.get("Username"),
+        "FullName": base.get("FullName"),
+        "Email": base.get("Email"),
+        "PhoneNumber": base.get("PhoneNumber"),
+        "RoleName": base.get("RoleName"),
+        "Status": base.get("Status"),
+        "StudentCode": base.get("StudentCode"),
+        "TeacherCode": base.get("TeacherCode"),
+        "DateOfBirth": None,
+        "Gender": None,
+        "Address": None,
+        "Specialization": None,
+    }
+
+    role_name = str(base.get("RoleName") or "").lower()
+
+    try:
+        with get_db_connection() as connection:
+            cursor = connection.cursor()
+            if role_name == "student":
+                cursor.execute(
+                    """
+                    SELECT s.DateOfBirth, s.Gender, s.Address
+                    FROM Students s
+                    WHERE s.UserId = ?
+                    """,
+                    user_id,
+                )
+                row = cursor.fetchone()
+                if row:
+                    extra = row_to_dict(cursor, row)
+                    profile["DateOfBirth"] = extra.get("DateOfBirth")
+                    profile["Gender"] = extra.get("Gender")
+                    profile["Address"] = extra.get("Address")
+            elif role_name == "teacher":
+                cursor.execute(
+                    """
+                    SELECT t.Specialization
+                    FROM Teachers t
+                    WHERE t.UserId = ?
+                    """,
+                    user_id,
+                )
+                row = cursor.fetchone()
+                if row:
+                    extra = row_to_dict(cursor, row)
+                    profile["Specialization"] = extra.get("Specialization")
+    except Exception:
+        pass
+
+    return profile
 
 
 @page_bp.get("/")
@@ -70,22 +134,95 @@ def teacher_home_page():
     )
 
 
+_STUDENT_SECTIONS = {
+    "overview": "Tổng quan",
+    "scores": "Tra cứu điểm",
+    "register": "Đăng ký học",
+    "enrollments": "Tra cứu đăng ký",
+    "schedule": "Lịch học",
+    "exams": "Lịch thi",
+    "tuition": "Học phí",
+    "payment": "Thanh toán online",
+}
+
+
+def _render_student_portal(active_section: str):
+    session_user = current_session_user()
+    home_data = get_student_home_data(int(session_user["UserId"]))
+    section = active_section if active_section in _STUDENT_SECTIONS else "overview"
+    return render_template(
+        "student_portal.html",
+        current_user=session_user,
+        home_data=home_data,
+        active_section=section,
+        page_title=_STUDENT_SECTIONS.get(section, "Khu vực sinh viên"),
+    )
+
+
 @page_bp.get("/student/home")
 @role_required("Student")
 def student_home_page():
-    session_user = current_session_user()
-    home_data = get_student_home_data(int(session_user["UserId"]))
-    return render_template(
-        "student_home.html",
-        current_user=session_user,
-        home_data=home_data,
-    )
+    return _render_student_portal("overview")
+
+
+@page_bp.get("/student/scores")
+@role_required("Student")
+def student_scores_page():
+    return _render_student_portal("scores")
+
+
+@page_bp.get("/student/register")
+@role_required("Student")
+def student_register_page():
+    return _render_student_portal("register")
+
+
+@page_bp.get("/student/enrollments")
+@role_required("Student")
+def student_enrollments_page():
+    return _render_student_portal("enrollments")
+
+
+@page_bp.get("/student/schedule")
+@role_required("Student")
+def student_schedule_page():
+    return _render_student_portal("schedule")
+
+
+@page_bp.get("/student/exams")
+@role_required("Student")
+def student_exams_page():
+    return _render_student_portal("exams")
+
+
+@page_bp.get("/student/tuition")
+@role_required("Student")
+def student_tuition_page():
+    return _render_student_portal("tuition")
+
+
+@page_bp.get("/student/payment")
+@role_required("Student")
+def student_payment_page():
+    return _render_student_portal("payment")
 
 
 @page_bp.get("/dashboard")
 @role_required("Admin")
 def dashboard_page():
     return render_template("dashboard.html", current_user=current_session_user())
+
+
+@page_bp.get("/settings")
+@login_required
+def settings_page():
+    session_user = current_session_user()
+    profile = _get_settings_profile(int(session_user["UserId"]))
+    return render_template(
+        "settings.html",
+        current_user=session_user,
+        profile=profile,
+    )
 
 
 @page_bp.get("/students-page")
