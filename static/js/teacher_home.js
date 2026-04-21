@@ -23,6 +23,7 @@
         schedule: "/api/teachers/schedule/" + userId,
         classStudents: "/api/teachers/class-students/",
         saveScore: "/api/teachers/save-score",
+        report: "/api/teachers/report/" + userId,
     };
 
     var weekdayMap = {
@@ -43,6 +44,13 @@
             .replaceAll('"', "&quot;")
             .replaceAll("'", "&#039;");
     }
+
+    function toggleSubmenu(element) {
+        const group = element.closest('.nav-group');
+        if (group) group.classList.toggle('open');
+    }
+
+    // bindNavigation được định nghĩa bên dưới (sau loadReport)
 
     function setMessage(text, type) {
         var node = document.getElementById("scoreMessage");
@@ -113,7 +121,7 @@
 
     function renderClassSelect() {
         var baseOption = '<option value="">Chọn lớp...</option>';
-        var options = (state.classes || []).reduce(function(acc, item) {
+        var options = (state.classes || []).reduce(function (acc, item) {
             return acc + '<option value="' + item.ClassId + '">' + escapeHtml(item.ClassCode + " - " + item.ClassName) + ' (' + Number(item.StudentCount || 0) + ' SV)</option>';
         }, "");
 
@@ -121,10 +129,11 @@
             { id: 'teacherClassSelect', def: '<option value="">Chọn lớp để nhập điểm</option>' },
             { id: 'classListSelect', def: baseOption },
             { id: 'examClassSelect', def: baseOption },
-            { id: 'attendanceClassSelect', def: baseOption }
+            { id: 'attendanceClassSelect', def: baseOption },
+            { id: 'scoreViewClassSelect', def: '<option value="">Chọn lớp để xem điểm...</option>' },
         ];
 
-        selects.forEach(function(s) {
+        selects.forEach(function (s) {
             var el = document.getElementById(s.id);
             if (el) el.innerHTML = s.def + options;
         });
@@ -172,12 +181,12 @@
         };
 
         var map = {};
-        days.forEach(function(d) { map[d] = []; });
+        days.forEach(function (d) { map[d] = []; });
 
-        (state.schedule || []).forEach(function(item) {
+        (state.schedule || []).forEach(function (item) {
             if (!map[item.Weekday]) return;
             var start = item.StartTime ? item.StartTime.slice(0, 5) : "--";
-            var end   = item.EndTime   ? item.EndTime.slice(0, 5)   : "--";
+            var end = item.EndTime ? item.EndTime.slice(0, 5) : "--";
             map[item.Weekday].push(
                 "<div class='calendar-item'>"
                 + "<strong>" + escapeHtml(item.ClassCode || "") + "</strong><br>"
@@ -192,7 +201,7 @@
                 + "</button>"
                 + "<button class='btn-cal btn-cal-attend'"
                 + " data-cal-attend='" + Number(item.ClassId) + "'"
-                + " data-cal-weekday='" + escapeHtml(item.Weekday) + "'>"  
+                + " data-cal-weekday='" + escapeHtml(item.Weekday) + "'>"
                 + "<i class='fas fa-clipboard-check'></i> Điểm danh"
                 + "</button>"
                 + "</div>"
@@ -201,7 +210,7 @@
         });
 
         container.innerHTML = "<div class='calendar-grid'>"
-            + days.map(function(day) {
+            + days.map(function (day) {
                 return "<div class='calendar-col'>"
                     + "<div class='calendar-day-header'>" + dayLabels[day] + "</div>"
                     + (map[day].length
@@ -216,19 +225,19 @@
         var tbody = document.getElementById("scoreStudentTableBody");
         if (!tbody) return;
 
-        var saveAllBtn       = document.getElementById("saveAllScoresBtn");
-        var downloadBtn      = document.getElementById("downloadTemplateBtn");
-        var importLabel      = document.getElementById("importExcelLabel");
+        var saveAllBtn = document.getElementById("saveAllScoresBtn");
+        var downloadBtn = document.getElementById("downloadTemplateBtn");
+        var importLabel = document.getElementById("importExcelLabel");
 
         if (!state.classStudents || !state.classStudents.length) {
             tbody.innerHTML = '<tr><td colspan="5" class="empty">Lớp chưa có sinh viên.</td></tr>';
-            if (saveAllBtn)  saveAllBtn.style.display  = "none";
+            if (saveAllBtn) saveAllBtn.style.display = "none";
             if (downloadBtn) downloadBtn.style.display = "none";
             if (importLabel) importLabel.style.display = "none";
             return;
         }
 
-        tbody.innerHTML = state.classStudents.map(function(item) {
+        tbody.innerHTML = state.classStudents.map(function (item) {
             return "<tr data-enrollment-id=\"" + Number(item.EnrollmentId) + "\">"
                 + "<td><strong>" + escapeHtml(item.StudentCode) + "</strong></td>"
                 + "<td>" + escapeHtml(item.FullName) + "</td>"
@@ -239,7 +248,7 @@
         }).join("");
 
         // Hiện các nút
-        if (saveAllBtn)  saveAllBtn.style.display  = "inline-flex";
+        if (saveAllBtn) saveAllBtn.style.display = "inline-flex";
         if (downloadBtn) downloadBtn.style.display = "inline-flex";
         if (importLabel) importLabel.style.display = "inline-flex";
     }
@@ -263,7 +272,7 @@
         }
 
         getJson(endpoints.classStudents + classId)
-            .then(function(students) {
+            .then(function (students) {
                 if (!students || !students.length) {
                     alert("Lớp chưa có sinh viên!");
                     return;
@@ -274,30 +283,30 @@
                 ];
 
                 // Rows
-                students.forEach(function(sv, idx) {
+                students.forEach(function (sv, idx) {
                     data.push([
                         idx + 1,
-                        sv.StudentCode   || "",
-                        sv.FullName      || "",
-                        sv.DateOfBirth   || "",
-                        sv.Gender        || "",
-                        sv.ChuyenCan     !== null && sv.ChuyenCan     !== undefined ? Number(sv.ChuyenCan)  : "",
-                        sv.GiuaKy        !== null && sv.GiuaKy        !== undefined ? Number(sv.GiuaKy)     : "",
-                        sv.CuoiKy        !== null && sv.CuoiKy        !== undefined ? Number(sv.CuoiKy)     : "",
+                        sv.StudentCode || "",
+                        sv.FullName || "",
+                        sv.DateOfBirth || "",
+                        sv.Gender || "",
+                        sv.ChuyenCan !== null && sv.ChuyenCan !== undefined ? Number(sv.ChuyenCan) : "",
+                        sv.GiuaKy !== null && sv.GiuaKy !== undefined ? Number(sv.GiuaKy) : "",
+                        sv.CuoiKy !== null && sv.CuoiKy !== undefined ? Number(sv.CuoiKy) : "",
                     ]);
                 });
 
                 var ws = XLSX.utils.aoa_to_sheet(data);
 
                 ws["!cols"] = [
-                    { wch: 5  },  
-                    { wch: 12 },  
-                    { wch: 30 },  
-                    { wch: 15 },  
-                    { wch: 10 },  
-                    { wch: 12 },  
-                    { wch: 12 },  
-                    { wch: 12 },  
+                    { wch: 5 },
+                    { wch: 12 },
+                    { wch: 30 },
+                    { wch: 15 },
+                    { wch: 10 },
+                    { wch: 12 },
+                    { wch: 12 },
+                    { wch: 12 },
                 ];
 
                 var wb = XLSX.utils.book_new();
@@ -306,10 +315,10 @@
                 var fileName = "DanhSach_" + className.replace(/[^a-zA-Z0-9_]/g, "_") + ".xlsx";
                 XLSX.writeFile(wb, fileName);
             })
-            .catch(function(err) {
+            .catch(function (err) {
                 alert("Lỗi xuất Excel: " + err.message);
             })
-            .finally(function() {
+            .finally(function () {
                 if (exportBtn) {
                     exportBtn.disabled = false;
                     exportBtn.innerHTML = "<i class='fas fa-file-excel'></i> Xuất Excel";
@@ -336,8 +345,148 @@
             renderClassSelect();
             renderSchedule();
             renderCalendar();
+
+            // Load report statistics on initial load
+            loadReport();
         } catch (err) {
             console.error("Lỗi load API:", err);
+        }
+    }
+
+    // ---- Score View ----
+    async function loadScoreView(classId) {
+        var body = document.getElementById('scoreViewBody');
+        var summary = document.getElementById('scoreViewSummary');
+        var exportBtn = document.getElementById('exportScoreBtn');
+        if (!classId) {
+            if (body) body.innerHTML = '<tr><td colspan="7" class="empty">Chọn một lớp để hiển thị bảng điểm.</td></tr>';
+            if (summary) summary.style.display = 'none';
+            return;
+        }
+        if (body) body.innerHTML = '<tr><td colspan="7" class="empty">Đang tải...</td></tr>';
+        try {
+            var students = await getJson(endpoints.classStudents + Number(classId));
+            renderScoreView(students || []);
+        } catch (err) {
+            if (body) body.innerHTML = '<tr><td colspan="7" class="empty">Lỗi: ' + escapeHtml(err.message) + '</td></tr>';
+        }
+    }
+
+    function renderScoreView(students) {
+        var body = document.getElementById('scoreViewBody');
+        var summary = document.getElementById('scoreViewSummary');
+        var exportBtn = document.getElementById('exportScoreBtn');
+        if (!body) return;
+
+        if (!students.length) {
+            body.innerHTML = '<tr><td colspan="7" class="empty">Lớp chưa có sinh viên.</td></tr>';
+            if (summary) summary.style.display = 'none';
+            if (exportBtn) exportBtn.style.display = 'none';
+            return;
+        }
+
+        var totalPass = 0, totalFail = 0;
+        body.innerHTML = students.map(function (sv) {
+            var cc = sv.ChuyenCan != null ? Number(sv.ChuyenCan) : null;
+            var gk = sv.GiuaKy != null ? Number(sv.GiuaKy) : null;
+            var ck = sv.CuoiKy != null ? Number(sv.CuoiKy) : null;
+            var dtb = null;
+            if (cc != null && gk != null && ck != null) {
+                dtb = Math.round((0.1 * cc + 0.3 * gk + 0.6 * ck) * 10) / 10;
+            }
+            var passed = dtb != null && dtb >= 5.0;
+            if (dtb != null) { passed ? totalPass++ : totalFail++; }
+            var resultBadge = dtb == null
+                ? '<span class="badge">Chưa có điểm</span>'
+                : (passed ? '<span class="badge good">Đạt</span>' : '<span class="badge bad">Không đạt</span>');
+            return '<tr>'
+                + '<td><strong>' + escapeHtml(sv.StudentCode) + '</strong></td>'
+                + '<td>' + escapeHtml(sv.FullName) + '</td>'
+                + '<td>' + (cc != null ? cc : '<span style="color:#94a3b8">--</span>') + '</td>'
+                + '<td>' + (gk != null ? gk : '<span style="color:#94a3b8">--</span>') + '</td>'
+                + '<td>' + (ck != null ? ck : '<span style="color:#94a3b8">--</span>') + '</td>'
+                + '<td><strong style="color:' + (dtb == null ? '#94a3b8' : (dtb >= 8 ? '#16a34a' : (dtb >= 5 ? '#d97706' : '#ef4444'))) + '">' + (dtb != null ? dtb : '--') + '</strong></td>'
+                + '<td>' + resultBadge + '</td>'
+                + '</tr>';
+        }).join('');
+
+        // Summary stats
+        var total = students.length;
+        var svTotal = document.getElementById('svTotalCount');
+        var svPass = document.getElementById('svPassCount');
+        var svFail = document.getElementById('svFailCount');
+        if (svTotal) svTotal.textContent = total;
+        if (svPass) svPass.textContent = totalPass;
+        if (svFail) svFail.textContent = totalFail;
+        if (summary) summary.style.display = 'block';
+        if (exportBtn) exportBtn.style.display = 'inline-flex';
+    }
+
+    // ---- Report / Statistics ----
+    async function loadReport() {
+        try {
+            var data = await getJson(endpoints.report);
+            renderReport(data);
+        } catch (err) {
+            console.warn('Lỗi tải báo cáo:', err.message);
+            var reportBody = document.getElementById('reportClassStatsBody');
+            if (reportBody) reportBody.innerHTML = '<tr><td colspan="6" class="empty">Không thể tải số liệu.</td></tr>';
+        }
+    }
+
+    function renderReport(data) {
+        if (!data) return;
+
+        // KPI cards
+        var avgAtt = document.getElementById('avgAttendance');
+        var passRateEl = document.getElementById('passRate');
+        var excellentEl = document.getElementById('excellentCount');
+        if (avgAtt) avgAtt.textContent = data.avg_attendance != null ? data.avg_attendance + '%' : '--';
+        if (passRateEl) passRateEl.textContent = data.pass_rate != null ? data.pass_rate + '%' : '--';
+        if (excellentEl) excellentEl.textContent = data.excellent_count || 0;
+
+        // Detail column
+        var topClass = document.getElementById('topClass');
+        var topClassAvg = document.getElementById('topClassAvg');
+        var reportTotal = document.getElementById('reportTotalStudents');
+        var reportClasses = document.getElementById('reportTotalClasses');
+        if (topClass) topClass.textContent = data.top_class || '--';
+        if (topClassAvg) topClassAvg.textContent = data.top_class_avg != null ? data.top_class_avg.toFixed(2) : '--';
+        if (reportTotal) reportTotal.textContent = data.total_students || 0;
+        if (reportClasses) reportClasses.textContent = (data.class_stats || []).length;
+
+        // Progress bars
+        var passRateVal = data.pass_rate || 0;
+        var attRateVal = data.avg_attendance || 0;
+        var passBarText = document.getElementById('passRateBar');
+        var passFill = document.getElementById('passRateBarFill');
+        var attBarText = document.getElementById('attendanceRateBar');
+        var attFill = document.getElementById('attendanceBarFill');
+        if (passBarText) passBarText.textContent = data.pass_rate != null ? data.pass_rate + '%' : '--';
+        if (passFill) setTimeout(function () { passFill.style.width = Math.min(passRateVal, 100) + '%'; }, 100);
+        if (attBarText) attBarText.textContent = data.avg_attendance != null ? data.avg_attendance + '%' : '--';
+        if (attFill) setTimeout(function () { attFill.style.width = Math.min(attRateVal, 100) + '%'; }, 100);
+
+        // Per-class table
+        var tbody = document.getElementById('reportClassStatsBody');
+        if (tbody) {
+            var stats = data.class_stats || [];
+            if (!stats.length) {
+                tbody.innerHTML = '<tr><td colspan="6" class="empty">Chưa có dữ liệu.</td></tr>';
+            } else {
+                tbody.innerHTML = stats.map(function (cls) {
+                    var avg = cls.AvgScore != null ? Number(cls.AvgScore).toFixed(2) : '--';
+                    var avgColor = cls.AvgScore == null ? '#94a3b8' : (cls.AvgScore >= 8 ? '#16a34a' : (cls.AvgScore >= 5 ? '#d97706' : '#ef4444'));
+                    return '<tr>'
+                        + '<td><strong>' + escapeHtml(cls.ClassCode || '') + '</strong><br><small>' + escapeHtml(cls.ClassName || '') + '</small></td>'
+                        + '<td>' + escapeHtml(cls.CourseName || '--') + '</td>'
+                        + '<td><span class="badge info">' + (cls.TotalStudents || 0) + '</span></td>'
+                        + '<td><strong style="color:' + avgColor + '">' + avg + '</strong></td>'
+                        + '<td><span class="badge good">' + (cls.PassCount || 0) + '</span></td>'
+                        + '<td><span class="badge" style="background:rgba(234,88,12,.15);color:#ea580c;">' + (cls.ExcellentCount || 0) + '</span></td>'
+                        + '</tr>';
+                }).join('');
+            }
         }
     }
 
@@ -407,6 +556,18 @@
                 }
             });
 
+            // Active state cho nav-subitem
+            document.querySelectorAll(".nav-subitem").forEach(function (item) {
+                var href = item.getAttribute("href") || "";
+                item.classList.remove("active");
+                if (href === activeHash) {
+                    item.classList.add("active");
+                    // Mở submenu cha nếu chưa mở
+                    var group = item.closest(".nav-group");
+                    if (group) group.classList.add("open");
+                }
+            });
+
             document.querySelectorAll(".section").forEach(function (sec) {
                 if ("#" + sec.id === activeHash) {
                     sec.style.display = "block";
@@ -418,7 +579,24 @@
             window.scrollTo(0, 0);
         }
 
+        // Click handler cho nav-item thường (có href)
         navItems.forEach(function (link) {
+            if (link.classList.contains("has-sub")) return; // bỏ qua .has-sub
+            link.addEventListener("click", function () {
+                window.setTimeout(applyActiveState, 0);
+            });
+        });
+
+        // Click handler riêng cho .has-sub → toggle submenu
+        document.querySelectorAll(".nav-item.has-sub").forEach(function (el) {
+            el.addEventListener("click", function (e) {
+                e.stopPropagation();
+                toggleSubmenu(this);
+            });
+        });
+
+        // Click handler cho nav-subitem
+        document.querySelectorAll(".nav-subitem").forEach(function (link) {
             link.addEventListener("click", function () {
                 window.setTimeout(applyActiveState, 0);
             });
@@ -467,8 +645,8 @@
             ["Mã SV", "Họ tên", "Ngày sinh", "Giới tính", "Chuyên cần", "Giữa kỳ", "Cuối kỳ"]
         ];
 
-        rows.forEach(function(row) {
-            var cells  = row.querySelectorAll("td");
+        rows.forEach(function (row) {
+            var cells = row.querySelectorAll("td");
             var inputs = row.querySelectorAll("input[data-score-type]");
             data.push([
                 cells[0] ? cells[0].textContent.trim() : "",
@@ -500,12 +678,12 @@
     // Hàm xử lý file Excel được upload để điền điểm vào bảng HTML
     function importScoreFromExcel(file) {
         var reader = new FileReader();
-        reader.onload = function(e) {
+        reader.onload = function (e) {
             try {
-                var data     = new Uint8Array(e.target.result);
+                var data = new Uint8Array(e.target.result);
                 var workbook = XLSX.read(data, { type: "array" });
-                var sheet    = workbook.Sheets[workbook.SheetNames[0]];
-                var rows     = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: "" });
+                var sheet = workbook.Sheets[workbook.SheetNames[0]];
+                var rows = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: "" });
 
                 if (!rows || rows.length < 2) {
                     setMessage("File Excel không có dữ liệu!", "error");
@@ -513,22 +691,22 @@
                 }
 
                 // Đọc header để tìm vị trí cột linh hoạt
-                var header = rows[0].map(function(h) {
+                var header = rows[0].map(function (h) {
                     return String(h).trim().toLowerCase();
                 });
 
-                var colMaSV      = header.findIndex(function(h) { return h.includes("mã sv") || h.includes("ma sv") || h === "mã sv"; });
-                var colChuyenCan = header.findIndex(function(h) { return h.includes("chuyên") || h.includes("chuyen"); });
-                var colGiuaKy    = header.findIndex(function(h) { return h.includes("giữa") || h.includes("giua"); });
-                var colCuoiKy    = header.findIndex(function(h) { return h.includes("cuối") || h.includes("cuoi"); });
+                var colMaSV = header.findIndex(function (h) { return h.includes("mã sv") || h.includes("ma sv") || h === "mã sv"; });
+                var colChuyenCan = header.findIndex(function (h) { return h.includes("chuyên") || h.includes("chuyen"); });
+                var colGiuaKy = header.findIndex(function (h) { return h.includes("giữa") || h.includes("giua"); });
+                var colCuoiKy = header.findIndex(function (h) { return h.includes("cuối") || h.includes("cuoi"); });
 
                 // Fallback về vị trí mặc định nếu không tìm được
-                if (colMaSV      < 0) colMaSV      = 0;
+                if (colMaSV < 0) colMaSV = 0;
                 if (colChuyenCan < 0) colChuyenCan = 4;
-                if (colGiuaKy    < 0) colGiuaKy    = 5;
-                if (colCuoiKy    < 0) colCuoiKy    = 6;
+                if (colGiuaKy < 0) colGiuaKy = 5;
+                if (colCuoiKy < 0) colCuoiKy = 6;
 
-                var dataRows = rows.slice(1).filter(function(r) {
+                var dataRows = rows.slice(1).filter(function (r) {
                     return String(r[colMaSV] || "").trim() !== "";
                 });
 
@@ -539,8 +717,8 @@
 
                 // Validate điểm
                 var errors = [];
-                dataRows.forEach(function(row, idx) {
-                    [colChuyenCan, colGiuaKy, colCuoiKy].forEach(function(col) {
+                dataRows.forEach(function (row, idx) {
+                    [colChuyenCan, colGiuaKy, colCuoiKy].forEach(function (col) {
                         if (row[col] !== "" && row[col] !== null && row[col] !== undefined) {
                             var val = Number(row[col]);
                             if (isNaN(val) || val < 0 || val > 10) {
@@ -557,7 +735,7 @@
 
                 // Build map: MaSV → <tr>
                 var trMap = {};
-                document.querySelectorAll("#scoreStudentTableBody tr[data-enrollment-id]").forEach(function(tr) {
+                document.querySelectorAll("#scoreStudentTableBody tr[data-enrollment-id]").forEach(function (tr) {
                     var maSV = tr.querySelector("td:first-child")
                         ? tr.querySelector("td:first-child").textContent.trim()
                         : "";
@@ -565,11 +743,11 @@
                 });
 
                 // Điền điểm vào bảng
-                var filled  = 0;
+                var filled = 0;
                 var skipped = 0;
-                dataRows.forEach(function(row) {
+                dataRows.forEach(function (row) {
                     var maSV = String(row[colMaSV] || "").trim();
-                    var tr   = trMap[maSV];
+                    var tr = trMap[maSV];
                     if (!tr) { skipped++; return; }
 
                     var inputs = tr.querySelectorAll("input[data-score-type]");
@@ -590,7 +768,7 @@
 
                 document.getElementById("importExcelInput").value = "";
 
-            } catch(err) {
+            } catch (err) {
                 setMessage("Lỗi đọc file: " + err.message, "error");
             }
         };
@@ -628,7 +806,7 @@
             // Tải file mẫu
             var downloadTemplateBtn = document.getElementById("downloadTemplateBtn");
             if (downloadTemplateBtn) {
-                downloadTemplateBtn.addEventListener("click", function() {
+                downloadTemplateBtn.addEventListener("click", function () {
                     downloadScoreTemplate();
                 });
             }
@@ -636,7 +814,7 @@
             // Import Excel
             var importExcelInput = document.getElementById("importExcelInput");
             if (importExcelInput) {
-                importExcelInput.addEventListener("change", function() {
+                importExcelInput.addEventListener("change", function () {
                     var file = this.files[0];
                     if (!file) return;
                     importScoreFromExcel(file);
@@ -666,7 +844,7 @@
 
                 window.location.hash = "#score-entry";
 
-                loadClassStudents(classId).catch(function(err) {
+                loadClassStudents(classId).catch(function (err) {
                     setMessage(err.message, "error");
                 });
                 return;
@@ -674,8 +852,8 @@
 
             var calAttendBtn = event.target.closest("[data-cal-attend]");
             if (calAttendBtn) {
-                var classId  = Number(calAttendBtn.getAttribute("data-cal-attend"));
-                var weekday  = calAttendBtn.getAttribute("data-cal-weekday");
+                var classId = Number(calAttendBtn.getAttribute("data-cal-attend"));
+                var weekday = calAttendBtn.getAttribute("data-cal-weekday");
 
                 var attendanceClassSelect = document.getElementById("attendanceClassSelect");
                 if (attendanceClassSelect) attendanceClassSelect.value = String(classId);
@@ -691,19 +869,19 @@
                 if (attendSearchBtn) attendSearchBtn.click();
                 return;
             }
-            
+
             // Xuất Excel
             var exportBtn = document.getElementById("exportClassListBtn");
             if (exportBtn) {
-                exportBtn.addEventListener("click", function() {
+                exportBtn.addEventListener("click", function () {
                     exportClassListToExcel();
                 });
             }
-            
+
             // Save button for scores
             var saveAllBtn = document.getElementById("saveAllScoresBtn");
             if (saveAllBtn) {
-                saveAllBtn.addEventListener("click", function() {
+                saveAllBtn.addEventListener("click", function () {
                     var rows = document.querySelectorAll("#scoreStudentTableBody tr[data-enrollment-id]");
                     if (!rows.length) {
                         setMessage("Không có dữ liệu để lưu.", "error");
@@ -713,9 +891,9 @@
                     var tasks = [];
                     var hasError = false;
 
-                    rows.forEach(function(row) {
+                    rows.forEach(function (row) {
                         var enrollmentId = Number(row.dataset.enrollmentId);
-                        row.querySelectorAll("input[data-score-type]").forEach(function(input) {
+                        row.querySelectorAll("input[data-score-type]").forEach(function (input) {
                             if (input.value === "") return;
                             var score = Number(input.value);
                             if (Number.isNaN(score) || score < 0 || score > 10) {
@@ -744,17 +922,17 @@
                     setMessage("", "");
 
                     Promise.all(tasks)
-                        .then(function() {
+                        .then(function () {
                             setMessage("Đã lưu tất cả điểm thành công!", "success");
                             return Promise.all([
                                 loadClassStudents(state.selectedClassId),
                                 loadDashboardData()
                             ]);
                         })
-                        .catch(function(err) {
+                        .catch(function (err) {
                             setMessage(err.message, "error");
                         })
-                        .finally(function() {
+                        .finally(function () {
                             saveAllBtn.disabled = false;
                             saveAllBtn.innerHTML = "<i class='fas fa-save'></i> Lưu tất cả điểm";
                         });
@@ -776,8 +954,8 @@
                 body.innerHTML = '<tr><td colspan="4" class="empty">Đang tải...</td></tr>';
 
                 getJson(endpoints.classStudents + Number(val))
-                    .then(function(students) {
-                        body.innerHTML = (students || []).map(function(sv) {
+                    .then(function (students) {
+                        body.innerHTML = (students || []).map(function (sv) {
                             return "<tr>"
                                 + "<td><strong>" + escapeHtml(sv.StudentCode) + "</strong></td>"
                                 + "<td>" + escapeHtml(sv.FullName) + "</td>"
@@ -792,14 +970,14 @@
                             exportBtn.style.display = students && students.length ? "inline-flex" : "none";
                         }
                     })
-                    .catch(function(err) {
+                    .catch(function (err) {
                         body.innerHTML = '<tr><td colspan="4" class="empty">Lỗi: ' + escapeHtml(err.message) + '</td></tr>';
                         var exportBtn = document.getElementById("exportClassListBtn");
                         if (exportBtn) exportBtn.style.display = "none";
                     });
             });
         }
-        
+
 
         // 3. Exams
         var examForm = document.getElementById("examForm");
@@ -810,14 +988,14 @@
                 var classSel = document.getElementById("examClassSelect");
                 var className = classSel.options[classSel.selectedIndex].text;
                 var dueDate = examForm.querySelector('input[type="datetime-local"]').value;
-                
+
                 var body = document.getElementById("examTableBody");
                 if (body.querySelector(".empty")) body.innerHTML = "";
-                
+
                 var row = document.createElement("tr");
                 row.innerHTML = "<td>" + escapeHtml(title) + "</td><td>" + escapeHtml(className) + "</td><td>" + escapeHtml(dueDate.replace("T", " ")) + "</td><td><span class=\"badge good\">Đã giao</span></td>";
                 body.prepend(row);
-                
+
                 alert("Tạo bài kiểm tra thành công! (Mô phỏng UI)");
                 examForm.reset();
             });
@@ -828,8 +1006,8 @@
         if (attSearchBtn) {
             attSearchBtn.addEventListener('click', function () {
                 var classId = document.getElementById('attendanceClassSelect').value;
-                var date    = document.querySelector('#attendanceForm input[type="date"]').value;
-                var body    = document.getElementById('attendanceTableBody');
+                var date = document.querySelector('#attendanceForm input[type="date"]').value;
+                var body = document.getElementById('attendanceTableBody');
 
                 if (!classId || !date) {
                     alert('Vui lòng chọn lớp và ngày học!');
@@ -841,9 +1019,9 @@
                 getJson('/api/teachers/attendance/' + classId + '?date=' + date)
                     .then(function (students) {
                         body.innerHTML = (students || []).map(function (sv) {
-                            var present  = sv.AttendanceStatus === 'Present'  ? 'checked' : '';
-                            var absent   = sv.AttendanceStatus === 'Absent'   ? 'checked' : '';
-                            var late     = sv.AttendanceStatus === 'Late'      ? 'checked' : '';
+                            var present = sv.AttendanceStatus === 'Present' ? 'checked' : '';
+                            var absent = sv.AttendanceStatus === 'Absent' ? 'checked' : '';
+                            var late = sv.AttendanceStatus === 'Late' ? 'checked' : '';
                             return "<tr data-enrollment-id='" + sv.EnrollmentId + "'>"
                                 + "<td><strong>" + escapeHtml(sv.StudentCode) + "</strong></td>"
                                 + "<td>" + escapeHtml(sv.FullName) + "</td>"
@@ -858,7 +1036,7 @@
                     });
             });
         }
-        
+
         // Save attendence
         var attSaveBtn = document.getElementById("attendanceSaveBtn");
         if (attSaveBtn) {
@@ -898,22 +1076,22 @@
         function loadNotifications() {
             var body = document.getElementById('notificationTableBody');
             getJson('/api/teachers/notifications/' + userId)
-                .then(function(items) {
-                    body.innerHTML = (items || []).map(function(n) {
+                .then(function (items) {
+                    body.innerHTML = (items || []).map(function (n) {
                         var date = new Date(n.CreatedDate).toLocaleDateString('vi-VN');
                         return "<tr>"
-                            + "<td>" 
-                            +     "<a href='#' class='notif-title-link' data-notif='" 
-                            +     encodeURIComponent(JSON.stringify(n)) 
-                            +     "'>" + escapeHtml(n.Title) + "</a>"
+                            + "<td>"
+                            + "<a href='#' class='notif-title-link' data-notif='"
+                            + encodeURIComponent(JSON.stringify(n))
+                            + "'>" + escapeHtml(n.Title) + "</a>"
                             + "</td>"
                             + "<td><span class='badge info'>" + Number(n.RecipientCount) + " SV</span></td>"
                             + "<td>" + date + "</td>"
                             + "</tr>";
                     }).join('')
-                    || '<tr><td colspan="3" class="empty">Bạn chưa gửi thông báo nào.</td></tr>';
+                        || '<tr><td colspan="3" class="empty">Bạn chưa gửi thông báo nào.</td></tr>';
                 })
-                .catch(function() {
+                .catch(function () {
                     body.innerHTML = '<tr><td colspan="3" class="empty">Lỗi tải dữ liệu.</td></tr>';
                 });
         }
@@ -922,8 +1100,8 @@
         var notifSendBtn = document.getElementById('notificationSendBtn');
         if (notifSendBtn) {
             notifSendBtn.addEventListener('click', function () {
-                var target  = document.getElementById('notificationTargetSelect').value;
-                var title   = document.querySelector('#notificationForm input[required]').value.trim();
+                var target = document.getElementById('notificationTargetSelect').value;
+                var title = document.querySelector('#notificationForm input[required]').value.trim();
                 var content = document.querySelector('#notificationForm textarea').value.trim();
 
                 if (!title || !content) {
@@ -931,45 +1109,45 @@
                     return;
                 }
 
-                var classId = (target === 'all' || !Number(target)) 
-                            ? null 
-                            : Number(target);
+                var classId = (target === 'all' || !Number(target))
+                    ? null
+                    : Number(target);
 
                 notifSendBtn.disabled = true;
                 notifSendBtn.textContent = 'Đang gửi...';
 
                 postJson('/api/teachers/notifications/send', {
-                    Title:   title,
+                    Title: title,
                     Content: content,
                     ClassId: classId
                 })
-                .then(function () {
-                    alert('Thông báo đã được gửi thành công!');
-                    document.getElementById('notificationForm').reset();
-                    loadNotifications(); // Reload danh sách
-                })
-                .catch(function (err) {
-                    alert('Lỗi: ' + err.message);
-                })
-                .finally(function () {
-                    notifSendBtn.disabled = false;
-                    notifSendBtn.textContent = 'Gửi thông báo';
-                });
+                    .then(function () {
+                        alert('Thông báo đã được gửi thành công!');
+                        document.getElementById('notificationForm').reset();
+                        loadNotifications(); // Reload danh sách
+                    })
+                    .catch(function (err) {
+                        alert('Lỗi: ' + err.message);
+                    })
+                    .finally(function () {
+                        notifSendBtn.disabled = false;
+                        notifSendBtn.textContent = 'Gửi thông báo';
+                    });
             });
         }
 
         // Mở modal thông báo
-        document.addEventListener('click', function(e) {
+        document.addEventListener('click', function (e) {
             var link = e.target.closest('.notif-title-link');
             if (link) {
                 e.preventDefault();
                 var n = JSON.parse(decodeURIComponent(link.getAttribute('data-notif')));
-                
-                document.getElementById('notifModalTitle').textContent   = n.Title || "";
+
+                document.getElementById('notifModalTitle').textContent = n.Title || "";
                 document.getElementById('notifModalContent').textContent = n.Content || "";
                 document.getElementById('notifModalCreator').textContent = "Giảng viên " + (n.CreatorName || "bạn");
-                document.getElementById('notifModalTarget').textContent  = Number(n.RecipientCount) + " sinh viên";
-                document.getElementById('notifModalDate').textContent    = new Date(n.CreatedDate).toLocaleString('vi-VN');
+                document.getElementById('notifModalTarget').textContent = Number(n.RecipientCount) + " sinh viên";
+                document.getElementById('notifModalDate').textContent = new Date(n.CreatedDate).toLocaleString('vi-VN');
 
                 var modal = document.getElementById('notifModal');
                 modal.style.display = 'flex';
@@ -985,8 +1163,77 @@
         // Đóng modal bằng nút X
         var notifModalClose = document.getElementById('notifModalClose');
         if (notifModalClose) {
-            notifModalClose.addEventListener('click', function() {
+            notifModalClose.addEventListener('click', function () {
                 document.getElementById('notifModal').style.display = 'none';
+            });
+        }
+
+        // 6. Score View - Xem điểm lớp
+        var scoreViewLoadBtn = document.getElementById('scoreViewLoadBtn');
+        if (scoreViewLoadBtn) {
+            scoreViewLoadBtn.addEventListener('click', function () {
+                var classId = document.getElementById('scoreViewClassSelect').value;
+                if (!classId) {
+                    alert('Vui lòng chọn lớp để xem điểm!');
+                    return;
+                }
+                loadScoreView(Number(classId));
+            });
+        }
+
+        // Xuất Excel cho bảng xem điểm
+        var exportScoreViewBtn = document.getElementById('exportScoreBtn');
+        if (exportScoreViewBtn) {
+            exportScoreViewBtn.addEventListener('click', function () {
+                var select = document.getElementById('scoreViewClassSelect');
+                var className = select.options[select.selectedIndex]
+                    ? select.options[select.selectedIndex].text : 'BangDiem';
+                var rows = document.querySelectorAll('#scoreViewBody tr');
+                if (!rows.length || rows[0].querySelector('.empty')) {
+                    alert('Chưa có dữ liệu để xuất!');
+                    return;
+                }
+                var data = [['Mã SV', 'Họ tên', 'Chuyên cần', 'Giữa kỳ', 'Cuối kỳ', 'ĐTB', 'Kết quả']];
+                rows.forEach(function (row) {
+                    var cells = row.querySelectorAll('td');
+                    if (cells.length >= 7) {
+                        data.push([
+                            cells[0].textContent.trim(),
+                            cells[1].textContent.trim(),
+                            cells[2].textContent.trim(),
+                            cells[3].textContent.trim(),
+                            cells[4].textContent.trim(),
+                            cells[5].textContent.trim(),
+                            cells[6].textContent.trim(),
+                        ]);
+                    }
+                });
+                var ws = XLSX.utils.aoa_to_sheet(data);
+                ws['!cols'] = [{ wch: 12 }, { wch: 30 }, { wch: 12 }, { wch: 10 }, { wch: 10 }, { wch: 10 }, { wch: 12 }];
+                var wb = XLSX.utils.book_new();
+                XLSX.utils.book_append_sheet(wb, ws, 'Bảng điểm');
+                XLSX.writeFile(wb, 'BangDiem_' + className.replace(/[^a-zA-Z0-9_]/g, '_') + '.xlsx');
+            });
+        }
+
+        // Change event on scoreViewClassSelect for auto-load
+        var scoreViewSel = document.getElementById('scoreViewClassSelect');
+        if (scoreViewSel) {
+            scoreViewSel.addEventListener('change', function () {
+                if (this.value) loadScoreView(Number(this.value));
+            });
+        }
+
+        // 7. Báo cáo thống kê - Làm mới
+        var reloadReportBtn = document.getElementById('reloadReportBtn');
+        if (reloadReportBtn) {
+            reloadReportBtn.addEventListener('click', function () {
+                reloadReportBtn.disabled = true;
+                reloadReportBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Đang tải...';
+                loadReport().finally(function () {
+                    reloadReportBtn.disabled = false;
+                    reloadReportBtn.innerHTML = '<i class="fas fa-sync-alt"></i> Làm mới';
+                });
             });
         }
 
@@ -999,4 +1246,5 @@
     loadDashboardData().catch(function (error) {
         setMessage(error.message, "error");
     });
+    window.toggleSubmenu = toggleSubmenu;
 })();

@@ -9,6 +9,7 @@ from models.teacher_model import (
     get_teacher_classes_by_user_id,
     get_teacher_schedule_by_user_id,
     get_teacher_stats_by_user_id,
+    get_teacher_report_by_user_id,
     is_class_owned_by_teacher,
     is_enrollment_owned_by_teacher,
     save_score_entry,
@@ -268,3 +269,16 @@ def send_notification():
         return jsonify({"success": True, "message": "Đã gửi thông báo."}), 200
     except Exception as exc:
         return jsonify({"success": False, "error": str(exc)}), 500
+
+
+@teacher_bp.get("/report/<int:user_id>")
+@role_required("Teacher", "Admin")
+def get_teacher_report(user_id: int):
+    denied = _authorize_user_scope(user_id)
+    if denied:
+        return denied
+    try:
+        data = get_teacher_report_by_user_id(user_id)
+        return jsonify({"success": True, "data": data}), 200
+    except Exception as exc:
+        return jsonify({"success": False, "error": str(exc)}), 500

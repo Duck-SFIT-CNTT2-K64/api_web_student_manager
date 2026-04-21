@@ -540,3 +540,85 @@ def get_notifications_by_creator(user_id: int) -> List[Dict[str, Any]]:
         """, int(user_id))
         rows = cursor.fetchall()
         return rows_to_list(cursor, rows)
+
+
+def get_teacher_report_by_user_id(user_id: int) -> dict:
+    """Thống kê báo cáo tổng hợp cho giảng viên."""
+    with get_db_connection() as connection:
+        cursor = connection.cursor()
+
+        # 1. Tỷ lệ đi học trung bình (% Present / tổng điểm danh)
+        cursor.execute("""
+            SELECT
+                COUNT(*) AS TotalSessions,
+                SUM(CASE WHEN a.Status = 'Present' THEN 1 ELSE 0 END) AS PresentCount
+            FROM Attendances a
+            INNER JOIN Enrollments e ON a.EnrollmentId = e.EnrollmentId
+            INNER JOIN Classes c ON e.ClassId = c.ClassId
+            INNER JOIN Teachers t ON c.TeacherId = t.TeacherId
+            WHERE t.UserId = ?
+        """, int(user_id))
+        row = cursor.fetchone()
+        total_sess = row[0] or 0
+        present_count = row[1] or 0
+        avg_attendance = round((present_count / total_sess * 100), 1) if total_sess > 0 else None
+
+        # 2. Thống kê điểm: tỷ lệ đạt, SV xuất sắc, ĐTB từng lớp
+        cursor.execute("""
+            WITH StudentScores AS (
+                SELECT
+                    e.ClassId,
+                    e.EnrollmentId,
+                    (
+                        COALESCE(0.1 * MAX(CASE WHEN sc.ScoreTypeId = 1 THEN sc.ScoreValue END), 0)
+                      + COALESCE(0.3 * MAX(CASE WHEN sc.ScoreTypeId = 2 THEN sc.ScoreValue END), 0)
+                      + COALESCE(0.6 * MAX(CASE WHEN sc.ScoreTypeId = 3 THEN sc.ScoreValue END), 0)
+                    ) AS FinalScore
+                FROM Enrollments e
+                LEFT JOIN Scores sc ON e.EnrollmentId = sc.EnrollmentId
+                GROUP BY e.ClassId, e.EnrollmentId
+            )
+            SELECT
+                c.ClassId,
+                c.ClassCode,
+                c.ClassName,
+                co.CourseName,
+                COUNT(ss.EnrollmentId) AS TotalStudents,
+                AVG(ss.FinalScore) AS AvgScore,
+                SUM(CASE WHEN ss.FinalScore >= 5.0 THEN 1 ELSE 0 END) AS PassCount,
+                SUM(CASE WHEN ss.FinalScore >= 9.0 THEN 1 ELSE 0 END) AS ExcellentCount
+            FROM Classes c
+            INNER JOIN Teachers t ON c.TeacherId = t.TeacherId
+            INNER JOIN Courses co ON c.CourseId = co.CourseId
+            LEFT JOIN StudentScores ss ON c.ClassId = ss.ClassId
+            WHERE t.UserId = ?
+            GROUP BY c.ClassId, c.ClassCode, c.ClassName, co.CourseName
+            ORDER BY c.ClassCode
+        """, int(user_id))
+        rows = cursor.fetchall()
+        class_stats = rows_to_list(cursor, rows)
+
+        # Tổng hợp
+        total_students = sum(r.get('TotalStudents', 0) or 0 for r in class_stats)
+        total_pass = sum(r.get('PassCount', 0) or 0 for r in class_stats)
+        total_excellent = sum(r.get('ExcellentCount', 0) or 0 for r in class_stats)
+        pass_rate = round((total_pass / total_students * 100), 1) if total_students > 0 else None
+
+        # Lớp có ĐTB cao nhất
+        top_class = None
+        top_avg = -1.0
+        for r in class_stats:
+            avg = r.get('AvgScore')
+            if avg is not None and float(avg) > top_avg:
+                top_avg = float(avg)
+                top_class = r.get('ClassCode', '') + ' - ' + r.get('ClassName', '')
+
+        return {
+            'avg_attendance': avg_attendance,
+            'pass_rate': pass_rate,
+            'excellent_count': total_excellent,
+            'total_students': total_students,
+            'top_class': top_class,
+            'top_class_avg': round(top_avg, 2) if top_avg >= 0 else None,
+            'class_stats': class_stats,
+        }
