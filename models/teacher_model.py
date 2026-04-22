@@ -327,6 +327,9 @@ def get_class_students_with_scores(class_id: int) -> List[Dict[str, Any]]:
                 s.FullName,
                 s.DateOfBirth,      
                 s.Gender,
+                s.PhoneNumber,
+                s.Email,
+                s.Address,
                 MAX(CASE WHEN st.ScoreTypeId = 1 THEN sc.ScoreValue END) AS ChuyenCan,
                 MAX(CASE WHEN st.ScoreTypeId = 2 THEN sc.ScoreValue END) AS GiuaKy,
                 MAX(CASE WHEN st.ScoreTypeId = 3 THEN sc.ScoreValue END) AS CuoiKy
@@ -335,7 +338,7 @@ def get_class_students_with_scores(class_id: int) -> List[Dict[str, Any]]:
             LEFT JOIN Scores sc ON e.EnrollmentId = sc.EnrollmentId
             LEFT JOIN ScoreTypes st ON sc.ScoreTypeId = st.ScoreTypeId
             WHERE e.ClassId = ?
-            GROUP BY e.EnrollmentId, s.StudentCode, s.FullName, s.DateOfBirth, s.Gender
+            GROUP BY e.EnrollmentId, s.StudentCode, s.FullName, s.DateOfBirth, s.Gender, s.PhoneNumber, s.Email, s.Address
             ORDER BY s.StudentCode
             """,
             int(class_id),
@@ -405,6 +408,163 @@ def is_enrollment_owned_by_teacher(user_id: int, enrollment_id: int) -> bool:
             int(enrollment_id),
         )
         return cursor.fetchone() is not None
+
+def enroll_student_to_class(class_id: int, student_code: str, user_id: int) -> Dict[str, Any]:
+    # Kiểm tra quyền quản lý lớp
+    if not is_class_owned_by_teacher(user_id, class_id):
+        return {"success": False, "error": "Bạn không có quyền quản lý lớp này."}
+
+    with get_db_connection() as connection:
+        cursor = connection.cursor()
+        
+        # Tìm sinh viên theo mã
+        cursor.execute("SELECT StudentId, FullName FROM Students WHERE StudentCode = ?", student_code.strip())
+        student = cursor.fetchone()
+        if not student:
+            return {"success": False, "error": "Không tìm thấy sinh viên có mã: " + student_code}
+        
+        student_id = student[0]
+        student_name = student[1]
+
+        # Kiểm tra xem sinh viên đã trong lớp chưa
+        cursor.execute("SELECT 1 FROM Enrollments WHERE StudentId = ? AND ClassId = ?", (student_id, class_id))
+        if cursor.fetchone():
+            return {"success": False, "error": "Sinh viên đã có trong lớp này."}
+
+        # Thêm sinh viên vào lớp
+        try:
+            cursor.execute(
+                "INSERT INTO Enrollments (StudentId, ClassId) VALUES (?, ?)",
+                (student_id, class_id)
+            )
+            connection.commit()
+            return {"success": True, "message": f"Đã thêm sinh viên {student_name} vào lớp."}
+        except Exception as e:
+            return {"success": False, "error": str(e)}
+
+def get_student_by_code(student_code: str) -> Dict[str, Any]:
+    with get_db_connection() as connection:
+        cursor = connection.cursor()
+        cursor.execute("""
+            SELECT StudentCode, FullName, Email, PhoneNumber, DateOfBirth, Gender, Address
+            FROM Students WHERE StudentCode = ?
+        """, student_code.strip())
+        row = cursor.fetchone()
+        if row:
+            return {
+                "StudentCode": row[0],
+                "FullName": row[1],
+                "Email": row[2],
+                "PhoneNumber": row[3],
+                "DateOfBirth": row[4],
+                "Gender": row[5],
+                "Address": row[6]
+            }
+        return None
+
+def save_student_and_enroll(class_id: int, user_id: int, payload: Dict[str, Any]) -> Dict[str, Any]:
+    # 1. Kiểm tra quyền quản lý lớp
+    if not is_class_owned_by_teacher(user_id, class_id):
+        return {"success": False, "error": "Bạn không có quyền quản lý lớp này."}
+
+    student_code = payload.get("StudentCode")
+    if not student_code:
+        return {"success": False, "error": "Mã sinh viên là bắt buộc."}
+
+    with get_db_connection() as connection:
+        cursor = connection.cursor()
+        
+        # 2. Tìm hoặc tạo Student
+        cursor.execute("SELECT StudentId, UserId FROM Students WHERE StudentCode = ?", student_code.strip())
+        student_row = cursor.fetchone()
+        
+        if student_row:
+            student_id = student_row[0]
+            # Cập nhật thông tin sinh viên
+            cursor.execute("""
+                UPDATE Students SET 
+                    FullName = ?, Email = ?, PhoneNumber = ?, DateOfBirth = ?, Gender = ?, Address = ?
+                WHERE StudentId = ?
+            """, (
+                payload.get("FullName"), payload.get("Email"), payload.get("PhoneNumber"),
+                payload.get("DateOfBirth"), payload.get("Gender"), payload.get("Address"),
+                student_id
+            ))
+        else:
+            # Tạo mới User cho sinh viên (Username = StudentCode, Password mặc định = StudentCode)
+            try:
+                cursor.execute("""
+                    INSERT INTO Users (Username, Password, FullName, Role)
+                    OUTPUT INSERTED.UserId
+                    VALUES (?, ?, ?, 'Student')
+                """, (student_code.strip(), student_code.strip(), payload.get("FullName"), payload.get("FullName")))
+                new_user_id = cursor.fetchone()[0]
+                
+                cursor.execute("""
+                    INSERT INTO Students (UserId, StudentCode, FullName, Email, PhoneNumber, DateOfBirth, Gender, Address)
+                    OUTPUT INSERTED.StudentId
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                """, (
+                    new_user_id, student_code.strip(), payload.get("FullName"), payload.get("Email"),
+                    payload.get("PhoneNumber"), payload.get("DateOfBirth"), payload.get("Gender"), payload.get("Address")
+                ))
+                student_id = cursor.fetchone()[0]
+            except Exception as e:
+                return {"success": False, "error": "Lỗi tạo tài khoản sinh viên mới: " + str(e)}
+
+        # 3. Ghi danh vào lớp (nếu chưa có)
+        cursor.execute("SELECT 1 FROM Enrollments WHERE StudentId = ? AND ClassId = ?", (student_id, class_id))
+        if not cursor.fetchone():
+            cursor.execute("INSERT INTO Enrollments (StudentId, ClassId) VALUES (?, ?)", (student_id, class_id))
+        
+        connection.commit()
+        return {"success": True, "message": "Đã lưu thông tin và thêm sinh viên vào lớp thành công!"}
+
+def remove_student_from_class(enrollment_id: int, user_id: int) -> bool:
+    # Kiểm tra quyền sở hữu enrollment
+    if not is_enrollment_owned_by_teacher(user_id, enrollment_id):
+        return False
+
+    with get_db_connection() as connection:
+        cursor = connection.cursor()
+        # Xóa các dữ liệu liên quan (điểm, điểm danh)
+        cursor.execute("DELETE FROM Scores WHERE EnrollmentId = ?", enrollment_id)
+        cursor.execute("DELETE FROM Attendances WHERE EnrollmentId = ?", enrollment_id)
+        # Xóa enrollment
+        cursor.execute("DELETE FROM Enrollments WHERE EnrollmentId = ?", enrollment_id)
+        connection.commit()
+        return True
+
+def remove_student_from_class_by_code(class_id: int, student_code: str, user_id: int) -> Dict[str, Any]:
+    # Kiểm tra quyền quản lý lớp
+    if not is_class_owned_by_teacher(user_id, class_id):
+        return {"success": False, "error": "Bạn không có quyền quản lý lớp này."}
+
+    with get_db_connection() as connection:
+        cursor = connection.cursor()
+        
+        # Tìm StudentId và EnrollmentId
+        cursor.execute("""
+            SELECT e.EnrollmentId, s.FullName 
+            FROM Enrollments e
+            INNER JOIN Students s ON e.StudentId = s.StudentId
+            WHERE e.ClassId = ? AND s.StudentCode = ?
+        """, (int(class_id), student_code.strip()))
+        
+        row = cursor.fetchone()
+        if not row:
+            return {"success": False, "error": "Sinh viên mã " + student_code + " không có trong lớp này."}
+        
+        enrollment_id = row[0]
+        student_name = row[1]
+        
+        # Xóa
+        cursor.execute("DELETE FROM Scores WHERE EnrollmentId = ?", enrollment_id)
+        cursor.execute("DELETE FROM Attendances WHERE EnrollmentId = ?", enrollment_id)
+        cursor.execute("DELETE FROM Enrollments WHERE EnrollmentId = ?", enrollment_id)
+        
+        connection.commit()
+        return {"success": True, "message": f"Đã xóa sinh viên {student_name} khỏi lớp."}
 
 def get_attendance_by_class_and_date(class_id: int, session_date: str):
     with get_db_connection() as connection:
@@ -477,10 +637,10 @@ def create_notification(user_id: int, title: str,
 
         # 1. Tạo thông báo
         cursor.execute("""
-            INSERT INTO Notifications (CreatorId, Title, Content)
+            INSERT INTO Notifications (CreatorId, Title, Content, ClassId)
             OUTPUT INSERTED.NotificationId
-            VALUES (?, ?, ?)
-        """, int(user_id), title, content)
+            VALUES (?, ?, ?, ?)
+        """, int(user_id), title, content, int(class_id) if class_id else None)
         notif_id = cursor.fetchone()[0]
 
         # 2. Lấy danh sách sinh viên cần gửi
@@ -526,6 +686,7 @@ def get_notifications_by_creator(user_id: int) -> List[Dict[str, Any]]:
                 n.Title,
                 n.Content,
                 n.CreatedDate,
+                n.ClassId,
                 CONCAT(t.FirstName, N' ', t.LastName) AS CreatorName,
                 COUNT(nr.RecipientId) AS RecipientCount
             FROM Notifications n
@@ -534,9 +695,177 @@ def get_notifications_by_creator(user_id: int) -> List[Dict[str, Any]]:
             LEFT JOIN Teachers t
                 ON n.CreatorId = t.UserId
             WHERE n.CreatorId = ?
-            GROUP BY n.NotificationId, n.Title, n.Content, n.CreatedDate,
+            GROUP BY n.NotificationId, n.Title, n.Content, n.CreatedDate, n.ClassId,
                      t.FirstName, t.LastName
             ORDER BY n.CreatedDate DESC
         """, int(user_id))
         rows = cursor.fetchall()
         return rows_to_list(cursor, rows)
+
+def update_notification(notif_id: int, user_id: int, title: str, content: str) -> bool:
+    with get_db_connection() as connection:
+        cursor = connection.cursor()
+        cursor.execute("SELECT CreatorId FROM Notifications WHERE NotificationId = ?", int(notif_id))
+        row = cursor.fetchone()
+        if not row or int(row[0]) != int(user_id):
+            return False
+            
+        cursor.execute("""
+            UPDATE Notifications
+            SET Title = ?, Content = ?
+            WHERE NotificationId = ?
+        """, title, content, int(notif_id))
+        connection.commit()
+        return True
+
+def delete_notification(notif_id: int, user_id: int) -> bool:
+    with get_db_connection() as connection:
+        cursor = connection.cursor()
+        cursor.execute("SELECT CreatorId FROM Notifications WHERE NotificationId = ?", int(notif_id))
+        row = cursor.fetchone()
+        if not row or int(row[0]) != int(user_id):
+            return False
+            
+        cursor.execute("DELETE FROM NotificationRecipients WHERE NotificationId = ?", int(notif_id))
+        cursor.execute("DELETE FROM Notifications WHERE NotificationId = ?", int(notif_id))
+        connection.commit()
+        return True
+
+
+def get_teacher_report_by_user_id(user_id: int) -> dict:
+    """Thống kê báo cáo tổng hợp cho giảng viên."""
+    with get_db_connection() as connection:
+        cursor = connection.cursor()
+
+        # 1. Tỷ lệ đi học trung bình (% Present / tổng điểm danh)
+        cursor.execute("""
+            SELECT
+                COUNT(*) AS TotalSessions,
+                SUM(CASE WHEN a.Status = 'Present' THEN 1 ELSE 0 END) AS PresentCount
+            FROM Attendances a
+            INNER JOIN Enrollments e ON a.EnrollmentId = e.EnrollmentId
+            INNER JOIN Classes c ON e.ClassId = c.ClassId
+            INNER JOIN Teachers t ON c.TeacherId = t.TeacherId
+            WHERE t.UserId = ?
+        """, int(user_id))
+        row = cursor.fetchone()
+        total_sess = row[0] or 0
+        present_count = row[1] or 0
+        avg_attendance = round((present_count / total_sess * 100), 1) if total_sess > 0 else None
+
+        # 2. Thống kê điểm: tỷ lệ đạt, SV xuất sắc, ĐTB từng lớp
+        cursor.execute("""
+            WITH StudentScores AS (
+                SELECT
+                    e.ClassId,
+                    e.EnrollmentId,
+                    (
+                        COALESCE(0.1 * MAX(CASE WHEN sc.ScoreTypeId = 1 THEN sc.ScoreValue END), 0)
+                      + COALESCE(0.3 * MAX(CASE WHEN sc.ScoreTypeId = 2 THEN sc.ScoreValue END), 0)
+                      + COALESCE(0.6 * MAX(CASE WHEN sc.ScoreTypeId = 3 THEN sc.ScoreValue END), 0)
+                    ) AS FinalScore
+                FROM Enrollments e
+                LEFT JOIN Scores sc ON e.EnrollmentId = sc.EnrollmentId
+                GROUP BY e.ClassId, e.EnrollmentId
+            )
+            SELECT
+                c.ClassId,
+                c.ClassCode,
+                c.ClassName,
+                co.CourseName,
+                COUNT(ss.EnrollmentId) AS TotalStudents,
+                AVG(ss.FinalScore) AS AvgScore,
+                SUM(CASE WHEN ss.FinalScore >= 5.0 THEN 1 ELSE 0 END) AS PassCount,
+                SUM(CASE WHEN ss.FinalScore >= 9.0 THEN 1 ELSE 0 END) AS ExcellentCount
+            FROM Classes c
+            INNER JOIN Teachers t ON c.TeacherId = t.TeacherId
+            INNER JOIN Courses co ON c.CourseId = co.CourseId
+            LEFT JOIN StudentScores ss ON c.ClassId = ss.ClassId
+            WHERE t.UserId = ?
+            GROUP BY c.ClassId, c.ClassCode, c.ClassName, co.CourseName
+            ORDER BY c.ClassCode
+        """, int(user_id))
+        rows = cursor.fetchall()
+        class_stats = rows_to_list(cursor, rows)
+
+        # Tổng hợp
+        total_students = sum(r.get('TotalStudents', 0) or 0 for r in class_stats)
+        total_pass = sum(r.get('PassCount', 0) or 0 for r in class_stats)
+        total_excellent = sum(r.get('ExcellentCount', 0) or 0 for r in class_stats)
+        pass_rate = round((total_pass / total_students * 100), 1) if total_students > 0 else None
+
+        # Lớp có ĐTB cao nhất
+        top_class = None
+        top_avg = -1.0
+        for r in class_stats:
+            avg = r.get('AvgScore')
+            if avg is not None and float(avg) > top_avg:
+                top_avg = float(avg)
+                top_class = r.get('ClassCode', '') + ' - ' + r.get('ClassName', '')
+
+        return {
+            'avg_attendance': avg_attendance,
+            'pass_rate': pass_rate,
+            'excellent_count': total_excellent,
+            'total_students': total_students,
+            'top_class': top_class,
+            'top_class_avg': round(top_avg, 2) if top_avg >= 0 else None,
+            'class_stats': class_stats,
+        }
+
+def get_exams_by_teacher(user_id: int) -> List[Dict[str, Any]]:
+    with get_db_connection() as connection:
+        cursor = connection.cursor()
+        cursor.execute("""
+            SELECT
+                e.ExamId,
+                e.ClassId,
+                c.ClassCode,
+                c.ClassName,
+                e.Title,
+                e.ExamType,
+                e.Description,
+                e.DueDate,
+                e.CreatedDate,
+                e.Status
+            FROM Exams e
+            INNER JOIN Classes c ON e.ClassId = c.ClassId
+            WHERE e.UserId = ?
+            ORDER BY e.CreatedDate DESC
+        """, int(user_id))
+        rows = cursor.fetchall()
+        return rows_to_list(cursor, rows)
+
+def create_exam(user_id: int, payload: Dict[str, Any]) -> int:
+    class_id = payload.get("ClassId")
+    title = payload.get("Title")
+    exam_type = payload.get("ExamType", "Trắc nghiệm")
+    description = payload.get("Description")
+    due_date = payload.get("DueDate")
+
+    if not class_id or not title or not due_date:
+        raise ValueError("Thiếu thông tin bắt buộc (ClassId, Title, DueDate)")
+
+    with get_db_connection() as connection:
+        cursor = connection.cursor()
+        cursor.execute("""
+            INSERT INTO Exams (ClassId, UserId, Title, ExamType, Description, DueDate)
+            OUTPUT INSERTED.ExamId
+            VALUES (?, ?, ?, ?, ?, ?)
+        """, int(class_id), int(user_id), title, exam_type, description, due_date)
+        exam_id = cursor.fetchone()[0]
+        connection.commit()
+        return exam_id
+
+def delete_exam(exam_id: int, user_id: int) -> bool:
+    with get_db_connection() as connection:
+        cursor = connection.cursor()
+        cursor.execute("SELECT UserId FROM Exams WHERE ExamId = ?", int(exam_id))
+        row = cursor.fetchone()
+        if not row or int(row[0]) != int(user_id):
+            return False
+            
+        cursor.execute("DELETE FROM ExamSubmissions WHERE ExamId = ?", int(exam_id))
+        cursor.execute("DELETE FROM Exams WHERE ExamId = ?", int(exam_id))
+        connection.commit()
+        return True
