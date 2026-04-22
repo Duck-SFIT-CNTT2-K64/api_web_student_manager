@@ -1,0 +1,68 @@
+<section id="admin_accounts" class="section">
+    <div class="section-heading">
+        <div>
+            <h2>Admin Accounts</h2>
+            <p>Manage system administrator accounts.</p>
+        </div>
+    </div>
+
+    <div class="grid form-and-table">
+        <!-- Form Panel -->
+        <div class="panel">
+            <h3 id="adminAccountFormTitle">Add Admin Account</h3>
+            <form id="adminAccountForm" class="form-grid">
+                <input type="hidden" name="EditId" value="">
+                <!-- For Admin, RoleId is fixed at 1 -->
+                <input type="hidden" name="RoleId" value="1">
+                
+                <label>Username <input name="Username" required maxlength="50"></label>
+                <label>Full Name <input name="FullName" required maxlength="100"></label>
+                <label>Email <input name="Email" type="email" required maxlength="100"></label>
+                <label>Phone Number <input name="PhoneNumber" maxlength="15"></label>
+                <label id="adminPwdLabel">Password <input name="Password" type="password" required minlength="6"></label>
+                
+                <div style="display:flex;gap:8px;margin-top:10px">
+                    <button class="btn btn-primary submit-btn" type="submit">
+                        <i class="fas fa-save"></i> <span>Save Admin</span>
+                    </button>
+                    <button class="btn btn-outline cancel-btn" type="button" style="display:none">
+                        <i class="fas fa-times"></i> Cancel
+                    </button>
+                </div>
+            </form>
+            <p id="adminAccountMessage" class="message"></p>
+        </div>
+
+        <!-- Table Panel -->
+        <div class="panel table-panel">
+            <div class="table-header">
+                <h3>Admin List</h3>
+                <div style="display:flex;gap:8px">
+                    <button id="btnBulkDeleteAdminAccounts" class="btn btn-outline" style="color:var(--danger);display:none">
+                        <i class="fas fa-trash-alt"></i> Delete
+                    </button>
+                    <input id="adminAccountSearch" class="search-input" placeholder="Search admins...">
+                </div>
+            </div>
+            <div class="table-wrap">
+                <table>
+                    <thead>
+                        <tr>
+                            <th style="width:50px">No</th>
+                            <th style="width:40px"><input type="checkbox" id="selectAllAdminAccounts"></th>
+                            <th>Username</th>
+                            <th>Info</th>
+                            <th>Status</th>
+                            <th style="white-space:nowrap">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="adminAccountsTableBody">
+                        <tr>
+                            <td colspan="6" class="empty">Loading...</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</section>

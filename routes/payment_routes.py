@@ -2,11 +2,13 @@ import pyodbc
 from flask import Blueprint, jsonify, request
 
 from models.payment_model import create_payment, get_receipts
+from utils.auth import role_required
 
 payment_bp = Blueprint("payments", __name__)
 
 
 @payment_bp.post("")
+@role_required("Admin")
 def add_payment():
     try:
         payload = request.get_json(silent=True) or {}

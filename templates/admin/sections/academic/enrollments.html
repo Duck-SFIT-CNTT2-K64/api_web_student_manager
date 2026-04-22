@@ -1,6 +1,6 @@
 {#
-    Academic > Enrollment
-    Enrollment form + enrollments list table (dashboard.js → renderEnrollments).
+Academic > Enrollment
+Enrollment form + enrollments list table (dashboard.js → renderEnrollments).
 #}
 <section id="enrollments" class="section">
     <div class="section-heading">
@@ -15,13 +15,22 @@
             <form id="enrollmentForm" class="form-grid">
                 <label>Student <select name="StudentId" id="enrollmentStudentSelect" required></select></label>
                 <label>Class <select name="ClassId" id="enrollmentClassSelect" required></select></label>
-                <label>Status <input name="Status" value="Enrolled"></label>
                 <button class="btn btn-primary" type="submit"><i class="fas fa-user-plus"></i> Enroll</button>
             </form>
             <p id="enrollmentMessage" class="message"></p>
         </div>
         <div class="panel table-panel">
-            <h3>Enrollments list</h3>
+            <div
+                style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; flex-wrap: wrap; gap: 10px;">
+                <h3>Enrollments list</h3>
+                <div class="filter-controls" style="display: flex; align-items: center; gap: 10px;">
+                    <label style="font-size: 0.9rem; color: var(--text-muted); white-space: nowrap;">Filter by
+                        class:</label>
+                    <select id="filterEnrollmentClass" style="min-width: 200px;">
+                        <option value="">All classes</option>
+                    </select>
+                </div>
+            </div>
             <div class="table-wrap">
                 <table>
                     <thead>
@@ -30,7 +39,9 @@
                             <th>Class</th>
                             <th>Course</th>
                             <th>Enrollment date</th>
+                            <th>Status</th>
                             <th>Tuition</th>
+                            <th>Actions</th>
                         </tr>
                     </thead>
                     <tbody id="enrollmentsTableBody"></tbody>

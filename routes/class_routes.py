@@ -11,6 +11,8 @@ from models.class_model import (
     update_class,
 )
 
+from utils.auth import current_session_user, role_required
+
 class_bp = Blueprint("classes", __name__)
 
 
@@ -60,6 +62,7 @@ def get_class(class_id: int):
 
 
 @class_bp.post("")
+@role_required("Admin")
 def add_class():
     try:
         payload = request.get_json(silent=True) or {}
@@ -76,6 +79,7 @@ def add_class():
 
 
 @class_bp.put("/<int:class_id>")
+@role_required("Admin")
 def edit_class(class_id: int):
     try:
         payload = request.get_json(silent=True) or {}
@@ -94,12 +98,18 @@ def edit_class(class_id: int):
 
 
 @class_bp.delete("/<int:class_id>")
+@role_required("Admin")
 def remove_class(class_id: int):
     try:
-        deleted = delete_class_by_id(class_id)
+        user = current_session_user()
+        role = user.get("RoleName", "Guest")
+        
+        deleted = delete_class_by_id(class_id, user_role=role)
         if not deleted:
             return jsonify({"success": False, "error": "Class not found."}), 404
         return jsonify({"success": True, "message": "Class deleted."}), 200
+    except ValueError as exc:
+        return jsonify({"success": False, "error": str(exc)}), 400
     except pyodbc.IntegrityError as exc:
         return jsonify({"success": False, "error": "Cannot delete class with related enrollments.", "details": str(exc)}), 400
     except pyodbc.Error as exc:
