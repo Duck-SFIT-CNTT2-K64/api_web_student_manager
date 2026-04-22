@@ -33,6 +33,9 @@ services:
       DB_ADMIN_USER: sa
       MSSQL_SA_PASSWORD: ${MSSQL_SA_PASSWORD}
       SCHEMA_FILE: /scripts/QLSV_TrungTamTinHoc.sql
+      BULK_SEED_FILE: /scripts/seed_bulk_data.sql
+      # auto | always | never (xem docker/db-init/init-db.sh)
+      RUN_BULK_SEED: ${RUN_BULK_SEED:-auto}
     volumes:
       - ./database:/scripts:ro
       - ./docker/db-init/init-db.sh:/init-db.sh:ro
