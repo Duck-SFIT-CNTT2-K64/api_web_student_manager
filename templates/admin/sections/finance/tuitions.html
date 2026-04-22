@@ -1,0 +1,43 @@
+{#
+    Finance > Tuition
+    Payment record form + outstanding balance table (dashboard.js → renderTuitions).
+#}
+<section id="tuitions" class="section">
+    <div class="section-heading">
+        <div>
+            <h2>Tuition</h2>
+            <p>Track outstanding balances and record payment receipts.</p>
+        </div>
+    </div>
+    <div class="grid form-and-table">
+        <div class="panel">
+            <h3>Record payment</h3>
+            <form id="paymentForm" class="form-grid">
+                <label>Tuition item <select name="TuitionId" id="paymentTuitionSelect" required></select></label>
+                <label>Amount <input name="Amount" type="number" min="1" step="1000" required></label>
+                <label>Payment date <input name="PaymentDate" type="date"></label>
+                <label>Note <textarea name="Note" rows="3"></textarea></label>
+                <button class="btn btn-success" type="submit"><i class="fas fa-receipt"></i> Save payment</button>
+            </form>
+            <p id="paymentMessage" class="message"></p>
+        </div>
+        <div class="panel table-panel">
+            <h3>Tuition list</h3>
+            <div class="table-wrap">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Student</th>
+                            <th>Class</th>
+                            <th>Total fee</th>
+                            <th>Paid</th>
+                            <th>Remaining</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tuitionsTableBody"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</section>

@@ -1,0 +1,41 @@
+{#
+    Info > Notifications
+    Notification form + sent list (dashboard.js → renderNotifications).
+#}
+<section id="notifications" class="section">
+    <div class="section-heading">
+        <div>
+            <h2>Notifications</h2>
+            <p>Create notifications sent to the whole system, students or teachers.</p>
+        </div>
+    </div>
+    <div class="grid form-and-table">
+        <div class="panel">
+            <h3 id="notificationFormTitle">Create notification</h3>
+            <form id="notificationForm" class="form-grid">
+                <input type="hidden" name="EditId" value="">
+                <label>Title <input name="Title" required></label>
+                <label>Content <textarea name="Content" rows="4"></textarea></label>
+                <label>Audience
+                    <select name="Audience">
+                        <option value="all">All</option>
+                        <option value="students">Students</option>
+                        <option value="teachers">Teachers</option>
+                        <option value="admins">Admins</option>
+                    </select>
+                </label>
+                <div style="display:flex;gap:10px;margin-top:10px">
+                    <button class="btn btn-primary submit-btn" type="submit" style="flex:1"><i
+                            class="fas fa-paper-plane"></i> <span>Send notification</span></button>
+                    <button type="button" class="btn cancel-btn" style="display:none;flex:1"><i
+                            class="fas fa-times"></i> Cancel</button>
+                </div>
+            </form>
+            <p id="notificationMessage" class="message"></p>
+        </div>
+        <div class="panel table-panel">
+            <h3>Created notifications</h3>
+            <div id="notificationsList" class="notification-list"></div>
+        </div>
+    </div>
+</section>

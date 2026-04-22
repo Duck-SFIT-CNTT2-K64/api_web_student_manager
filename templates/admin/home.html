@@ -1,0 +1,154 @@
+{#
+    Admin dashboard > Overview (/admin/home)
+    Welcome page for administrators — rendered server-side from the `summary` dict.
+    Does not use dashboard.js; data is fixed at page load.
+#}
+{% extends 'layouts/base.html' %}
+
+{% block title %}Overview | CLASSES369 Admin{% endblock %}
+{% block sidebar_subtitle %}Administrator{% endblock %}
+
+{% block sidebar_nav %}
+    {% with active = 'home' %}
+        {% include 'admin/partials/_sidebar_nav.html' %}
+    {% endwith %}
+{% endblock %}
+
+{% block topbar_title %}
+<h1>System overview</h1>
+<p>Training, finance and recent activity at a glance.</p>
+{% endblock %}
+
+{% block topbar_actions %}
+<a href="/dashboard" class="btn btn-primary" style="font-size:.85rem">
+    <i class="fas fa-th-large"></i> Open dashboard
+</a>
+{% endblock %}
+
+
+{% block content %}
+<section class="section" style="display: block;">
+    <div class="stats-row">
+        <div class="gradient-card gc-blue">
+            <div class="gc-icon"><i class="fas fa-user-graduate"></i></div>
+            <div class="gc-info">
+                <div class="gc-label">Total students</div>
+                <div class="gc-value">{{ summary.TotalStudents or 0 }}</div>
+            </div>
+        </div>
+        <div class="gradient-card gc-cyan">
+            <div class="gc-icon"><i class="fas fa-chalkboard-teacher"></i></div>
+            <div class="gc-info">
+                <div class="gc-label">Total teachers</div>
+                <div class="gc-value">{{ summary.TotalTeachers or 0 }}</div>
+            </div>
+        </div>
+        <div class="gradient-card gc-orange">
+            <div class="gc-icon"><i class="fas fa-school"></i></div>
+            <div class="gc-info">
+                <div class="gc-label">Total classes</div>
+                <div class="gc-value">{{ summary.TotalClasses or 0 }}</div>
+            </div>
+        </div>
+        <div class="gradient-card gc-cyan">
+            <div class="gc-icon"><i class="fas fa-door-open"></i></div>
+            <div class="gc-info">
+                <div class="gc-label">Total rooms</div>
+                <div class="gc-value">{{ summary.TotalRooms or 0 }}</div>
+            </div>
+        </div>
+        <div class="gradient-card gc-green">
+            <div class="gc-icon"><i class="fas fa-book-open"></i></div>
+            <div class="gc-info">
+                <div class="gc-label">Total courses</div>
+                <div class="gc-value">{{ summary.TotalCourses or 0 }}</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="grid two" style="margin-bottom:24px">
+        <div class="card">
+            <div class="card-header">
+                <h3><i class="fas fa-coins" style="color:var(--warning);margin-right:8px"></i> Finance</h3>
+            </div>
+            <div class="card-body">
+                <ul class="info-list">
+                    <li>
+                        <span class="label">Revenue collected</span>
+                        <span class="value" style="color:var(--success)">{{ "{:,.0f}".format((summary.TotalRevenue or
+                            0)|float) }} VND</span>
+                    </li>
+                    <li>
+                        <span class="label">Outstanding balance</span>
+                        <span class="value" style="color:var(--danger)">{{ "{:,.0f}".format((summary.OutstandingTuition
+                            or 0)|float) }} VND</span>
+                    </li>
+                    <li>
+                        <span class="label">Paid tuition items</span>
+                        <span class="value"><span class="badge good">{{ summary.PaidTuitionCount or 0 }}</span></span>
+                    </li>
+                    <li>
+                        <span class="label">Pending tuition items</span>
+                        <span class="value"><span class="badge warn">{{ summary.PendingTuitionCount or 0
+                                }}</span></span>
+                    </li>
+                    <li>
+                        <span class="label">Overdue tuition items</span>
+                        <span class="value"><span class="badge bad">{{ summary.OverdueTuitionCount or 0 }}</span></span>
+                    </li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-header">
+                <h3><i class="fas fa-trophy" style="color:var(--primary);margin-right:8px"></i> Top courses</h3>
+            </div>
+            <div class="card-body">
+                {% if summary.TopCourses %}
+                <div class="rank-list">
+                    {% for item in summary.TopCourses %}
+                    <div class="rank-item">
+                        <span>{{ loop.index }}</span>
+                        <div>
+                            <strong>{{ item.CourseName }}</strong>
+                            <small>{{ item.EnrollmentCount }} enrollments</small>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <p class="empty">No enrollment data yet.</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-header">
+            <h3><i class="fas fa-bell" style="color:var(--info);margin-right:8px"></i> Recent notifications</h3>
+            <a href="/dashboard#notifications" class="btn btn-outline" style="font-size:.8rem">
+                <i class="fas fa-arrow-right"></i> View all
+            </a>
+        </div>
+        <div class="card-body">
+            {% if summary.RecentNotifications %}
+            <div class="rank-list">
+                {% for item in summary.RecentNotifications %}
+                <div class="rank-item">
+                    <span><i class="fas fa-bullhorn"></i></span>
+                    <div>
+                        <strong>{{ item.Title }}</strong>
+                        <small>{{ item.CreatedDate[:10] if item.CreatedDate else "" }} &middot; {{ item.RecipientCount
+                            }} recipients</small>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <p class="empty">No notifications yet.</p>
+            {% endif %}
+        </div>
+    </div>
+</section>
+{% endblock %}

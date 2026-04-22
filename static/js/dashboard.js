@@ -1,3 +1,21 @@
+/* =============================================================================
+ * CLASSES369 · Admin dashboard script
+ * -----------------------------------------------------------------------------
+ * Tổ chức code đồng bộ với folder templates/admin/sections theo 5 nhóm:
+ *   📊 DASHBOARD   → renderStats, renderCharts, renderOptions, renderAll, loadAll
+ *   🗂️ QUẢN LÝ    → renderStudents, renderTeachers, renderCourses,
+ *                    renderClasses, renderRooms, renderUsers
+ *   🎓 HỌC VỤ     → renderEnrollments, renderClassSchedules, renderScores
+ *   💰 TÀI CHÍNH  → renderTuitions + payment form
+ *   📢 THÔNG TIN  → renderNotifications
+ *
+ * Mỗi nhóm được đánh dấu bằng dải "═════" để dễ tìm khi sửa code.
+ * =========================================================================== */
+
+/* ┌─────────────────────────────────────────────────────────────────────────┐
+ * │ 0. Core: state, endpoints, helpers, messaging, modals utils             │
+ * └─────────────────────────────────────────────────────────────────────────┘
+ */
 const state = {
     summary: {},
     students: [],
@@ -202,22 +220,27 @@ function resetFormState(formId, titleId, baseTitle, submitText) {
     }
 }
 
+/* ════════════════════════════════════════════════════════════════════════════
+ * 📊 DASHBOARD — Thống kê tổng quan, biểu đồ
+ *    Template: templates/admin/sections/dashboard/statistics.html
+ * ════════════════════════════════════════════════════════════════════════════ */
 function renderStats() {
     var statsGrid = document.getElementById("statsGrid");
+    if (!statsGrid) return;
     var s = state.summary || {};
     var cards = [
-        ["Sinh viên", s.TotalStudents, "fa-user-graduate", "blue"],
-        ["Giảng viên", s.TotalTeachers, "fa-user-tie", "green"],
-        ["Lớp học", s.TotalClasses, "fa-chalkboard", "amber"],
-        ["Doanh thu", formatMoney(s.TotalRevenue), "fa-coins", "teal"],
-        ["Công nợ", formatMoney(s.OutstandingTuition), "fa-hourglass-half", "red"],
-        ["Thông báo", s.TotalNotifications, "fa-bell", "violet"],
+        ["Sinh viên", s.TotalStudents, "fa-user-graduate", "gc-blue"],
+        ["Giảng viên", s.TotalTeachers, "fa-user-tie", "gc-green"],
+        ["Lớp học", s.TotalClasses, "fa-chalkboard", "gc-amber"],
+        ["Doanh thu", formatMoney(s.TotalRevenue), "fa-coins", "gc-teal"],
+        ["Công nợ", formatMoney(s.OutstandingTuition), "fa-hourglass-half", "gc-red"],
+        ["Thông báo", s.TotalNotifications, "fa-bell", "gc-violet"],
     ];
     statsGrid.innerHTML = cards
         .map(function (c) {
-            return '<article class="stat-card ' + c[3] + '">' +
-                '<i class="fas ' + c[2] + '"></i>' +
-                "<div><span>" + escapeHtml(c[0]) + "</span>" +
+            return '<article class="gradient-card ' + c[3] + '">' +
+                '<div class="gc-icon"><i class="fas ' + c[2] + '"></i></div>' +
+                '<div class="gc-content"><span>' + escapeHtml(c[0]) + "</span>" +
                 "<strong>" + escapeHtml(c[1] ?? 0) + "</strong></div></article>";
         })
         .join("");
@@ -239,8 +262,15 @@ function renderStats() {
                     "<small>" + formatDate(item.CreatedDate) + " · " + escapeHtml(item.RecipientCount) + " người nhận</small></div></div>";
             })
             .join("") || '<p class="empty">Chưa có thông báo.</p>';
+
+    // Vẽ biểu đồ
+    renderCharts();
 }
 
+/* ════════════════════════════════════════════════════════════════════════════
+ * 🗂️ QUẢN LÝ — Sinh viên · Giảng viên · Khóa học · Lớp học · Phòng · Tài khoản
+ *    Templates: templates/admin/sections/management/*.html
+ * ════════════════════════════════════════════════════════════════════════════ */
 function renderStudents() {
     var tbody = document.getElementById("studentsTableBody");
     tbody.innerHTML =
@@ -320,6 +350,11 @@ function renderRooms() {
             .join("") || '<tr><td colspan="3" class="empty">Chưa có phòng học.</td></tr>';
 }
 
+/* ════════════════════════════════════════════════════════════════════════════
+ * 🎓 HỌC VỤ — Ghi danh · Lịch học · Điểm số
+ *    Templates: templates/admin/sections/academic/*.html
+ *    (renderClassSchedules nằm ở cuối file - liên quan render lưới tuần)
+ * ════════════════════════════════════════════════════════════════════════════ */
 function renderEnrollments() {
     var tbody = document.getElementById("enrollmentsTableBody");
     tbody.innerHTML =
@@ -335,6 +370,10 @@ function renderEnrollments() {
             .join("") || '<tr><td colspan="5" class="empty">Chưa có ghi danh.</td></tr>';
 }
 
+/* ════════════════════════════════════════════════════════════════════════════
+ * 💰 TÀI CHÍNH — Học phí + payment form
+ *    Template: templates/admin/sections/finance/tuitions.html
+ * ════════════════════════════════════════════════════════════════════════════ */
 function renderTuitions() {
     var tbody = document.getElementById("tuitionsTableBody");
     tbody.innerHTML =
@@ -397,6 +436,10 @@ function renderTeachers() {
             .join("") || '<tr><td colspan="7" class="empty">Chưa có giảng viên.</td></tr>';
 }
 
+/* ════════════════════════════════════════════════════════════════════════════
+ * 📢 THÔNG TIN — Thông báo
+ *    Template: templates/admin/sections/info/notifications.html
+ * ════════════════════════════════════════════════════════════════════════════ */
 function renderNotifications() {
     var list = document.getElementById("notificationsList");
     list.innerHTML =
@@ -438,10 +481,9 @@ function renderUsers() {
 
         var roleEditBtn = isSelf ? "" : (" <button class='btn-icon edit-role' title='Sửa vai trò' data-user-role='" + u.UserId + "' data-current-role='" + u.RoleId + "'><i class='fas fa-pen'></i></button>");
 
-        return "<tr>" +
+        return "<tr data-search='" + escapeHtml((u.Username + " " + (u.FullName || "") + " " + (u.Email || "")).toLowerCase()) + "' data-role='" + escapeHtml(u.RoleName || "") + "'>" +
             "<td><strong>" + escapeHtml(u.Username) + "</strong></td>" +
-            "<td>" + escapeHtml(u.FullName || "—") + "</td>" +
-            "<td style='font-size:.85rem'>" + escapeHtml(u.Email || "—") + "</td>" +
+            "<td>" + escapeHtml(u.FullName || "—") + "<br>" + escapeHtml(u.PhoneNumber || "—") + "<br>" + escapeHtml(u.Email || "—") + "</td>" +
             "<td><span style='background:" + roleColor + "22;color:" + roleColor + ";padding:3px 10px;border-radius:20px;font-size:.8rem;font-weight:600'>" + escapeHtml(u.RoleName || "—") + "</span>" +
             roleEditBtn + "</td>" +
             "<td>" + badge(u.Status) + "</td>" +
@@ -514,6 +556,10 @@ function renderOptions() {
     syncPaymentAmountLimit();
 }
 
+/* ════════════════════════════════════════════════════════════════════════════
+ * 🔁 ORCHESTRATION — renderAll / loadAll / bindForms / bindEdits / bindDeletes
+ *    Render toàn bộ section + bind handlers.
+ * ════════════════════════════════════════════════════════════════════════════ */
 function renderAll() {
     renderStats();
     renderStudents();
@@ -934,12 +980,9 @@ function bindEdits() {
                 form.elements["EditId"].value = teacher.TeacherId;
                 form.elements["LastName"].value = teacher.LastName || "";
                 form.elements["FirstName"].value = teacher.FirstName || "";
-                form.elements["Username"].value = teacher.Username || "";
                 form.elements["Email"].value = teacher.Email || "";
                 form.elements["PhoneNumber"].value = teacher.PhoneNumber || "";
                 form.elements["Specialization"].value = teacher.Specialization || "";
-                form.elements["Password"].value = "";
-                form.elements["Password"].placeholder = "Bỏ trống để giữ mật khẩu cũ";
                 setFormEditMode("teacherForm", "teacherFormTitle", "Sửa giảng viên", "Cập nhật giảng viên");
                 document.getElementById("teacherFormTitle").scrollIntoView({ behavior: "smooth", block: "start" });
             }
@@ -1115,19 +1158,43 @@ function bindSearch() {
             });
         });
     });
+    // Logic lọc tài khoản (kết hợp cả ô tìm kiếm và lọc vai trò)
+    const userSearchInput = document.getElementById("userFilterSearch");
+    const userRoleSelect = document.getElementById("userRoleFilter");
+    const userTableBody = document.getElementById("usersTableBody");
+
+    if (userSearchInput && userRoleSelect && userTableBody) {
+        const applyUserFilters = () => {
+            const query = userSearchInput.value.toLowerCase();
+            const role = userRoleSelect.value;
+            userTableBody.querySelectorAll("tr").forEach(row => {
+                const searchText = (row.dataset.search || "").toLowerCase();
+                const rowRole = row.dataset.role || "";
+                const matchesSearch = !query || searchText.includes(query);
+                const matchesRole = !role || rowRole === role;
+                row.hidden = !(matchesSearch && matchesRole);
+            });
+        };
+        userSearchInput.addEventListener("input", applyUserFilters);
+        userRoleSelect.addEventListener("change", applyUserFilters);
+    }
 }
+
 
 function bindNavigation() {
     var navItems = document.querySelectorAll(".sidebar-nav .nav-item");
     if (!navItems.length) return;
 
+    // Section mặc định khi user mở /dashboard không có hash.
+    // Khớp với cấu trúc sidebar mới: 📊 Dashboard → Thống kê (#statistics).
+    var DEFAULT_DASHBOARD_HASH = "#statistics";
+
     function normalizeDashboardHash(hash) {
-        var fallback = "#overview";
         if (!hash || !hash.startsWith("#")) {
-            return fallback;
+            return DEFAULT_DASHBOARD_HASH;
         }
         if (!document.querySelector(hash)) {
-            return fallback;
+            return DEFAULT_DASHBOARD_HASH;
         }
         return hash;
     }
@@ -1140,7 +1207,7 @@ function bindNavigation() {
     }
 
     function applyDashboardActiveState() {
-        var activeHash = normalizeDashboardHash(window.location.hash || "#overview");
+        var activeHash = normalizeDashboardHash(window.location.hash || DEFAULT_DASHBOARD_HASH);
 
         navItems.forEach(function (item) {
             var href = item.getAttribute("href") || "";
@@ -1148,6 +1215,14 @@ function bindNavigation() {
             item.classList.remove("active");
             if (itemHash && itemHash === activeHash) {
                 item.classList.add("active");
+            }
+        });
+
+        // Đồng bộ state collapsible nav group: mở group chứa item active
+        // (các group khác vẫn giữ trạng thái user đã chọn, không ép gập).
+        document.querySelectorAll(".sidebar-nav .nav-group").forEach(function (group) {
+            if (group.querySelector(".nav-item.active")) {
+                group.classList.add("open");
             }
         });
 
@@ -1173,7 +1248,7 @@ function bindNavigation() {
     });
 
     if (!window.location.hash || !document.querySelector(window.location.hash)) {
-        history.replaceState(null, "", "#overview");
+        history.replaceState(null, "", DEFAULT_DASHBOARD_HASH);
     }
 
     window.addEventListener("hashchange", applyDashboardActiveState);
@@ -1600,8 +1675,139 @@ document.addEventListener("DOMContentLoaded", function () {
 
     loadAll();
     // ... handles for student/teacher generate account ...
+
+    // Class List Modal Events
+    var classListModal = document.getElementById("classListModal");
+    var classListModalClose = document.getElementById("classListModalClose");
+
+    if (classListModalClose) {
+        classListModalClose.addEventListener("click", function () {
+            classListModal.style.display = "none";
+        });
+    }
+
+    if (classListModal) {
+        window.addEventListener("click", function (event) {
+            if (event.target === classListModal) {
+                classListModal.style.display = "none";
+            }
+        });
+    }
+
+    // Delegate click for calendar items
+    document.body.addEventListener("click", function (e) {
+        var calItem = e.target.closest(".calendar-item");
+        if (calItem && !e.target.closest(".actions")) {
+            var classId = calItem.dataset.classId;
+            var className = calItem.dataset.className;
+            if (classId) {
+                openClassListModal(classId, className);
+            }
+        }
+    });
+
+    var exportScheduleBtn = document.getElementById("exportScheduleBtn");
+    if (exportScheduleBtn) {
+        exportScheduleBtn.addEventListener("click", exportScheduleToExcel);
+    }
+
+    loadAll();
 });
 
+async function openClassListModal(classId, className) {
+    var modal = document.getElementById("classListModal");
+    var title = document.getElementById("classListModalTitle");
+    var tbody = document.getElementById("classListModalBody");
+
+    if (!modal || !tbody) return;
+
+    title.textContent = "Danh sách lớp: " + className;
+    tbody.innerHTML = '<tr><td colspan="5" class="empty" style="text-align:center;padding:20px"><i class="fas fa-spinner fa-spin"></i> Đang tải...</td></tr>';
+    modal.style.display = "flex";
+
+    try {
+        var students = await getJson("/api/teachers/class-students/" + classId);
+        if (!students || students.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="5" class="empty" style="text-align:center;padding:20px">Lớp này chưa có sinh viên nào.</td></tr>';
+            return;
+        }
+
+        tbody.innerHTML = students.map(function (sv, idx) {
+            return "<tr>" +
+                "<td>" + (idx + 1) + "</td>" +
+                "<td><strong>" + escapeHtml(sv.StudentCode) + "</strong></td>" +
+                "<td>" + escapeHtml(sv.FullName) + "</td>" +
+                "<td>" + escapeHtml(sv.DateOfBirth || "—") + "</td>" +
+                "<td>" + escapeHtml(sv.Gender || "—") + "</td>" +
+                "</tr>";
+        }).join("");
+    } catch (error) {
+        tbody.innerHTML = '<tr><td colspan="5" class="empty" style="text-align:center;padding:20px;color:var(--danger)">Lỗi: ' + escapeHtml(error.message) + '</td></tr>';
+    }
+}
+
+function exportScheduleToExcel() {
+    if (!state.class_schedules || state.class_schedules.length === 0) {
+        alert("Không có lịch học để xuất!");
+        return;
+    }
+
+    var data = [
+        ["Thứ", "Bắt đầu", "Kết thúc", "Lớp", "Phòng", "Giảng viên"]
+    ];
+
+    // Sắp xếp lịch theo Thứ và Giờ bắt đầu
+    var dayOrder = {
+        "Thứ 2": 1, "Monday": 1,
+        "Thứ 3": 2, "Tuesday": 2,
+        "Thứ 4": 3, "Wednesday": 3,
+        "Thứ 5": 4, "Thursday": 4,
+        "Thứ 6": 5, "Friday": 5,
+        "Thứ 7": 6, "Saturday": 6,
+        "Chủ Nhật": 7, "Sunday": 7
+    };
+
+    var sortedSchedules = [...state.class_schedules].sort((a, b) => {
+        var dayA = dayOrder[a.Weekday] || 99;
+        var dayB = dayOrder[b.Weekday] || 99;
+        if (dayA !== dayB) return dayA - dayB;
+        return (a.StartTime || "").localeCompare(b.StartTime || "");
+    });
+
+    sortedSchedules.forEach(function (s) {
+        data.push([
+            s.Weekday,
+            s.StartTime,
+            s.EndTime,
+            s.ClassName,
+            s.RoomName || "N/A",
+            s.TeacherName || "N/A"
+        ]);
+    });
+
+    var ws = XLSX.utils.aoa_to_sheet(data);
+
+    // Căn chỉnh độ rộng cột
+    ws["!cols"] = [
+        { wch: 12 }, // Thứ
+        { wch: 10 }, // Bắt đầu
+        { wch: 10 }, // Kết thúc
+        { wch: 25 }, // Lớp
+        { wch: 15 }, // Phòng
+        { wch: 20 }  // Giảng viên
+    ];
+
+    var wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Lịch học");
+
+    var fileName = "LichHoc_CLASSES369_" + new Date().toISOString().slice(0, 10) + ".xlsx";
+    XLSX.writeFile(wb, fileName);
+}
+
+/* -----------------------------------------------------------------------------
+ * 🎓 HỌC VỤ > Lịch học — render lưới tuần 7:00-22:00 (class schedule grid)
+ *    Template: templates/admin/sections/academic/schedules.html
+ * --------------------------------------------------------------------------- */
 function renderClassSchedules() {
     var body = document.getElementById("class_schedulesCalendarBody");
     if (!body) return;
@@ -1662,6 +1868,9 @@ function renderClassSchedules() {
         item.style.setProperty("--col", col);
         item.style.setProperty("--row-start", rowStart);
         item.style.setProperty("--row-end", rowEnd);
+        item.style.cursor = "pointer";
+        item.dataset.classId = s.ClassId;
+        item.dataset.className = s.ClassName;
 
         item.innerHTML =
             "<strong>" + escapeHtml(s.ClassName) + "</strong>" +
@@ -1675,4 +1884,80 @@ function renderClassSchedules() {
 
         body.appendChild(item);
     });
+}
+
+// Quản lý biểu đồ
+var dashboardCharts = {};
+
+/* -----------------------------------------------------------------------------
+ * 📊 DASHBOARD > Thống kê — vẽ biểu đồ ghi danh + tài chính (Chart.js).
+ *    Template: templates/admin/sections/dashboard/statistics.html
+ * --------------------------------------------------------------------------- */
+function renderCharts() {
+    if (typeof Chart === 'undefined') {
+        console.warn("Chart.js is not loaded yet.");
+        return;
+    }
+    var s = state.summary || {};
+
+    // 1. Biểu đồ Ghi danh (Bar Chart)
+    var ctxEnroll = document.getElementById('enrollmentChart');
+    if (ctxEnroll) {
+        if (dashboardCharts.enroll) dashboardCharts.enroll.destroy();
+
+        var labels = (s.TopCourses || []).map(item => item.CourseName);
+        var counts = (s.TopCourses || []).map(item => item.EnrollmentCount);
+
+        dashboardCharts.enroll = new Chart(ctxEnroll, {
+            type: 'bar',
+            data: {
+                labels: labels,
+                datasets: [{
+                    label: 'Số lượng ghi danh',
+                    data: counts,
+                    backgroundColor: 'rgba(99, 102, 241, 0.6)',
+                    borderColor: 'rgb(99, 102, 241)',
+                    borderWidth: 1,
+                    borderRadius: 6
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { display: false }
+                },
+                scales: {
+                    y: { beginAtZero: true, grid: { display: false } },
+                    x: { grid: { display: false } }
+                }
+            }
+        });
+    }
+
+    // 2. Biểu đồ Tài chính (Doughnut Chart)
+    var ctxTuition = document.getElementById('tuitionChart');
+    if (ctxTuition) {
+        if (dashboardCharts.tuition) dashboardCharts.tuition.destroy();
+
+        dashboardCharts.tuition = new Chart(ctxTuition, {
+            type: 'doughnut',
+            data: {
+                labels: ['Đã đóng', 'Công nợ'],
+                datasets: [{
+                    data: [s.TotalRevenue || 0, s.OutstandingTuition || 0],
+                    backgroundColor: ['#22c55e', '#ef4444'],
+                    hoverOffset: 4
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { position: 'bottom' }
+                },
+                cutout: '70%'
+            }
+        });
+    }
 }

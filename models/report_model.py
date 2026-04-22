@@ -14,6 +14,7 @@ def get_dashboard_summary() -> Dict[str, Any]:
                 (SELECT COUNT(*) FROM Teachers) AS TotalTeachers,
                 (SELECT COUNT(*) FROM Courses) AS TotalCourses,
                 (SELECT COUNT(*) FROM Classes) AS TotalClasses,
+                (SELECT COUNT(*) FROM Rooms) AS TotalRooms,
                 (SELECT COUNT(*) FROM Users) AS TotalUsers,
                 (SELECT COUNT(*) FROM Enrollments) AS TotalEnrollments,
                 (SELECT COALESCE(SUM(AmountPaid), 0) FROM Tuitions) AS TotalRevenue,

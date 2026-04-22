@@ -1,0 +1,48 @@
+{#
+    Academic > Grades
+    Grade input form + grade table (dashboard.js → renderScores).
+#}
+<section id="scores" class="section">
+    <div class="section-heading">
+        <div>
+            <h2>Grades</h2>
+            <p>Enter grades by grade type and enrollment record.</p>
+        </div>
+    </div>
+    <div class="grid form-and-table">
+        <div class="panel">
+            <h3 id="scoreFormTitle">Add grade</h3>
+            <form id="scoreForm" class="form-grid">
+                <input type="hidden" name="EditId" value="">
+                <label>Enrollment <select name="EnrollmentId" id="scoreEnrollmentSelect" required></select></label>
+                <label>Grade type <select name="ScoreTypeId" id="scoreTypeSelect" required></select></label>
+                <label>Score <input name="ScoreValue" type="number" min="0" max="10" step="0.1" required></label>
+                <div style="display:flex;gap:8px">
+                    <button class="btn btn-primary submit-btn" type="submit"><i class="fas fa-save"></i> <span>Save
+                            grade</span></button>
+                    <button class="btn btn-outline cancel-btn" type="button" style="display:none"><i
+                            class="fas fa-times"></i> Cancel</button>
+                </div>
+            </form>
+            <p id="scoreMessage" class="message"></p>
+        </div>
+        <div class="panel table-panel">
+            <h3>Grade table</h3>
+            <div class="table-wrap">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Student</th>
+                            <th>Class</th>
+                            <th>Course</th>
+                            <th>Grade type</th>
+                            <th>Score</th>
+                            <th style="width:60px"></th>
+                        </tr>
+                    </thead>
+                    <tbody id="scoresTableBody"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</section>

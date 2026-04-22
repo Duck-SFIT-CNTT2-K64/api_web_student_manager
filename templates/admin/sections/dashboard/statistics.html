@@ -1,0 +1,50 @@
+{#
+    Dashboard > Statistics
+    Charts + KPIs aggregated across the whole system (rendered by dashboard.js → renderStats + renderCharts).
+#}
+<section id="statistics" class="section">
+    <div class="section-heading">
+        <div>
+            <h2>Overview statistics</h2>
+            <p>Current training, enrollment and tuition status.</p>
+        </div>
+    </div>
+    <div id="statsGrid" class="dashboard-summary-grid"></div>
+
+    <div class="dashboard-row">
+        <div class="chart-card">
+            <h3><i class="fas fa-chart-bar"></i> Course enrollment statistics</h3>
+            <p>Top 5 courses with the most enrolled students.</p>
+            <div class="chart-container">
+                <canvas id="enrollmentChart"></canvas>
+            </div>
+        </div>
+
+        <div class="chart-card">
+            <h3><i class="fas fa-chart-pie"></i> Financial & Tuition analysis</h3>
+            <p>Compare actual revenue with outstanding tuition amounts.</p>
+            <div class="chart-container">
+                <canvas id="tuitionChart"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <div class="grid two">
+        <div class="card">
+            <div class="card-header">
+                <h3><i class="fas fa-trophy" style="color:var(--amber)"></i> Most popular courses</h3>
+            </div>
+            <div class="card-body">
+                <div id="topCoursesList" class="rank-list"></div>
+            </div>
+        </div>
+        <div class="card">
+            <div class="card-header">
+                <h3><i class="fas fa-clock" style="color:var(--primary)"></i> Latest notifications</h3>
+            </div>
+            <div class="card-body">
+                <div id="recentNotificationsList" class="rank-list"></div>
+            </div>
+        </div>
+    </div>
+</section>

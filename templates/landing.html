@@ -1,17 +1,29 @@
 <!DOCTYPE html>
-<html lang="vi">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CLASSES369 | Trung tam tin hoc</title>
+    <title>CLASSES369 | IT Training Center</title>
     <link rel="icon" type="image/png" href="{{ url_for('static', filename='image/logo.png') }}">
     <link rel="shortcut icon" href="{{ url_for('static', filename='image/logo.png') }}">
     <link rel="apple-touch-icon" href="{{ url_for('static', filename='image/logo.png') }}">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&family=Exo+2:wght@600;700;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/landing.css') }}">
+    <script>
+        (function () {
+            try {
+                var t = localStorage.getItem('classes369_theme');
+                if (!t) {
+                    t = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+                }
+                document.documentElement.setAttribute('data-theme', t);
+                document.documentElement.style.colorScheme = t;
+            } catch (e) { }
+        })();
+    </script>
 </head>
 <body>
     {% set open_count = landing_data.OpenSchedules|length %}
@@ -21,6 +33,11 @@
     {% set slider_count = slide_programs|length if slide_programs|length > 0 else 1 %}
     {% set user_id = current_user.get('UserId') if current_user else None %}
     {% set role_name = (current_user.get('RoleName') if current_user else '')|lower %}
+    {% set user_full_name = (current_user.get('FullName') if current_user else '')|trim %}
+    {% set user_initial = (user_full_name[:1] if user_full_name else 'U')|upper %}
+    {% set user_role_label = 'Administrator' if role_name == 'admin' else 'Instructor' if role_name == 'teacher' else 'Student' if role_name == 'student' else 'Guest' %}
+    {% set account_home_path = '/home' if role_name in ['admin', 'teacher'] else '/student/home' if role_name == 'student' else '/login' %}
+    {% set account_settings_path = '/settings' %}
     {% set show_dashboard = user_id and role_name in ['admin', 'teacher'] %}
     {% macro course_image_filename(item) -%}
         {%- set source = ((item.CourseCode or '') ~ ' ' ~ (item.CourseName or '') ~ ' ' ~ (item.Description or ''))|lower -%}
@@ -41,27 +58,27 @@
 
     <header class="site-header" id="introduction">
         <div class="header-inner">
-            <a class="brand" href="#hero" aria-label="Trang chu">
+            <a class="brand" href="#hero" aria-label="Home">
                 <img
                     class="brand-logo"
                     src="{{ url_for('static', filename='image/logo.png') }}"
-                    alt="Logo {{ landing_data.Center.Name }}"
+                    alt="{{ landing_data.Center.Name }} logo"
                     loading="lazy"
                 >
             </a>
 
-            <button class="nav-toggle" id="navToggle" aria-label="Mo menu dieu huong">
+            <button class="nav-toggle" id="navToggle" aria-label="Open navigation menu">
                 <i class="fas fa-bars"></i>
             </button>
 
             <nav class="main-nav" id="navLinks">
                 <a href="#hero" data-section="hero"><i class="fas fa-house"></i></a>
-                <a href="#schedules" data-section="schedules">Lich khai giang</a>
-                <a href="#programs" data-section="programs">Chuong trinh dao tao</a>
-                <a href="#services" data-section="services">Dich vu</a>
-                <a href="#news" data-section="news">Tin tuc</a>
-                <a href="#payment-guide" data-section="payment-guide">Huong dan thanh toan</a>
-                <a href="#contact" data-section="contact">Lien he</a>
+                <a href="#schedules" data-section="schedules">Schedule</a>
+                <a href="#programs" data-section="programs">Programs</a>
+                <a href="#services" data-section="services">Services</a>
+                <a href="#news" data-section="news">News</a>
+                <a href="#payment-guide" data-section="payment-guide">Payment guide</a>
+                <a href="#contact" data-section="contact">Contact</a>
             </nav>
 
             <div class="header-tools">
@@ -69,108 +86,331 @@
                     <input
                         type="search"
                         id="programSearchInput"
-                        placeholder="Tim kiem khoa hoc"
-                        aria-label="Tim kiem khoa hoc"
+                        placeholder="Search courses"
+                        aria-label="Search courses"
                     >
-                    <button type="submit" aria-label="Tim kiem"><i class="fas fa-magnifying-glass"></i></button>
+                    <button type="submit" aria-label="Search"><i class="fas fa-magnifying-glass"></i></button>
                 </form>
 
                 <div class="header-auth-actions">
-                    {% if not user_id %}
-                    <a class="header-secondary" href="/register">Dang ky</a>
-                    <a class="header-login" href="/login">Dang nhap</a>
-                    {% else %}
-                        {% if show_dashboard %}
-                        <a class="header-login" href="/home">Vao dashboard</a>
-                        {% endif %}
-                        <form method="post" action="/logout" class="header-logout-form">
-                            <button type="submit" class="header-secondary">Dang xuat</button>
-                        </form>
-                    {% endif %}
+                    <button type="button" class="theme-toggle" data-theme-toggle
+                            title="Toggle theme" aria-label="Toggle theme" aria-pressed="false">
+                        <i class="fas fa-moon" data-theme-icon></i>
+                    </button>
+                    <div class="user-menu" data-user-menu>
+                        <button
+                            class="user-menu-trigger"
+                            id="userMenuTrigger"
+                            type="button"
+                            aria-haspopup="menu"
+                            aria-expanded="false"
+                            aria-controls="userMenuDropdown"
+                        >
+                            <span class="user-menu-avatar" aria-hidden="true">
+                                {% if user_full_name %}
+                                    {{ user_initial }}
+                                {% else %}
+                                    <i class="fas fa-user"></i>
+                                {% endif %}
+                            </span>
+                            <span class="user-menu-copy">
+                                <strong>{{ user_full_name or 'Guest' }}</strong>
+                                <small>{{ user_role_label }}</small>
+                            </span>
+                            <i class="fas fa-chevron-down user-menu-chevron" aria-hidden="true"></i>
+                        </button>
+
+                        <div class="user-menu-dropdown" id="userMenuDropdown" role="menu" hidden>
+                            {% if not user_id %}
+                            <div class="user-menu-section">
+                                <p class="user-menu-section-title">Account</p>
+                                <a href="/login" role="menuitem">
+                                    <i class="fas fa-right-to-bracket"></i>
+                                    <span>Sign in</span>
+                                </a>
+                                <a href="/register" role="menuitem">
+                                    <i class="fas fa-user-plus"></i>
+                                    <span>Sign up</span>
+                                </a>
+                            </div>
+                            {% else %}
+                            <div class="user-menu-header">
+                                <span class="user-menu-header-avatar">{{ user_initial }}</span>
+                                <div class="user-menu-header-copy">
+                                    <strong>{{ user_full_name or 'Member' }}</strong>
+                                    <small>{{ user_role_label }}</small>
+                                </div>
+                            </div>
+
+                            <div class="user-menu-section">
+                                <p class="user-menu-section-title">Account</p>
+                                <a href="{{ account_home_path }}" role="menuitem">
+                                    <i class="fas fa-user-circle"></i>
+                                    <span>My profile</span>
+                                </a>
+                                <a href="{{ account_settings_path }}" role="menuitem">
+                                    <i class="fas fa-gear"></i>
+                                    <span>Account settings</span>
+                                </a>
+                                {% if show_dashboard %}
+                                <a href="/home" role="menuitem">
+                                    <i class="fas fa-gauge-high"></i>
+                                    <span>Open dashboard</span>
+                                </a>
+                                {% endif %}
+                            </div>
+
+                            {% if role_name == 'student' %}
+                            <div class="user-menu-section">
+                                <p class="user-menu-section-title">Learning</p>
+                                <div class="user-menu-grid">
+                                    <a href="/student/scores" role="menuitem" class="user-menu-tile tile-blue">
+                                        <i class="fas fa-magnifying-glass-chart"></i>
+                                        <span>Grade lookup</span>
+                                    </a>
+                                    <a href="/student/register" role="menuitem" class="user-menu-tile tile-green">
+                                        <i class="fas fa-pen-to-square"></i>
+                                        <span>Course registration</span>
+                                    </a>
+                                    <a href="/student/enrollments" role="menuitem" class="user-menu-tile tile-teal">
+                                        <i class="fas fa-list-check"></i>
+                                        <span>My registrations</span>
+                                    </a>
+                                    <a href="/student/schedule" role="menuitem" class="user-menu-tile tile-indigo">
+                                        <i class="fas fa-calendar-days"></i>
+                                        <span>Class schedule</span>
+                                    </a>
+                                    <a href="/student/exams" role="menuitem" class="user-menu-tile tile-purple">
+                                        <i class="fas fa-calendar-check"></i>
+                                        <span>Exam schedule</span>
+                                    </a>
+                                </div>
+                            </div>
+
+                            <div class="user-menu-section">
+                                <p class="user-menu-section-title">Finance</p>
+                                <div class="user-menu-grid">
+                                    <a href="/student/tuition" role="menuitem" class="user-menu-tile tile-orange">
+                                        <i class="fas fa-file-invoice-dollar"></i>
+                                        <span>Tuition</span>
+                                    </a>
+                                    <a href="/student/payment" role="menuitem" class="user-menu-tile tile-red">
+                                        <i class="fas fa-credit-card"></i>
+                                        <span>Online payment</span>
+                                    </a>
+                                </div>
+                            </div>
+                            {% elif role_name == 'teacher' %}
+                            <div class="user-menu-section">
+                                <p class="user-menu-section-title">Teaching</p>
+                                <div class="user-menu-grid">
+                                    <a href="/teacher/home#my-classes" role="menuitem" class="user-menu-tile tile-blue">
+                                        <i class="fas fa-chalkboard-user"></i>
+                                        <span>My classes</span>
+                                    </a>
+                                    <a href="/teacher/home#teaching-schedule" role="menuitem" class="user-menu-tile tile-indigo">
+                                        <i class="fas fa-calendar-days"></i>
+                                        <span>Teaching schedule</span>
+                                    </a>
+                                    <a href="/teacher/home#score-entry" role="menuitem" class="user-menu-tile tile-purple">
+                                        <i class="fas fa-square-poll-vertical"></i>
+                                        <span>Enter grades</span>
+                                    </a>
+                                    <a href="/teacher/home#class-list" role="menuitem" class="user-menu-tile tile-teal">
+                                        <i class="fas fa-users"></i>
+                                        <span>Student list</span>
+                                    </a>
+                                    <a href="/teacher/home#exams" role="menuitem" class="user-menu-tile tile-orange">
+                                        <i class="fas fa-file-signature"></i>
+                                        <span>Exam schedule</span>
+                                    </a>
+                                    <a href="/teacher/home#attendance" role="menuitem" class="user-menu-tile tile-green">
+                                        <i class="fas fa-clipboard-check"></i>
+                                        <span>Attendance</span>
+                                    </a>
+                                </div>
+                            </div>
+                            {% elif role_name == 'admin' %}
+                            <div class="user-menu-section">
+                                <p class="user-menu-section-title">Administration</p>
+                                <div class="user-menu-grid">
+                                    <a href="/admin/home" role="menuitem" class="user-menu-tile tile-blue">
+                                        <i class="fas fa-gauge-high"></i>
+                                        <span>Overview</span>
+                                    </a>
+                                    <a href="/dashboard#users" role="menuitem" class="user-menu-tile tile-indigo">
+                                        <i class="fas fa-users-gear"></i>
+                                        <span>Users</span>
+                                    </a>
+                                    <a href="/dashboard#classes" role="menuitem" class="user-menu-tile tile-teal">
+                                        <i class="fas fa-school"></i>
+                                        <span>Classes</span>
+                                    </a>
+                                    <a href="/dashboard#tuitions" role="menuitem" class="user-menu-tile tile-orange">
+                                        <i class="fas fa-coins"></i>
+                                        <span>Tuition</span>
+                                    </a>
+                                    <a href="/dashboard#enrollments" role="menuitem" class="user-menu-tile tile-green">
+                                        <i class="fas fa-user-graduate"></i>
+                                        <span>Enrollments</span>
+                                    </a>
+                                    <a href="/dashboard#scores" role="menuitem" class="user-menu-tile tile-purple">
+                                        <i class="fas fa-square-poll-vertical"></i>
+                                        <span>Grades</span>
+                                    </a>
+                                </div>
+                            </div>
+                            {% endif %}
+
+                            <div class="user-menu-section user-menu-footer">
+                                <form method="post" action="/logout" class="header-logout-form user-menu-logout">
+                                    <button type="submit" role="menuitem">
+                                        <i class="fas fa-right-from-bracket"></i>
+                                        <span>Sign out</span>
+                                    </button>
+                                </form>
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
     </header>
 
     <main class="landing-main">
-        <section class="hero-banner section-shell" id="hero">
-            <div class="hero-banner-frame">
-                <img
-                    src="{{ url_for('static', filename='image/banner.png') }}"
-                    alt="Banner Quan ly he thong Trung tam Tin hoc"
-                    loading="eager"
-                >
+        <section class="hero-section section-shell" id="hero">
+            <div class="hero-grid">
+                <div class="hero-copy">
+                    <span class="hero-eyebrow"><i class="fas fa-bolt"></i> Opening this month · 30% off tuition</span>
+                    <h1>Hands-on IT training at <span>{{ landing_data.Center.Name }}</span></h1>
+                    <p class="hero-lead">Industry-aligned curriculum, 1-on-1 mentoring, and a verified certificate after every program — all tracked transparently in one place.</p>
+
+                    <div class="hero-stats">
+                        <div class="hero-stat">
+                            <span class="hero-stat-num">{{ open_count }}</span>
+                            <span class="hero-stat-label">Upcoming classes</span>
+                        </div>
+                        <div class="hero-stat">
+                            <span class="hero-stat-num">{{ program_count }}</span>
+                            <span class="hero-stat-label">Training programs</span>
+                        </div>
+                        <div class="hero-stat hero-stat-accent">
+                            <span class="hero-stat-num">-30%</span>
+                            <span class="hero-stat-label">Tuition discount</span>
+                        </div>
+                    </div>
+
+                    <div class="hero-cta-row">
+                        <a href="{{ '/home' if user_id else '/register' }}" class="btn btn-primary hero-cta-main">
+                            <i class="fas fa-user-plus"></i> Register now
+                        </a>
+                        <a href="#programs" class="btn btn-outline hero-cta-sub">
+                            <i class="fas fa-book-open"></i> Browse courses
+                        </a>
+                    </div>
+                </div>
+
+                <div class="hero-visual">
+                    <div class="hero-visual-frame">
+                        <img
+                            src="{{ url_for('static', filename='image/banner.png') }}"
+                            alt="{{ landing_data.Center.Name }} banner"
+                            loading="eager"
+                        >
+                    </div>
+                    <ul class="hero-visual-tags" aria-label="Highlights">
+                        <li class="hero-tag hero-tag-primary">
+                            <i class="fas fa-circle-check"></i>
+                            <span>Certificate on completion</span>
+                        </li>
+                        <li class="hero-tag">
+                            <i class="fas fa-users"></i>
+                            <span>1-on-1 mentoring</span>
+                        </li>
+                        <li class="hero-tag">
+                            <i class="fas fa-calendar-day"></i>
+                            <span>Flexible learning</span>
+                        </li>
+                    </ul>
+                </div>
             </div>
         </section>
 
         <section class="hero-carousel section-shell" id="course-slides">
-            <div class="carousel-heading">
-                <p class="slide-kicker">Slide khoa hoc noi bat</p>
-                <h2>Anh khoa hoc trinh chieu</h2>
-            </div>
-            <div class="carousel-stage" id="heroCarousel">
-                {% for item in slide_programs %}
-                {% set slide_image = course_image_filename(item)|trim %}
-                <article class="hero-slide {{ 'is-active' if loop.first }}" data-index="{{ loop.index0 }}">
-                    <div class="course-slide-visual">
-                        <img
-                            src="{{ url_for('static', filename=slide_image) }}"
-                            alt="Anh khoa hoc {{ item.CourseName }}"
-                            loading="lazy"
-                        >
-                        <div class="course-slide-overlay">
-                            <span class="course-slide-code">{{ item.CourseCode }}</span>
-                            <h3>{{ item.CourseName }}</h3>
-                            <p>
-                                {{ item.Duration or 'Dang cap nhat' }}
-                                <span>|</span>
-                                {{ '{:,.0f}'.format(item.TuitionFee or 0) }}d
-                            </p>
-                        </div>
+            <div class="carousel-topbar">
+                <div class="carousel-heading">
+                    <p class="slide-kicker"><i class="fas fa-star"></i> Featured programs</p>
+                    <h2>Programs now open for enrollment</h2>
+                </div>
+                <div class="carousel-controls">
+                    <button id="heroPrev" class="hero-arrow" aria-label="Previous slide"><i class="fas fa-chevron-left"></i></button>
+                    <div class="hero-dots" id="heroDots">
+                        {% for _ in range(slider_count) %}
+                        <button
+                            class="hero-dot {{ 'is-active' if loop.first }}"
+                            data-slide="{{ loop.index0 }}"
+                            aria-label="Go to slide {{ loop.index }}"
+                        ></button>
+                        {% endfor %}
                     </div>
-                </article>
-                {% else %}
-                <article class="hero-slide is-active" data-index="0">
-                    <div class="course-slide-visual">
-                        <img
-                            src="{{ url_for('static', filename='image/banner.png') }}"
-                            alt="Anh khoa hoc noi bat"
-                            loading="lazy"
-                        >
-                        <div class="course-slide-overlay">
-                            <span class="course-slide-code">CLASSES369</span>
-                            <h3>Khoa hoc noi bat</h3>
-                            <p>Cap nhat lich khai giang lien tuc</p>
-                        </div>
-                    </div>
-                </article>
-                {% endfor %}
+                    <button id="heroNext" class="hero-arrow" aria-label="Next slide"><i class="fas fa-chevron-right"></i></button>
+                </div>
             </div>
 
-            <div class="carousel-controls">
-                <button id="heroPrev" class="hero-arrow" aria-label="Slide truoc"><i class="fas fa-chevron-left"></i></button>
-                <div class="hero-dots" id="heroDots">
-                    {% for _ in range(slider_count) %}
-                    <button
-                        class="hero-dot {{ 'is-active' if loop.first }}"
-                        data-slide="{{ loop.index0 }}"
-                        aria-label="Di den slide {{ loop.index }}"
-                    ></button>
+            <div class="carousel-window">
+                <div class="carousel-stage" id="heroCarousel">
+                    {% for item in slide_programs %}
+                    {% set slide_image = course_image_filename(item)|trim %}
+                    <article class="hero-slide {{ 'is-active' if loop.first }}" data-index="{{ loop.index0 }}">
+                        <div class="slide-card">
+                            <div class="slide-visual">
+                                <img
+                                    src="{{ url_for('static', filename=slide_image) }}"
+                                    alt="{{ item.CourseName }} course image"
+                                    loading="lazy"
+                                >
+                                <span class="slide-visual-tag"><i class="fas fa-fire"></i> HOT</span>
+                            </div>
+                            <div class="slide-copy">
+                                <span class="course-slide-code">{{ item.CourseCode }}</span>
+                                <h3>{{ item.CourseName }}</h3>
+                                <p class="slide-desc">{{ item.Description or 'Curriculum aligned with real industry needs, taught through hands-on projects.' }}</p>
+                                <ul class="slide-meta">
+                                    <li><i class="far fa-clock"></i> {{ item.Duration or 'Coming soon' }}</li>
+                                    <li><i class="fas fa-book-open"></i> {{ item.Credits or 0 }} credits</li>
+                                    <li><i class="fas fa-tag"></i> {{ '{:,.0f}'.format(item.TuitionFee or 0) }} VND</li>
+                                </ul>
+                                <div class="slide-cta">
+                                    <a href="#programs" class="btn btn-primary btn-slim"><i class="fas fa-eye"></i> View details</a>
+                                    <a href="{{ '/home' if user_id else '/register' }}" class="btn btn-outline btn-slim"><i class="fas fa-pen"></i> Enroll now</a>
+                                </div>
+                            </div>
+                        </div>
+                    </article>
+                    {% else %}
+                    <article class="hero-slide is-active" data-index="0">
+                        <div class="slide-card">
+                            <div class="slide-visual">
+                                <img
+                                    src="{{ url_for('static', filename='image/banner.png') }}"
+                                    alt="Featured program"
+                                    loading="lazy"
+                                >
+                            </div>
+                            <div class="slide-copy">
+                                <span class="course-slide-code">CLASSES369</span>
+                                <h3>New programs coming soon</h3>
+                                <p class="slide-desc">New opening schedules will be rolled out continuously. Subscribe to get notified first.</p>
+                                <div class="slide-cta">
+                                    <a href="{{ '/home' if user_id else '/register' }}" class="btn btn-primary btn-slim"><i class="fas fa-bell"></i> Notify me</a>
+                                </div>
+                            </div>
+                        </div>
+                    </article>
                     {% endfor %}
                 </div>
-                <button id="heroNext" class="hero-arrow" aria-label="Slide tiep"><i class="fas fa-chevron-right"></i></button>
             </div>
-        </section>
-
-        <section class="admission-banner section-shell" aria-label="Thong tin nhanh">
-            <p>
-                Tong lop sap khai giang <strong>{{ open_count }}</strong>
-                <span class="divider">|</span>
-                Tong chuong trinh dao tao <strong>{{ program_count }}</strong>
-                <span class="divider">|</span>
-                Uu dai hoc phi den <strong>30%</strong>
-            </p>
-            <a href="{{ '/home' if user_id else '/register' }}" class="btn btn-cta">Dang ky ngay</a>
         </section>
 
         <section class="quick-services section-shell" id="services">
@@ -185,26 +425,26 @@
             {% else %}
             <article class="quick-card">
                 <div class="quick-icon"><i class="fas fa-headset"></i></div>
-                <h3>Tu van lo trinh hoc</h3>
-                <p>Tu van 1-1 de xay dung lo trinh phu hop muc tieu nghe nghiep cua ban.</p>
+                <h3>Learning path advising</h3>
+                <p>1-on-1 advising to craft a path aligned with your career goals.</p>
             </article>
             <article class="quick-card">
                 <div class="quick-icon"><i class="fas fa-user-check"></i></div>
-                <h3>Ho tro trong suot khoa hoc</h3>
-                <p>Tro giang theo sat bai tap va project de hoc vien khong bi mat dinh huong.</p>
+                <h3>Support throughout the course</h3>
+                <p>Teaching assistants follow up on exercises and projects so learners stay on track.</p>
             </article>
             <article class="quick-card">
                 <div class="quick-icon"><i class="fas fa-graduation-cap"></i></div>
-                <h3>Chung nhan sau khoa hoc</h3>
-                <p>Danh gia dau ra ro rang va cap chung nhan sau khi hoan thanh thong tin hoc tap.</p>
+                <h3>Certification on completion</h3>
+                <p>Clear outcome assessments with a certificate issued when learning is complete.</p>
             </article>
             {% endfor %}
         </section>
 
         <section class="teacher-band section-shell" id="teachers">
             <div class="section-head section-head-light">
-                <p class="eyebrow">Doi ngu giang vien</p>
-                <h2>Ket noi mentor co kinh nghiem thuc chien</h2>
+                <p class="eyebrow">Our faculty</p>
+                <h2>Connect with battle-tested mentors</h2>
             </div>
             <div class="teacher-track">
                 {% for teacher in landing_data.FeaturedTeachers %}
@@ -222,14 +462,14 @@
                         {% endif %}
                     </div>
                     <h3>{{ teacher.DisplayName or teacher.Title }}</h3>
-                    <p>{{ teacher.Specialization or teacher.Summary or 'Giang vien phu trach cac lop thuc hanh nang cao.' }}</p>
+                    <p>{{ teacher.Specialization or teacher.Summary or 'Instructor for advanced hands-on classes.' }}</p>
                 </article>
                 {% else %}
                 {% for name in ['Nguyen Minh An', 'Tran Bao Phuc', 'Le Quang Huy', 'Pham Ha Vy'] %}
                 <article class="teacher-node">
                     <div class="teacher-avatar" data-initial="{{ name[:1] }}"><span>{{ name[:1] }}</span></div>
                     <h3>{{ name }}</h3>
-                    <p>Giang vien huong dan theo mo hinh mentor ho tro den khi hoan thanh project.</p>
+                    <p>Instructor mentoring learners through the full project lifecycle.</p>
                 </article>
                 {% endfor %}
                 {% endfor %}
@@ -238,18 +478,18 @@
 
         <section class="courses section-shell" id="programs">
             <div class="section-head">
-                <p class="eyebrow">Dao tao theo nghanh</p>
-                <h2>Khoa hoc noi bat trong nam nay</h2>
+                <p class="eyebrow">Training by field</p>
+                <h2>Featured programs this year</h2>
             </div>
 
             <div class="category-row" id="courseCategoryRow">
-                <button class="category-chip is-active" data-category="all">Tat ca</button>
-                <button class="category-chip" data-category="ai">AI va ung dung</button>
+                <button class="category-chip is-active" data-category="all">All</button>
+                <button class="category-chip" data-category="ai">AI &amp; applications</button>
                 <button class="category-chip" data-category="data">Data</button>
                 <button class="category-chip" data-category="web">Web</button>
-                <button class="category-chip" data-category="network">Mang va cloud</button>
-                <button class="category-chip" data-category="software">Phan mem</button>
-                <button class="category-chip" data-category="general">Khac</button>
+                <button class="category-chip" data-category="network">Network &amp; cloud</button>
+                <button class="category-chip" data-category="software">Software</button>
+                <button class="category-chip" data-category="general">Other</button>
             </div>
 
             <div class="course-grid" id="programGrid">
@@ -283,38 +523,38 @@
                         </div>
                     </div>
                     <h3>{{ item.CourseName }}</h3>
-                    <p>{{ item.Description or 'Noi dung hoc cap nhat theo nhu cau doanh nghiep va du an thuc te.' }}</p>
+                    <p>{{ item.Description or 'Content updated to real industry needs and practical projects.' }}</p>
                     <div class="course-meta">
-                        <span><i class="far fa-clock"></i> {{ item.Duration or 'Dang cap nhat' }}</span>
-                        <span><i class="fas fa-book-open"></i> {{ item.Credits or 0 }} tin chi</span>
+                        <span><i class="far fa-clock"></i> {{ item.Duration or 'Coming soon' }}</span>
+                        <span><i class="fas fa-book-open"></i> {{ item.Credits or 0 }} credits</span>
                     </div>
                     <div class="course-fee">
-                        <strong>{{ '{:,.0f}'.format(item.TuitionFee or 0) }}d</strong>
-                        <a href="{{ '/home' if user_id else '/login' }}">Uu dai chi tiet</a>
+                        <strong>{{ '{:,.0f}'.format(item.TuitionFee or 0) }} VND</strong>
+                        <a href="{{ '/home' if user_id else '/login' }}">View offer</a>
                     </div>
                 </article>
                 {% else %}
-                <p class="empty">Chua co du lieu chuong trinh hoc.</p>
+                <p class="empty">No programs available yet.</p>
                 {% endfor %}
             </div>
-            <p class="empty" id="courseEmptyState" hidden>Khong tim thay khoa hoc phu hop bo loc.</p>
+            <p class="empty" id="courseEmptyState" hidden>No courses match the current filter.</p>
         </section>
 
         <section class="schedule-board section-shell" id="schedules">
             <div class="section-head">
-                <p class="eyebrow">Lich khai giang</p>
-                <h2>Lich mo lop sap toi</h2>
+                <p class="eyebrow">Opening schedule</p>
+                <h2>Upcoming class openings</h2>
             </div>
             <div class="table-wrap">
                 <table>
                     <thead>
                         <tr>
-                            <th>Lop</th>
-                            <th>Khoa hoc</th>
-                            <th>Thu</th>
-                            <th>Ca hoc</th>
-                            <th>Phong</th>
-                            <th>Cho trong</th>
+                            <th>Class</th>
+                            <th>Course</th>
+                            <th>Day</th>
+                            <th>Session</th>
+                            <th>Room</th>
+                            <th>Seats</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -329,13 +569,13 @@
                                 {% if item.RemainingSeats is not none %}
                                     {{ item.RemainingSeats }} / {{ item.MaxStudents }}
                                 {% else %}
-                                    Khong gioi han
+                                    Unlimited
                                 {% endif %}
                             </td>
                         </tr>
                         {% else %}
                         <tr>
-                            <td colspan="6" class="empty">Chua co du lieu lich khai giang.</td>
+                            <td colspan="6" class="empty">No opening schedules available.</td>
                         </tr>
                         {% endfor %}
                     </tbody>
@@ -345,8 +585,8 @@
 
         <section class="testimonials section-shell" id="news">
             <div class="section-head section-head-light">
-                <p class="eyebrow">Cam nhan va thong bao</p>
-                <h2>Hoc vien noi gi sau khi tham gia khoa hoc</h2>
+                <p class="eyebrow">Stories &amp; announcements</p>
+                <h2>What learners say about our programs</h2>
             </div>
             <div class="testimonial-grid">
                 {% for item in landing_data.Notices %}
@@ -354,14 +594,14 @@
                     <div class="quote-icon"><i class="fas fa-quote-left"></i></div>
                     <h3>{{ item.Title }}</h3>
                     <p>{{ item.Content }}</p>
-                    <small>{{ item.CreatedAt[:10] if item.CreatedAt else 'Moi cap nhat' }}</small>
+                    <small>{{ item.CreatedAt[:10] if item.CreatedAt else 'Recently updated' }}</small>
                 </article>
                 {% else %}
                 <article class="testimonial-card">
                     <div class="quote-icon"><i class="fas fa-quote-left"></i></div>
-                    <h3>Hoc vien danh gia cao lo trinh</h3>
-                    <p>Lop hoc nho, giang vien sat sao va bai tap giai quyet dung tinh huong du an thuc te.</p>
-                    <small>Moi cap nhat</small>
+                    <h3>Learners love the learning path</h3>
+                    <p>Small classes, attentive instructors, and exercises rooted in real project scenarios.</p>
+                    <small>Recently updated</small>
                 </article>
                 {% endfor %}
             </div>
@@ -369,8 +609,8 @@
 
         <section class="payment-guide section-shell" id="payment-guide">
             <div class="section-head">
-                <p class="eyebrow">Hoc phi</p>
-                <h2>Huong dan thanh toan theo tung buoc</h2>
+                <p class="eyebrow">Tuition</p>
+                <h2>Step-by-step payment guide</h2>
             </div>
             <div class="payment-grid">
                 {% for step in landing_data.PaymentGuide %}
@@ -385,36 +625,37 @@
         <section class="contact-section section-shell" id="contact">
             <div class="contact-panel">
                 <div class="contact-copy">
-                    <p class="eyebrow">Lien he tu van</p>
+                    <p class="eyebrow">Get in touch</p>
                     <h2>{{ landing_data.Center.Name }}</h2>
                     <p>{{ landing_data.Center.Address }}</p>
                     <ul>
                         <li><i class="fas fa-phone"></i> Hotline: <strong>{{ landing_data.Center.Hotline }}</strong></li>
                         <li><i class="fas fa-envelope"></i> Email: <strong>{{ landing_data.Center.Email }}</strong></li>
-                        <li><i class="fas fa-circle-check"></i> Ho tro lich hoc va hoc phi trong dashboard</li>
+                        <li><i class="fas fa-circle-check"></i> Schedule &amp; tuition support in the dashboard</li>
                     </ul>
                     <div class="contact-actions">
-                        <a class="btn btn-primary" href="{{ '/home' if user_id else '/register' }}">Dang ky tai khoan hoc vien</a>
-                        <a class="btn btn-outline" href="#programs">Xem toan bo khoa hoc</a>
+                        <a class="btn btn-primary" href="{{ '/home' if user_id else '/register' }}">Create a learner account</a>
+                        <a class="btn btn-outline" href="#programs">Browse all courses</a>
                     </div>
                 </div>
                 <div class="contact-map" aria-hidden="true">
-                    <div class="map-badge">Tru so chinh</div>
+                    <div class="map-badge">Head office</div>
                     <p>{{ landing_data.Center.Address }}</p>
                 </div>
             </div>
         </section>
     </main>
 
-    <a class="floating-register" href="{{ '/home' if user_id else '/register' }}" aria-label="Dang ky online">
+    <a class="floating-register" href="{{ '/home' if user_id else '/register' }}" aria-label="Register online">
         <i class="fas fa-pen"></i>
-        <span>Dang ky Online</span>
+        <span>Register Online</span>
     </a>
 
     <footer class="site-footer">
-        <p>&copy; 2026 {{ landing_data.Center.Name }} - Trung tam tin hoc thuc chien.</p>
+        <p>&copy; 2026 {{ landing_data.Center.Name }} - Hands-on IT training center.</p>
     </footer>
 
+    <script src="{{ url_for('static', filename='js/theme.js') }}"></script>
     <script src="{{ url_for('static', filename='js/landing.js') }}"></script>
 </body>
 </html>
