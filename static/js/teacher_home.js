@@ -15,6 +15,8 @@
         schedule: [],
         selectedClassId: null,
         classStudents: [],
+        examEditingId: null,
+        examPdfFiles: [],
     };
 
     var endpoints = {
@@ -62,6 +64,83 @@
             .replaceAll(">", "&gt;")
             .replaceAll('"', "&quot;")
             .replaceAll("'", "&#039;");
+    }
+
+    function splitExamDescriptionAndPdf(rawDescription) {
+        var text = String(rawDescription || "");
+        var marker = "[PDFS]";
+        var idx = text.lastIndexOf(marker);
+        if (idx < 0) {
+            var oldMarker = "[PDF]";
+            var oldIdx = text.lastIndexOf(oldMarker);
+            if (oldIdx < 0) return { description: text.trim(), pdfUrls: [] };
+            var oldUrl = text.slice(oldIdx + oldMarker.length).trim();
+            return {
+                description: text.slice(0, oldIdx).trim(),
+                pdfUrls: oldUrl ? [oldUrl] : [],
+            };
+        }
+        var rawUrls = text.slice(idx + marker.length).split("\n");
+        var pdfUrls = rawUrls.map(function (x) { return String(x || "").trim(); }).filter(Boolean);
+        return {
+            description: text.slice(0, idx).trim(),
+            pdfUrls: pdfUrls,
+        };
+    }
+
+    function composeExamDescription(description, pdfUrls) {
+        var desc = String(description || "").trim();
+        var urls = (pdfUrls || []).map(function (x) { return String(x || "").trim(); }).filter(Boolean);
+        if (!urls.length) return desc;
+        if (!desc) return "[PDFS]\n" + urls.join("\n");
+        return desc + "\n[PDFS]\n" + urls.join("\n");
+    }
+
+    function renderExamPdfList() {
+        var list = document.getElementById("examPdfList");
+        var status = document.getElementById("examPdfUploadStatus");
+        if (!list) return;
+
+        if (!state.examPdfFiles.length) {
+            list.innerHTML = "";
+            if (status) status.textContent = "Chưa tải file.";
+            return;
+        }
+
+        list.innerHTML = state.examPdfFiles.map(function (url, idx) {
+            var fileName = decodeURIComponent(String(url).split("/").pop() || ("file_" + (idx + 1) + ".pdf"));
+            return '<div style="display:flex;align-items:center;justify-content:space-between;background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:8px 10px;">'
+                + '<a href="' + escapeHtml(url) + '" target="_blank" rel="noopener" style="color:#1d4ed8;font-size:0.88rem;"><i class="fas fa-file-pdf" style="color:#dc2626;"></i> ' + escapeHtml(fileName) + '</a>'
+                + '<button type="button" class="btn-ghost exam-pdf-remove" data-index="' + idx + '" title="Xóa file" style="color:#ef4444;"><i class="fas fa-trash"></i></button>'
+                + '</div>';
+        }).join("");
+        if (status) status.textContent = "Đã tải " + state.examPdfFiles.length + " file PDF.";
+    }
+
+    async function uploadExamPdfFile(file) {
+        if (!file) return;
+        if (!String(file.name || "").toLowerCase().endsWith(".pdf")) {
+            alert("Chỉ hỗ trợ file PDF.");
+            return;
+        }
+
+        var status = document.getElementById("examPdfUploadStatus");
+        if (status) status.textContent = "Đang tải file PDF...";
+
+        var formData = new FormData();
+        formData.append("file", file);
+        try {
+            var res = await postFormData("/api/exams/upload-pdf", formData);
+            if (res.url) {
+                state.examPdfFiles.push(res.url);
+                renderExamPdfList();
+            } else if (status) {
+                status.textContent = "Upload không trả về URL.";
+            }
+        } catch (err) {
+            if (status) status.textContent = "Tải file thất bại.";
+            alert("Upload PDF lỗi: " + err.message);
+        }
     }
 
     function toggleSubmenu(element) {
@@ -118,6 +197,14 @@
     async function deleteJson(url) {
         var response = await fetch(url, {
             method: "DELETE"
+        });
+        return parseResponse(response);
+    }
+
+    async function postFormData(url, formData) {
+        var response = await fetch(url, {
+            method: "POST",
+            body: formData
         });
         return parseResponse(response);
     }
@@ -703,88 +790,6 @@
         return result.toISOString().slice(0, 10);
     }
 
-    // Load danh sách bài kiểm tra
-    function loadExams() {
-        var body = document.getElementById("examTableBody");
-        if (!body) return;
-
-        getJson(endpoints.examsByUser)   // <-- đổi từ endpoints.exams
-            .then(function (exams) {
-                body.innerHTML = (exams || []).map(function (ex) {
-                    var due = new Date(ex.DueDate).toLocaleString("vi-VN");
-                    var now = new Date();
-                    var isDue = new Date(ex.DueDate) < now;
-                    var badge = ex.Status === "Active" && !isDue
-                        ? "<span class='badge good'>Đang mở</span>"
-                        : "<span class='badge bad'>Đã đóng</span>";
-                    return "<tr>"
-                        + "<td>" + escapeHtml(ex.Title) + "</td>"
-                        + "<td>" + escapeHtml(ex.ClassCode + " - " + ex.ClassName) + "</td>"
-                        + "<td>" + escapeHtml(ex.ExamType) + "</td>"
-                        + "<td>" + due + "</td>"
-                        + "<td>" + badge + "</td>"
-                        + "<td>"
-                        + "<button class='btn btn-ghost' data-delete-exam='" + ex.ExamId + "'>"
-                        + "<i class='fas fa-trash'></i></button>"
-                        + "</td>"
-                        + "</tr>";
-                }).join("")
-                    || '<tr><td colspan="6" class="empty">Chưa có bài kiểm tra nào.</td></tr>';
-            })
-            .catch(function (err) {
-                var body = document.getElementById("examTableBody");
-                if (body) body.innerHTML = '<tr><td colspan="6" class="empty">Lỗi tải dữ liệu.</td></tr>';
-            });
-    }
-    // Sửa examForm submit
-    var examForm = document.getElementById("examForm");
-    if (examForm) {
-        examForm.addEventListener("submit", function (e) {
-            e.preventDefault();
-            var classId = document.getElementById("examClassSelect").value;
-            var title = examForm.querySelector("input[placeholder]").value.trim();
-            var examType = document.getElementById("examTypeSelect").value;
-            var dueDate = examForm.querySelector('input[type="datetime-local"]').value;
-            var description = examForm.querySelector("textarea").value.trim();
-
-            if (!classId || !title || !dueDate) {
-                alert("Vui lòng điền đầy đủ thông tin!");
-                return;
-            }
-
-            postJson(endpoints.exams, {
-                ClassId: Number(classId),
-                Title: title,
-                ExamType: examType,
-                Description: description,
-                DueDate: dueDate,
-            })
-                .then(function () {
-                    alert("Tạo bài kiểm tra thành công!");
-                    examForm.reset();
-                    loadExams();
-                })
-                .catch(function (err) {
-                    alert("Lỗi: " + err.message);
-                });
-        });
-    }
-
-    // Xóa bài kiểm tra
-    document.addEventListener("click", function (e) {
-        var deleteBtn = e.target.closest("[data-delete-exam]");
-        if (deleteBtn) {
-            var examId = Number(deleteBtn.getAttribute("data-delete-exam"));
-            if (!confirm("Xóa bài kiểm tra này?")) return;
-            fetch(endpoints.exams + "/" + examId, { method: "DELETE" })
-                .then(function () { loadExams(); })
-                .catch(function (err) { alert("Lỗi: " + err.message); });
-        }
-    });
-
-    // Gọi load lần đầu
-    loadExams();
-
     // Hàm tải danh sách sinh viên của lớp và hiển thị form nhập điểm
     function downloadScoreTemplate() {
         var select = document.getElementById("teacherClassSelect");
@@ -932,6 +937,36 @@
     }
 
     function bindEvents() {
+        var pdfDropZone = document.getElementById("examPdfDropZone");
+        var pdfFileInput = document.getElementById("examPdfFileInput");
+        if (pdfDropZone && pdfFileInput) {
+            pdfDropZone.addEventListener("click", function () {
+                pdfFileInput.click();
+            });
+            pdfFileInput.addEventListener("change", function () {
+                var files = Array.from(this.files || []);
+                files.forEach(function (file) { uploadExamPdfFile(file); });
+                this.value = "";
+            });
+            pdfDropZone.addEventListener("dragover", function (e) {
+                e.preventDefault();
+                pdfDropZone.style.borderColor = "#2563eb";
+                pdfDropZone.style.background = "#eff6ff";
+            });
+            pdfDropZone.addEventListener("dragleave", function () {
+                pdfDropZone.style.borderColor = "#cbd5e1";
+                pdfDropZone.style.background = "#f8fafc";
+            });
+            pdfDropZone.addEventListener("drop", function (e) {
+                e.preventDefault();
+                pdfDropZone.style.borderColor = "#cbd5e1";
+                pdfDropZone.style.background = "#f8fafc";
+                var files = Array.from((e.dataTransfer && e.dataTransfer.files) || []);
+                files.forEach(function (file) { uploadExamPdfFile(file); });
+            });
+        }
+        renderExamPdfList();
+
         var classForm = document.getElementById("teacherClassForm");
         if (classForm) {
             classForm.addEventListener("submit", function (event) {
@@ -1261,6 +1296,120 @@
             }
 
             // Xóa bài kiểm tra
+            var btnViewSubmissions = event.target.closest('.btn-view-submissions');
+            if (btnViewSubmissions) {
+                event.stopPropagation();
+                var examId = btnViewSubmissions.getAttribute('data-id');
+                var examTitle = btnViewSubmissions.getAttribute('data-title') || '';
+                var modal = document.getElementById('examSubmissionsModal');
+                var titleNode = document.getElementById('examSubmissionsTitle');
+                var body = document.getElementById('examSubmissionsBody');
+                if (titleNode) titleNode.textContent = 'Bài nộp - ' + examTitle;
+                if (body) body.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:28px;color:#94a3b8;">Đang tải...</td></tr>';
+                if (modal) modal.style.display = 'flex';
+
+                getJson('/api/exams/' + examId + '/submissions')
+                    .then(function (items) {
+                        if (!body) return;
+                        if (!items || !items.length) {
+                            body.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:28px;color:#94a3b8;">Chưa có bài nộp.</td></tr>';
+                            return;
+                        }
+                        body.innerHTML = items.map(function (s) {
+                            var submittedAt = s.SubmittedAt ? new Date(s.SubmittedAt).toLocaleString('vi-VN') : '-';
+                            var fileLink = s.FileUrl
+                                ? '<a href="' + escapeHtml(s.FileUrl) + '" target="_blank" rel="noopener">Mở tệp</a>'
+                                : '<span style="color:#94a3b8;">-</span>';
+                            return '<tr>'
+                                + '<td><strong>' + escapeHtml(s.StudentCode || '') + '</strong></td>'
+                                + '<td>' + escapeHtml(s.FullName || '') + '</td>'
+                                + '<td>' + submittedAt + '</td>'
+                                + '<td>' + fileLink + '</td>'
+                                + '<td><input type="number" min="0" max="10" step="0.1" value="' + (s.Grade != null ? Number(s.Grade) : '') + '" data-sub-grade="' + s.SubmissionId + '" style="width:80px;"></td>'
+                                + '<td><input type="text" value="' + escapeHtml(s.Note || '') + '" data-sub-note="' + s.SubmissionId + '" placeholder="Nhập feedback..."></td>'
+                                + '<td><select data-sub-status="' + s.SubmissionId + '">'
+                                + '<option value="Pending"' + (s.Status === 'Pending' ? ' selected' : '') + '>Pending</option>'
+                                + '<option value="Submitted"' + (s.Status === 'Submitted' ? ' selected' : '') + '>Submitted</option>'
+                                + '<option value="Graded"' + (s.Status === 'Graded' ? ' selected' : '') + '>Graded</option>'
+                                + '</select></td>'
+                                + '<td><button class="btn btn-primary btn-save-submission-grade" data-exam-id="' + examId + '" data-sub-id="' + s.SubmissionId + '" style="padding:6px 10px;">Lưu</button></td>'
+                                + '</tr>';
+                        }).join('');
+                    })
+                    .catch(function (err) {
+                        if (body) body.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:28px;color:#ef4444;">Lỗi: ' + escapeHtml(err.message) + '</td></tr>';
+                    });
+                return;
+            }
+
+            var btnSaveGrade = event.target.closest('.btn-save-submission-grade');
+            if (btnSaveGrade) {
+                event.stopPropagation();
+                var examIdForGrade = Number(btnSaveGrade.getAttribute('data-exam-id'));
+                var subId = Number(btnSaveGrade.getAttribute('data-sub-id'));
+                var gradeInput = document.querySelector('[data-sub-grade="' + subId + '"]');
+                var noteInput = document.querySelector('[data-sub-note="' + subId + '"]');
+                var statusInput = document.querySelector('[data-sub-status="' + subId + '"]');
+                var payloadGrade = {
+                    Grade: gradeInput ? gradeInput.value : null,
+                    Note: noteInput ? noteInput.value : '',
+                    Status: statusInput ? statusInput.value : null,
+                };
+                btnSaveGrade.disabled = true;
+                putJson('/api/exams/' + examIdForGrade + '/submissions/' + subId, payloadGrade)
+                    .then(function () { alert('Đã cập nhật chấm bài.'); })
+                    .catch(function (err) { alert('Lỗi: ' + err.message); })
+                    .finally(function () { btnSaveGrade.disabled = false; });
+                return;
+            }
+
+            var btnEditExam = event.target.closest('.btn-edit-exam');
+            if (btnEditExam) {
+                event.stopPropagation();
+                var raw = btnEditExam.getAttribute('data-raw');
+                if (!raw) return;
+                var exam = JSON.parse(decodeURIComponent(raw));
+                var parsedExamDesc = splitExamDescriptionAndPdf(exam.Description);
+                state.examEditingId = Number(exam.ExamId);
+                state.examPdfFiles = parsedExamDesc.pdfUrls || [];
+                renderExamPdfList();
+                document.getElementById('examClassSelect').value = String(exam.ClassId || '');
+                document.getElementById('examTitleInput').value = exam.Title || '';
+                document.getElementById('examTypeSelect').value = exam.ExamType || 'Trắc nghiệm';
+                document.getElementById('examDescription').value = parsedExamDesc.description || '';
+                var due = exam.DueDate ? new Date(exam.DueDate) : null;
+                if (due && !Number.isNaN(due.getTime())) {
+                    var local = new Date(due.getTime() - due.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
+                    document.getElementById('examDueDate').value = local;
+                }
+                var submitBtn = document.querySelector('#examForm button[type="submit"]');
+                if (submitBtn) submitBtn.innerHTML = '<i class="fas fa-save"></i> Cập nhật bài kiểm tra';
+                window.location.hash = '#exams';
+                return;
+            }
+
+            var removePdfBtn = event.target.closest('.exam-pdf-remove');
+            if (removePdfBtn) {
+                event.stopPropagation();
+                var idxToRemove = Number(removePdfBtn.getAttribute("data-index"));
+                if (!Number.isNaN(idxToRemove) && idxToRemove >= 0) {
+                    state.examPdfFiles.splice(idxToRemove, 1);
+                    renderExamPdfList();
+                }
+                return;
+            }
+
+            var btnToggleExam = event.target.closest('.btn-toggle-exam');
+            if (btnToggleExam) {
+                event.stopPropagation();
+                var examIdToggle = btnToggleExam.getAttribute('data-id');
+                var nextStatus = btnToggleExam.getAttribute('data-next-status');
+                putJson('/api/exams/' + examIdToggle + '/status', { Status: nextStatus })
+                    .then(function () { loadExams(); })
+                    .catch(function (err) { alert('Lỗi: ' + err.message); });
+                return;
+            }
+
             var btnDelExam = event.target.closest('.btn-del-exam');
             if (btnDelExam) {
                 event.stopPropagation();
@@ -1306,6 +1455,9 @@
             if (event.target.id === 'notifModal') {
                 event.target.style.display = 'none';
             }
+            if (event.target.id === 'examSubmissionsModal') {
+                event.target.style.display = 'none';
+            }
         });
 
         // Nút trong modal lịch
@@ -1336,6 +1488,14 @@
         if (notifClose) {
             notifClose.addEventListener("click", function () {
                 notifModal.style.display = "none";
+            });
+        }
+
+        var examSubmissionsModal = document.getElementById("examSubmissionsModal");
+        var examSubmissionsClose = document.getElementById("examSubmissionsClose");
+        if (examSubmissionsClose && examSubmissionsModal) {
+            examSubmissionsClose.addEventListener("click", function () {
+                examSubmissionsModal.style.display = "none";
             });
         }
 
@@ -1771,30 +1931,41 @@
             examForm.addEventListener('submit', function (e) {
                 e.preventDefault();
                 var classId = document.getElementById('examClassSelect').value;
-                var title = examForm.querySelector('input[required]').value;
+                var title = document.getElementById('examTitleInput').value;
                 var examType = document.getElementById('examTypeSelect').value;
                 var dueDate = document.getElementById('examDueDate').value;
                 var desc = document.getElementById('examDescription').value;
+                var editId = state.examEditingId;
 
                 var btn = examForm.querySelector('button[type="submit"]');
                 btn.disabled = true;
-                btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Đang tạo...';
+                btn.innerHTML = editId
+                    ? '<i class="fas fa-spinner fa-spin"></i> Đang cập nhật...'
+                    : '<i class="fas fa-spinner fa-spin"></i> Đang tạo...';
 
-                postJson('/api/teachers/exams', {
+                var payload = {
                     ClassId: classId,
                     Title: title,
                     ExamType: examType,
                     DueDate: dueDate,
-                    Description: desc
-                }).then(function () {
-                    alert('Đã tạo bài kiểm tra!');
+                    Description: composeExamDescription(desc, state.examPdfFiles)
+                };
+                var req = editId ? putJson('/api/exams/' + editId, payload) : postJson('/api/exams', payload);
+
+                req.then(function () {
+                    alert(editId ? 'Đã cập nhật bài kiểm tra!' : 'Đã tạo bài kiểm tra!');
                     examForm.reset();
+                    state.examEditingId = null;
+                    state.examPdfFiles = [];
+                    renderExamPdfList();
                     loadExams();
                 }).catch(function (err) {
                     alert('Lỗi: ' + err.message);
                 }).finally(function () {
                     btn.disabled = false;
-                    btn.innerHTML = '<i class="fas fa-plus"></i> Tạo bài kiểm tra';
+                    btn.innerHTML = state.examEditingId
+                        ? '<i class="fas fa-save"></i> Cập nhật bài kiểm tra'
+                        : '<i class="fas fa-plus"></i> Tạo bài kiểm tra';
                 });
             });
         }
@@ -1848,17 +2019,39 @@
     function loadExams() {
         var tbody = document.getElementById('examTableBody');
         if (!tbody) return;
-        getJson('/api/teachers/exams/' + userId).then(function (exams) {
+        getJson('/api/exams/user/' + userId).then(function (exams) {
             if (exams && exams.length > 0) {
                 tbody.innerHTML = exams.map(function (e) {
                     var date = new Date(e.DueDate).toLocaleString('vi-VN');
+                    var isOpen = String(e.Status || '').toLowerCase() === 'active';
+                    var isOverdue = new Date(e.DueDate) < new Date();
+                    var badgeHtml = isOpen
+                        ? '<span class="badge good">Đang mở</span>'
+                        : '<span class="badge bad">Đã đóng</span>';
+                    if (isOverdue) {
+                        badgeHtml += ' <span class="badge" style="background:#fee2e2;color:#b91c1c;">Quá hạn</span>';
+                    }
+                    var parsed = splitExamDescriptionAndPdf(e.Description);
+                    var firstPdf = parsed.pdfUrls && parsed.pdfUrls.length ? parsed.pdfUrls[0] : "";
+                    var pdfCount = parsed.pdfUrls ? parsed.pdfUrls.length : 0;
+                    var pdfHtml = firstPdf
+                        ? '<a href="' + escapeHtml(firstPdf) + '" target="_blank" rel="noopener" title="Đề PDF (' + pdfCount + ' file)" style="color:#dc2626;"><i class="fas fa-file-pdf"></i> ' + pdfCount + '</a>'
+                        : '<span style="color:#94a3b8;">-</span>';
+                    var toggleIcon = isOpen ? 'fa-lock-open' : 'fa-lock';
+                    var toggleTitle = isOpen ? 'Đang mở - bấm để đóng' : 'Đang đóng - bấm để mở';
                     return '<tr>' +
                         '<td><strong>' + escapeHtml(e.Title) + '</strong></td>' +
                         '<td>' + escapeHtml(e.ClassCode) + ' - ' + escapeHtml(e.ClassName) + '</td>' +
                         '<td><span class="badge">' + escapeHtml(e.ExamType) + '</span></td>' +
                         '<td>' + date + '</td>' +
-                        '<td><span class="badge good">' + escapeHtml(e.Status) + '</span></td>' +
-                        '<td style="width:80px;"><button class="btn-ghost btn-del-exam" style="color:#ef4444;" title="Xóa bài kiểm tra" data-id="' + e.ExamId + '"><i class="fas fa-trash"></i></button></td>' +
+                        '<td>' + badgeHtml + '</td>' +
+                        '<td style="white-space:nowrap;">'
+                        + '<button class="btn-ghost btn-view-submissions" style="color:#2563eb;" title="Xem bài nộp" data-id="' + e.ExamId + '" data-title="' + escapeHtml(e.Title) + '"><i class="fas fa-eye"></i></button>'
+                        + '<button class="btn-ghost btn-edit-exam" style="color:#f59e0b;" title="Sửa bài kiểm tra" data-raw=\'' + encodeURIComponent(JSON.stringify(e)) + '\'><i class="fas fa-pen"></i></button>'
+                        + '<button class="btn-ghost btn-toggle-exam" style="color:#059669;" title="' + toggleTitle + '" data-id="' + e.ExamId + '" data-next-status="' + (isOpen ? 'Closed' : 'Active') + '"><i class="fas ' + toggleIcon + '"></i></button>'
+                        + '<span style="display:inline-block;width:24px;text-align:center;">' + pdfHtml + '</span>'
+                        + '<button class="btn-ghost btn-del-exam" style="color:#ef4444;" title="Xóa bài kiểm tra" data-id="' + e.ExamId + '"><i class="fas fa-trash"></i></button>'
+                        + '</td>' +
                         '</tr>';
                 }).join('');
             } else {
