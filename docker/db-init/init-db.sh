@@ -24,8 +24,12 @@ if [ ! -x "${SQLCMD_BIN}" ]; then
   exit 1
 fi
 
-# Helper: run a SQL script through sqlcmd with UTF-8 support (-f 65001)
-# -b     : exit non-zero on SQL errors so `set -e` will abort this script.
+# Helper: run a SQL script through sqlcmd.
+# -b : exit non-zero on SQL errors so `set -e` will abort this script.
+# Note: Linux sqlcmd (v17/v18 ODBC) KHÔNG hỗ trợ -f <codepage>. Chúng ta
+#       dựa vào UTF-8 BOM (0xEF 0xBB 0xBF) ở đầu file để sqlcmd tự
+#       detect Unicode. Cả QLSV_TrungTamTinHoc.sql và seed_bulk_data.sql
+#       đều đã được lưu kèm BOM.
 run_script() {
   local script_path="$1"
   local label="$2"
@@ -37,7 +41,6 @@ run_script() {
     -C \
     -b \
     -d master \
-    -f 65001 \
     -i "${script_path}"
   echo "[db-init] <-- ${label} completed."
 }

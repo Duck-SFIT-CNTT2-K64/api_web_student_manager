@@ -22,8 +22,11 @@ services:
       start_period: 20s
 
   db-init:
-    image: mcr.microsoft.com/mssql-tools:latest
+    # Dùng chính image mssql/server vì nó kèm sqlcmd v18
+    # (/opt/mssql-tools18/bin/sqlcmd) — hỗ trợ -f 65001 cho file UTF-8 BOM.
+    image: mcr.microsoft.com/mssql/server:2022-latest
     container_name: btl_api_db_init
+    user: "0:0"
     depends_on:
       db:
         condition: service_healthy
