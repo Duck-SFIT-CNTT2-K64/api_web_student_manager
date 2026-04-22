@@ -79,10 +79,10 @@ def home():
         landing_data = {
             "Center": {
                 "Name": "CLASSES369",
-                "Tagline": "Trung tam tin hoc thuc chien, huong nghiep va lam duoc viec",
+                "Tagline": "Hands-on IT training — career ready from day one",
                 "Hotline": "0901 234 369",
                 "Email": "hello@classes369.vn",
-                "Address": "Khu A - Dai hoc Cong Nghiep Ha Noi",
+                "Address": "Zone A - Hanoi University of Industry",
             },
             "OpenSchedules": [],
             "Programs": [],
@@ -109,14 +109,14 @@ def home_redirect():
         return redirect(url_for("pages.teacher_home_page"))
     if role_name == "student":
         return redirect(url_for("pages.student_home_page"))
-    return redirect(url_for("auth.login_page", error="Tài khoản chưa được gán role hợp lệ."))
+    return redirect(url_for("auth.login_page", error="This account has not been assigned a valid role."))
 
 
 @page_bp.get("/admin/home")
 @role_required("Admin")
 def admin_home_page():
     return render_template(
-        "admin_home.html",
+        "admin/home.html",
         current_user=current_session_user(),
         summary=get_admin_home_data(),
     )
@@ -135,14 +135,14 @@ def teacher_home_page():
 
 
 _STUDENT_SECTIONS = {
-    "overview": "Tổng quan",
-    "scores": "Tra cứu điểm",
-    "register": "Đăng ký học",
-    "enrollments": "Tra cứu đăng ký",
-    "schedule": "Lịch học",
-    "exams": "Lịch thi",
-    "tuition": "Học phí",
-    "payment": "Thanh toán online",
+    "overview": "Overview",
+    "scores": "Grades",
+    "register": "Course registration",
+    "enrollments": "My enrollments",
+    "schedule": "Class schedule",
+    "exams": "Exam schedule",
+    "tuition": "Tuition",
+    "payment": "Online payment",
 }
 
 
@@ -155,7 +155,7 @@ def _render_student_portal(active_section: str):
         current_user=session_user,
         home_data=home_data,
         active_section=section,
-        page_title=_STUDENT_SECTIONS.get(section, "Khu vực sinh viên"),
+        page_title=_STUDENT_SECTIONS.get(section, "Student portal"),
     )
 
 
@@ -210,7 +210,7 @@ def student_payment_page():
 @page_bp.get("/dashboard")
 @role_required("Admin")
 def dashboard_page():
-    return render_template("dashboard.html", current_user=current_session_user())
+    return render_template("admin/dashboard.html", current_user=current_session_user())
 
 
 @page_bp.get("/settings")

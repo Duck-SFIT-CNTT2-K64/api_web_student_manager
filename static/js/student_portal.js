@@ -58,11 +58,11 @@
     // ───────────────────────── UTILS ─────────────────────────
     var WEEKDAY_ORDER = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
     var WEEKDAY_VI = {
-        Monday: "Thứ 2", Tuesday: "Thứ 3", Wednesday: "Thứ 4",
-        Thursday: "Thứ 5", Friday: "Thứ 6", Saturday: "Thứ 7", Sunday: "Chủ nhật"
+        Monday: "Mon", Tuesday: "Tue", Wednesday: "Wed",
+        Thursday: "Thu", Friday: "Fri", Saturday: "Sat", Sunday: "Sun"
     };
-    var MONTH_VI = ["Tháng 1", "Tháng 2", "Tháng 3", "Tháng 4", "Tháng 5", "Tháng 6",
-                    "Tháng 7", "Tháng 8", "Tháng 9", "Tháng 10", "Tháng 11", "Tháng 12"];
+    var MONTH_VI = ["Jan", "Feb", "Mar", "Apr", "May", "Jun",
+                    "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
     function esc(v) {
         return String(v == null ? "" : v)

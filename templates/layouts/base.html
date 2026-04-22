@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="vi">
+<html lang="en">
 
 <head>
     <meta charset="UTF-8">
@@ -7,6 +7,18 @@
     <title>{% block title %}CLASSES369{% endblock %}</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/app.css') }}">
+    <script>
+        (function () {
+            try {
+                var t = localStorage.getItem('classes369_theme');
+                if (!t) {
+                    t = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+                }
+                document.documentElement.setAttribute('data-theme', t);
+                document.documentElement.style.colorScheme = t;
+            } catch (e) { /* ignore */ }
+        })();
+    </script>
     {% block extra_css %}{% endblock %}
 </head>
 
@@ -18,7 +30,7 @@
             </div>
             <div class="sidebar-brand">
                 <h2>CLASSES369</h2>
-                <p>{% block sidebar_subtitle %}Quản lý trung tâm{% endblock %}</p>
+                <p>{% block sidebar_subtitle %}Center management{% endblock %}</p>
             </div>
         </div>
 
@@ -30,7 +42,7 @@
             <form method="post" action="/logout">
                 <button type="submit" class="sidebar-logout">
                     <i class="fas fa-sign-out-alt"></i>
-                    <span>Đăng xuất</span>
+                    <span>Sign out</span>
                 </button>
             </form>
         </div>
@@ -50,6 +62,10 @@
             </div>
             <div class="topbar-right">
                 {% block topbar_actions %}{% endblock %}
+                <button type="button" class="theme-toggle" data-theme-toggle
+                        title="Toggle theme" aria-label="Toggle theme" aria-pressed="false">
+                    <i class="fas fa-moon" data-theme-icon></i>
+                </button>
                 <div class="topbar-user">
                     <div class="topbar-avatar">
                         <i class="fas fa-user"></i>
@@ -67,19 +83,16 @@
         </main>
 
         <footer class="main-footer">
-            <p>&copy; 2024 CLASSES369 &mdash; Hệ thống quản lý trung tâm tin học</p>
+            <p>&copy; 2024 CLASSES369 &mdash; Computer training center management system</p>
         </footer>
     </div>
 
+    <script src="{{ url_for('static', filename='js/theme.js') }}"></script>
     <script src="{{ url_for('static', filename='js/shell.js') }}"></script>
     <script>
-        document.addEventListener("DOMContentLoaded", async function() {
-            // Lấy role từ dict current_user truyền từ Flask
+        document.addEventListener("DOMContentLoaded", async function () {
             var roleName = "{{ current_user.RoleName if current_user else '' }}";
-            
-            console.log("Checking notifications for role:", roleName);
-            
-            // Nếu là Admin hoặc không có role thì không hiện banner này
+
             if (!roleName || roleName === "Admin") return;
 
             try {
@@ -91,7 +104,7 @@
                     }
                 }
             } catch (e) {
-                console.error("Lỗi khi tải thông báo:", e);
+                console.error("Failed to load notifications:", e);
             }
         });
 
@@ -106,7 +119,6 @@
                 animation: slideDownNotif 0.5s ease;
             `;
 
-            // Thêm style animation nếu chưa có
             if (!document.getElementById("notif-style")) {
                 const s = document.createElement("style");
                 s.id = "notif-style";
@@ -120,18 +132,18 @@
             banner.innerHTML = `
                 <div style="font-size: 20px;"><i class="fas fa-bell"></i></div>
                 <div style="flex: 1">
-                    <div style="font-weight: 600; font-size: 15px; margin-bottom: 2px;">${notif.Title || 'Thông báo mới'}</div>
+                    <div style="font-weight: 600; font-size: 15px; margin-bottom: 2px;">${notif.Title || 'New notification'}</div>
                     <div style="font-size: 13px; opacity: 0.9; line-height: 1.4;">${notif.Content || ''}</div>
                 </div>
-                <button style="background: rgba(255,255,255,0.2); border: none; color: white; padding: 5px 12px; border-radius: 6px; cursor: pointer; font-size: 12px; font-weight: 600;">Đã xem</button>
+                <button style="background: rgba(255,255,255,0.2); border: none; color: white; padding: 5px 12px; border-radius: 6px; cursor: pointer; font-size: 12px; font-weight: 600;">Got it</button>
             `;
 
-            banner.querySelector("button").onclick = async function() {
+            banner.querySelector("button").onclick = async function () {
                 banner.style.animation = "slideUpNotif 0.4s ease forwards";
                 setTimeout(() => banner.remove(), 400);
                 try {
                     await fetch(`/api/notifications/${notif.NotificationId}/read`, { method: 'PUT' });
-                } catch(err) {}
+                } catch (err) { }
             };
 
             document.body.appendChild(banner);

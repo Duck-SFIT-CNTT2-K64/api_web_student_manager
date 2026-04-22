@@ -1,35 +1,46 @@
 {% extends 'layouts/auth.html' %}
 
-{% block title %}Dang ky hoc vien | CLASSES369{% endblock %}
+{% block title %}Register | CLASSES369{% endblock %}
 
 {% block content %}
 {% set data = form_data or {} %}
 <div class="auth-container">
-    <div class="auth-brand">
-        <a href="/" style="display:inline-flex;align-items:center;gap:6px;color:#4361ee;text-decoration:none;margin-bottom:14px;font-weight:600">
-            <i class="fas fa-arrow-left"></i> Ve trang chu
+    {# ===== Left: illustration + intro ===== #}
+    <section class="auth-illustration">
+        <a class="auth-back-link" href="/">
+            <i class="fas fa-arrow-left"></i> Back to homepage
         </a>
-        <div class="auth-brand-logo">
-            <div class="logo-icon">
-                <i class="fas fa-user-plus"></i>
-            </div>
-            <h1>CLASSES369</h1>
-        </div>
 
-        <h2>Tao tai khoan hoc vien<br>trong 1 buoc</h2>
-        <p>Dang ky tai khoan de bat dau hoc tap. He thong se tu dong gan role Student cho tai khoan moi.</p>
+        <h2>Join the <span class="accent">CLASSES369</span> community<br>in just a few simple steps</h2>
+        <p class="auth-lead">
+            Register a student account to unlock your personal learning space &mdash; from schedules
+            and grades to tuition and notifications, all managed online.
+        </p>
 
         <ul class="auth-features">
-            <li><i class="fas fa-circle-check"></i> Tu dong tao tai khoan role Student</li>
-            <li><i class="fas fa-lock"></i> Mat khau duoc ma hoa bang bcrypt</li>
-            <li><i class="fas fa-id-card"></i> Ho so hoc vien duoc tao ngay sau dang ky</li>
-            <li><i class="fas fa-arrow-right-to-bracket"></i> Dang nhap va hoc ngay sau khi tao tai khoan</li>
+            <li><i class="fas fa-circle-check"></i> Student role assigned automatically</li>
+            <li><i class="fas fa-lock"></i> Passwords encrypted with bcrypt</li>
+            <li><i class="fas fa-id-card"></i> Student profile created instantly</li>
+            <li><i class="fas fa-arrow-right-to-bracket"></i> Sign in &amp; learn right away</li>
         </ul>
-    </div>
 
-    <div class="auth-form-panel">
-        <h2>Dang ky hoc vien</h2>
-        <p class="auth-subtitle">Nhap thong tin tai khoan de tao moi</p>
+        {% include 'layouts/_auth_scene.html' %}
+    </section>
+
+    {# ===== Right: registration form ===== #}
+    <section class="auth-form-panel">
+        <div class="auth-form-panel-head">
+            <div class="auth-form-logo">
+                <i class="fas fa-user-plus"></i>
+            </div>
+            <div class="auth-form-title">
+                <strong>CLASSES369</strong>
+                <small>Student registration</small>
+            </div>
+        </div>
+
+        <h2>Create a new account</h2>
+        <p class="auth-subtitle">Fill in the details below &mdash; takes less than a minute.</p>
 
         {% if error %}
         <div class="auth-alert error">
@@ -40,10 +51,10 @@
 
         <form method="post" action="/register" class="auth-form">
             <div class="form-group">
-                <label for="full_name">Ho va ten</label>
+                <label for="full_name">Full name</label>
                 <div class="input-wrapper">
                     <i class="fas fa-user"></i>
-                    <input type="text" id="full_name" name="full_name" placeholder="Nhap ho va ten" value="{{ data.get('full_name', '') }}" required autofocus>
+                    <input type="text" id="full_name" name="full_name" placeholder="Enter your full name" value="{{ data.get('full_name', '') }}" required autofocus>
                 </div>
             </div>
 
@@ -51,51 +62,53 @@
                 <label for="email">Email</label>
                 <div class="input-wrapper">
                     <i class="fas fa-envelope"></i>
-                    <input type="email" id="email" name="email" placeholder="Nhap email" value="{{ data.get('email', '') }}" required>
+                    <input type="email" id="email" name="email" placeholder="you@example.com" value="{{ data.get('email', '') }}" required>
                 </div>
             </div>
 
             <div class="form-group">
-                <label for="phone">So dien thoai</label>
+                <label for="phone">Phone number</label>
                 <div class="input-wrapper">
                     <i class="fas fa-phone"></i>
-                    <input type="text" id="phone" name="phone" placeholder="Nhap so dien thoai" value="{{ data.get('phone', '') }}">
+                    <input type="text" id="phone" name="phone" placeholder="Enter phone number" value="{{ data.get('phone', '') }}">
                 </div>
             </div>
 
             <div class="form-group">
-                <label for="username">Ten dang nhap (tuy chon)</label>
+                <label for="username">Username <span style="color:var(--auth-muted);font-weight:500">(optional)</span></label>
                 <div class="input-wrapper">
                     <i class="fas fa-at"></i>
-                    <input type="text" id="username" name="username" placeholder="De trong de he thong tu sinh" value="{{ data.get('username', '') }}">
+                    <input type="text" id="username" name="username" placeholder="Leave blank to auto-generate" value="{{ data.get('username', '') }}">
                 </div>
             </div>
 
             <div class="form-group">
-                <label for="password">Mat khau</label>
+                <label for="password">Password</label>
                 <div class="input-wrapper">
                     <i class="fas fa-lock"></i>
-                    <input type="password" id="password" name="password" placeholder="Nhap mat khau" required>
+                    <input type="password" id="password" name="password" placeholder="At least 6 characters" required>
                 </div>
             </div>
 
             <div class="form-group">
-                <label for="confirm_password">Xac nhan mat khau</label>
+                <label for="confirm_password">Confirm password</label>
                 <div class="input-wrapper">
                     <i class="fas fa-shield-halved"></i>
-                    <input type="password" id="confirm_password" name="confirm_password" placeholder="Nhap lai mat khau" required>
+                    <input type="password" id="confirm_password" name="confirm_password" placeholder="Re-enter your password" required>
                 </div>
             </div>
 
             <button type="submit" class="btn-login">
                 <i class="fas fa-user-plus"></i>
-                Dang ky ngay
+                Register now
             </button>
         </form>
 
+        <div class="auth-divider">Or</div>
+
         <div class="auth-footer">
-            Da co tai khoan? <a href="/login">Dang nhap</a>
+            Already have an account? <a href="/login">Sign in</a>
         </div>
-    </div>
+    </section>
 </div>
 {% endblock %}

@@ -1,0 +1,119 @@
+{#
+    Admin sidebar nav — 5 collapsible groups.
+
+    Each group = `.nav-group` (with `data-group` used as a localStorage key).
+    Inside:
+      - `.nav-group-header` is the toggle button.
+      - `.nav-group-items` contains the child `.nav-item` links.
+      - `open` class on `.nav-group` means expanded.
+
+    `active` context (string):
+      home | statistics | students | teachers | courses | classes | rooms |
+      users | enrollments | schedules | scores | tuitions | notifications
+    The group that contains the active item is auto-expanded.
+#}
+{% set active = active|default('') %}
+{%- set dashboard_items   = ['home', 'statistics'] -%}
+{%- set management_items  = ['students', 'teachers', 'courses', 'classes', 'rooms', 'users'] -%}
+{%- set academic_items    = ['enrollments', 'schedules', 'scores'] -%}
+{%- set finance_items     = ['tuitions'] -%}
+{%- set info_items        = ['notifications'] -%}
+
+<div class="nav-group {{ 'open' if active in dashboard_items else '' }}" data-group="dashboard">
+    <button type="button" class="nav-group-header">
+        <span class="nav-group-title">
+            <span class="nav-group-emoji">📊</span>
+            <span>Dashboard</span>
+        </span>
+        <i class="fas fa-chevron-down nav-group-chevron"></i>
+    </button>
+    <div class="nav-group-items">
+        <a href="/admin/home" class="nav-item {{ 'active' if active == 'home' else '' }}">
+            <i class="fas fa-house"></i><span>Overview</span>
+        </a>
+        <a href="/dashboard#statistics" class="nav-item {{ 'active' if active == 'statistics' else '' }}">
+            <i class="fas fa-chart-line"></i><span>Statistics</span>
+        </a>
+    </div>
+</div>
+
+<div class="nav-group {{ 'open' if active in management_items else '' }}" data-group="management">
+    <button type="button" class="nav-group-header">
+        <span class="nav-group-title">
+            <span class="nav-group-emoji">🗂️</span>
+            <span>Management</span>
+        </span>
+        <i class="fas fa-chevron-down nav-group-chevron"></i>
+    </button>
+    <div class="nav-group-items">
+        <a href="/dashboard#students" class="nav-item {{ 'active' if active == 'students' else '' }}">
+            <i class="fas fa-user-graduate"></i><span>Students</span>
+        </a>
+        <a href="/dashboard#teachers" class="nav-item {{ 'active' if active == 'teachers' else '' }}">
+            <i class="fas fa-chalkboard-teacher"></i><span>Teachers</span>
+        </a>
+        <a href="/dashboard#courses" class="nav-item {{ 'active' if active == 'courses' else '' }}">
+            <i class="fas fa-book"></i><span>Courses</span>
+        </a>
+        <a href="/dashboard#classes" class="nav-item {{ 'active' if active == 'classes' else '' }}">
+            <i class="fas fa-school"></i><span>Classes</span>
+        </a>
+        <a href="/dashboard#rooms" class="nav-item {{ 'active' if active == 'rooms' else '' }}">
+            <i class="fas fa-door-open"></i><span>Rooms</span>
+        </a>
+        <a href="/dashboard#users" class="nav-item {{ 'active' if active == 'users' else '' }}">
+            <i class="fas fa-users-cog"></i><span>Accounts</span>
+        </a>
+    </div>
+</div>
+
+<div class="nav-group {{ 'open' if active in academic_items else '' }}" data-group="academic">
+    <button type="button" class="nav-group-header">
+        <span class="nav-group-title">
+            <span class="nav-group-emoji">🎓</span>
+            <span>Academic</span>
+        </span>
+        <i class="fas fa-chevron-down nav-group-chevron"></i>
+    </button>
+    <div class="nav-group-items">
+        <a href="/dashboard#enrollments" class="nav-item {{ 'active' if active == 'enrollments' else '' }}">
+            <i class="fas fa-user-plus"></i><span>Enrollments</span>
+        </a>
+        <a href="/dashboard#schedules" class="nav-item {{ 'active' if active == 'schedules' else '' }}">
+            <i class="fas fa-calendar-alt"></i><span>Schedules</span>
+        </a>
+        <a href="/dashboard#scores" class="nav-item {{ 'active' if active == 'scores' else '' }}">
+            <i class="fas fa-clipboard-list"></i><span>Grades</span>
+        </a>
+    </div>
+</div>
+
+<div class="nav-group {{ 'open' if active in finance_items else '' }}" data-group="finance">
+    <button type="button" class="nav-group-header">
+        <span class="nav-group-title">
+            <span class="nav-group-emoji">💰</span>
+            <span>Finance</span>
+        </span>
+        <i class="fas fa-chevron-down nav-group-chevron"></i>
+    </button>
+    <div class="nav-group-items">
+        <a href="/dashboard#tuitions" class="nav-item {{ 'active' if active == 'tuitions' else '' }}">
+            <i class="fas fa-money-bill-wave"></i><span>Tuition</span>
+        </a>
+    </div>
+</div>
+
+<div class="nav-group {{ 'open' if active in info_items else '' }}" data-group="info">
+    <button type="button" class="nav-group-header">
+        <span class="nav-group-title">
+            <span class="nav-group-emoji">📢</span>
+            <span>Information</span>
+        </span>
+        <i class="fas fa-chevron-down nav-group-chevron"></i>
+    </button>
+    <div class="nav-group-items">
+        <a href="/dashboard#notifications" class="nav-item {{ 'active' if active == 'notifications' else '' }}">
+            <i class="fas fa-bell"></i><span>Notifications</span>
+        </a>
+    </div>
+</div>

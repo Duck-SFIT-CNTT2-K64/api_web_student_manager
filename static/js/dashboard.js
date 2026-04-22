@@ -1,3 +1,21 @@
+/* =============================================================================
+ * CLASSES369 · Admin dashboard script
+ * -----------------------------------------------------------------------------
+ * Tổ chức code đồng bộ với folder templates/admin/sections theo 5 nhóm:
+ *   📊 DASHBOARD   → renderStats, renderCharts, renderOptions, renderAll, loadAll
+ *   🗂️ QUẢN LÝ    → renderStudents, renderTeachers, renderCourses,
+ *                    renderClasses, renderRooms, renderUsers
+ *   🎓 HỌC VỤ     → renderEnrollments, renderClassSchedules, renderScores
+ *   💰 TÀI CHÍNH  → renderTuitions + payment form
+ *   📢 THÔNG TIN  → renderNotifications
+ *
+ * Mỗi nhóm được đánh dấu bằng dải "═════" để dễ tìm khi sửa code.
+ * =========================================================================== */
+
+/* ┌─────────────────────────────────────────────────────────────────────────┐
+ * │ 0. Core: state, endpoints, helpers, messaging, modals utils             │
+ * └─────────────────────────────────────────────────────────────────────────┘
+ */
 const state = {
     summary: {},
     students: [],
@@ -202,6 +220,10 @@ function resetFormState(formId, titleId, baseTitle, submitText) {
     }
 }
 
+/* ════════════════════════════════════════════════════════════════════════════
+ * 📊 DASHBOARD — Thống kê tổng quan, biểu đồ
+ *    Template: templates/admin/sections/dashboard/statistics.html
+ * ════════════════════════════════════════════════════════════════════════════ */
 function renderStats() {
     var statsGrid = document.getElementById("statsGrid");
     if (!statsGrid) return;
@@ -245,6 +267,10 @@ function renderStats() {
     renderCharts();
 }
 
+/* ════════════════════════════════════════════════════════════════════════════
+ * 🗂️ QUẢN LÝ — Sinh viên · Giảng viên · Khóa học · Lớp học · Phòng · Tài khoản
+ *    Templates: templates/admin/sections/management/*.html
+ * ════════════════════════════════════════════════════════════════════════════ */
 function renderStudents() {
     var tbody = document.getElementById("studentsTableBody");
     tbody.innerHTML =
@@ -324,6 +350,11 @@ function renderRooms() {
             .join("") || '<tr><td colspan="3" class="empty">Chưa có phòng học.</td></tr>';
 }
 
+/* ════════════════════════════════════════════════════════════════════════════
+ * 🎓 HỌC VỤ — Ghi danh · Lịch học · Điểm số
+ *    Templates: templates/admin/sections/academic/*.html
+ *    (renderClassSchedules nằm ở cuối file - liên quan render lưới tuần)
+ * ════════════════════════════════════════════════════════════════════════════ */
 function renderEnrollments() {
     var tbody = document.getElementById("enrollmentsTableBody");
     tbody.innerHTML =
@@ -339,6 +370,10 @@ function renderEnrollments() {
             .join("") || '<tr><td colspan="5" class="empty">Chưa có ghi danh.</td></tr>';
 }
 
+/* ════════════════════════════════════════════════════════════════════════════
+ * 💰 TÀI CHÍNH — Học phí + payment form
+ *    Template: templates/admin/sections/finance/tuitions.html
+ * ════════════════════════════════════════════════════════════════════════════ */
 function renderTuitions() {
     var tbody = document.getElementById("tuitionsTableBody");
     tbody.innerHTML =
@@ -401,6 +436,10 @@ function renderTeachers() {
             .join("") || '<tr><td colspan="7" class="empty">Chưa có giảng viên.</td></tr>';
 }
 
+/* ════════════════════════════════════════════════════════════════════════════
+ * 📢 THÔNG TIN — Thông báo
+ *    Template: templates/admin/sections/info/notifications.html
+ * ════════════════════════════════════════════════════════════════════════════ */
 function renderNotifications() {
     var list = document.getElementById("notificationsList");
     list.innerHTML =
@@ -517,6 +556,10 @@ function renderOptions() {
     syncPaymentAmountLimit();
 }
 
+/* ════════════════════════════════════════════════════════════════════════════
+ * 🔁 ORCHESTRATION — renderAll / loadAll / bindForms / bindEdits / bindDeletes
+ *    Render toàn bộ section + bind handlers.
+ * ════════════════════════════════════════════════════════════════════════════ */
 function renderAll() {
     renderStats();
     renderStudents();
@@ -1142,13 +1185,16 @@ function bindNavigation() {
     var navItems = document.querySelectorAll(".sidebar-nav .nav-item");
     if (!navItems.length) return;
 
+    // Section mặc định khi user mở /dashboard không có hash.
+    // Khớp với cấu trúc sidebar mới: 📊 Dashboard → Thống kê (#statistics).
+    var DEFAULT_DASHBOARD_HASH = "#statistics";
+
     function normalizeDashboardHash(hash) {
-        var fallback = "#overview";
         if (!hash || !hash.startsWith("#")) {
-            return fallback;
+            return DEFAULT_DASHBOARD_HASH;
         }
         if (!document.querySelector(hash)) {
-            return fallback;
+            return DEFAULT_DASHBOARD_HASH;
         }
         return hash;
     }
@@ -1161,7 +1207,7 @@ function bindNavigation() {
     }
 
     function applyDashboardActiveState() {
-        var activeHash = normalizeDashboardHash(window.location.hash || "#overview");
+        var activeHash = normalizeDashboardHash(window.location.hash || DEFAULT_DASHBOARD_HASH);
 
         navItems.forEach(function (item) {
             var href = item.getAttribute("href") || "";
@@ -1169,6 +1215,14 @@ function bindNavigation() {
             item.classList.remove("active");
             if (itemHash && itemHash === activeHash) {
                 item.classList.add("active");
+            }
+        });
+
+        // Đồng bộ state collapsible nav group: mở group chứa item active
+        // (các group khác vẫn giữ trạng thái user đã chọn, không ép gập).
+        document.querySelectorAll(".sidebar-nav .nav-group").forEach(function (group) {
+            if (group.querySelector(".nav-item.active")) {
+                group.classList.add("open");
             }
         });
 
@@ -1194,7 +1248,7 @@ function bindNavigation() {
     });
 
     if (!window.location.hash || !document.querySelector(window.location.hash)) {
-        history.replaceState(null, "", "#overview");
+        history.replaceState(null, "", DEFAULT_DASHBOARD_HASH);
     }
 
     window.addEventListener("hashchange", applyDashboardActiveState);
@@ -1750,6 +1804,10 @@ function exportScheduleToExcel() {
     XLSX.writeFile(wb, fileName);
 }
 
+/* -----------------------------------------------------------------------------
+ * 🎓 HỌC VỤ > Lịch học — render lưới tuần 7:00-22:00 (class schedule grid)
+ *    Template: templates/admin/sections/academic/schedules.html
+ * --------------------------------------------------------------------------- */
 function renderClassSchedules() {
     var body = document.getElementById("class_schedulesCalendarBody");
     if (!body) return;
@@ -1831,6 +1889,10 @@ function renderClassSchedules() {
 // Quản lý biểu đồ
 var dashboardCharts = {};
 
+/* -----------------------------------------------------------------------------
+ * 📊 DASHBOARD > Thống kê — vẽ biểu đồ ghi danh + tài chính (Chart.js).
+ *    Template: templates/admin/sections/dashboard/statistics.html
+ * --------------------------------------------------------------------------- */
 function renderCharts() {
     if (typeof Chart === 'undefined') {
         console.warn("Chart.js is not loaded yet.");

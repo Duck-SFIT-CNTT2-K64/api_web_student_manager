@@ -1,0 +1,64 @@
+{#
+    Management > Students
+    CRUD form + students list table (dashboard.js → renderStudents).
+#}
+<section id="students" class="section">
+    <div class="section-heading">
+        <div>
+            <h2>Students</h2>
+            <p>Create student accounts and manage profiles linked with the Users table.</p>
+        </div>
+    </div>
+    <div class="grid form-and-table">
+        <div class="panel">
+            <h3 id="studentFormTitle">Add student</h3>
+            <form id="studentForm" class="form-grid">
+                <input type="hidden" name="EditId" value="">
+                <label>Full name <input name="FullName" required maxlength="100"></label>
+                <label>Email <input name="Email" type="email" required maxlength="100"></label>
+                <label>Phone number <input name="PhoneNumber" maxlength="15" pattern="[0-9]{10,15}"
+                        title="Digits only"></label>
+                <label>Date of birth <input name="DateOfBirth" type="date"></label>
+                <label>Gender
+                    <select name="Gender">
+                        <option value="">Select gender</option>
+                        <option value="Nam">Male</option>
+                        <option value="Nữ">Female</option>
+                        <option value="Khác">Other</option>
+                    </select>
+                </label>
+                <label>Address <textarea name="Address" rows="3"></textarea></label>
+                <div style="display:flex;gap:8px">
+                    <button class="btn btn-primary submit-btn" type="submit"><i class="fas fa-save"></i> <span>Save
+                            student</span></button>
+                    <button class="btn btn-outline cancel-btn" type="button" style="display:none"><i
+                            class="fas fa-times"></i> Cancel</button>
+                </div>
+            </form>
+            <p id="studentMessage" class="message"></p>
+        </div>
+        <div class="panel table-panel">
+            <div class="table-header">
+                <h3>Students list</h3>
+                <input id="studentSearch" class="search-input" placeholder="Search ID, name, email...">
+            </div>
+            <div class="table-wrap">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Student ID</th>
+                            <th>Full name</th>
+                            <th>Email</th>
+                            <th>Phone</th>
+                            <th>Status</th>
+                            <th>Account</th>
+                            <th>Actions</th>
+                            <th style="width:60px"></th>
+                        </tr>
+                    </thead>
+                    <tbody id="studentsTableBody"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</section>

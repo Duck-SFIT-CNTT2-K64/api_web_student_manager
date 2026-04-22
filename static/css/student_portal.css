@@ -2,7 +2,9 @@
     min-height: 100vh;
     display: flex;
     flex-direction: column;
-    font-family: "Be Vietnam Pro", "Segoe UI", sans-serif;
+    font-family: "Inter", "Segoe UI", system-ui, -apple-system, BlinkMacSystemFont, Roboto, "Helvetica Neue", Arial, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
     color: var(--ink);
     background:
         radial-gradient(circle at 4% 6%, rgba(60, 130, 208, 0.12), transparent 26%),
@@ -82,7 +84,7 @@
 
 .portal-hero h1 {
     margin: 0 0 8px;
-    font-family: "Exo 2", "Segoe UI", sans-serif;
+    font-family: "Space Grotesk", "Inter", "Segoe UI", sans-serif;
     font-size: clamp(1.7rem, 2.6vw, 2.4rem);
     line-height: 1.12;
 }
@@ -159,7 +161,7 @@
 .stat-card strong {
     font-size: 1.6rem;
     font-weight: 800;
-    font-family: "Exo 2", "Segoe UI", sans-serif;
+    font-family: "Space Grotesk", "Inter", "Segoe UI", sans-serif;
     color: #fff;
     line-height: 1;
 }
@@ -325,7 +327,7 @@
 
 .portal-panel-head h2 {
     margin: 0;
-    font-family: "Exo 2", "Segoe UI", sans-serif;
+    font-family: "Space Grotesk", "Inter", "Segoe UI", sans-serif;
     color: #153f72;
     font-size: clamp(1.4rem, 2vw, 1.85rem);
 }
@@ -376,7 +378,7 @@
 .portal-card-head h3 {
     margin: 0;
     font-size: 1rem;
-    font-family: "Exo 2", "Segoe UI", sans-serif;
+    font-family: "Space Grotesk", "Inter", "Segoe UI", sans-serif;
     color: #153f72;
     display: inline-flex;
     align-items: center;
@@ -685,7 +687,7 @@
 
 .portal-content-list article strong {
     color: #14406f;
-    font-family: "Exo 2", "Segoe UI", sans-serif;
+    font-family: "Space Grotesk", "Inter", "Segoe UI", sans-serif;
     display: block;
     margin-bottom: 4px;
 }
@@ -719,7 +721,7 @@
 .portal-warning h2 {
     margin: 0 0 8px;
     color: #8a4a0f;
-    font-family: "Exo 2", "Segoe UI", sans-serif;
+    font-family: "Space Grotesk", "Inter", "Segoe UI", sans-serif;
 }
 
 .portal-warning p {
@@ -827,7 +829,7 @@
 }
 
 .kpi-card strong {
-    font-family: "Exo 2", "Segoe UI", sans-serif;
+    font-family: "Space Grotesk", "Inter", "Segoe UI", sans-serif;
     font-size: 1.45rem;
     color: #14406f;
     line-height: 1;
@@ -878,7 +880,7 @@
     background: linear-gradient(135deg, #2d6fb1, #1b4f85);
     color: #fff;
     font-weight: 800;
-    font-family: "Exo 2", "Segoe UI", sans-serif;
+    font-family: "Space Grotesk", "Inter", "Segoe UI", sans-serif;
     font-size: 1.2rem;
     flex: 0 0 48px;
     box-shadow: 0 8px 14px rgba(14, 58, 106, 0.28);
@@ -932,7 +934,7 @@
     padding: 8px 10px;
     margin: -14px -16px 12px;
     border-radius: 14px 14px 0 0;
-    font-family: "Exo 2", "Segoe UI", sans-serif;
+    font-family: "Space Grotesk", "Inter", "Segoe UI", sans-serif;
     font-weight: 700;
     color: #fff;
 }
@@ -985,7 +987,7 @@
 
 .score-recent-list .recent-value {
     font-weight: 800;
-    font-family: "Exo 2", "Segoe UI", sans-serif;
+    font-family: "Space Grotesk", "Inter", "Segoe UI", sans-serif;
     padding: 3px 10px;
     border-radius: 8px;
     font-size: 0.88rem;
@@ -1022,7 +1024,7 @@
 .score-total-list dd {
     margin: 0;
     color: #14406f;
-    font-family: "Exo 2", "Segoe UI", sans-serif;
+    font-family: "Space Grotesk", "Inter", "Segoe UI", sans-serif;
     font-weight: 800;
     font-size: 0.98rem;
 }
@@ -1064,7 +1066,7 @@
 .semester-card-head h3 {
     margin: 0;
     font-size: 0.98rem;
-    font-family: "Exo 2", "Segoe UI", sans-serif;
+    font-family: "Space Grotesk", "Inter", "Segoe UI", sans-serif;
     display: inline-flex;
     align-items: center;
     gap: 8px;
@@ -1085,7 +1087,7 @@
 
 .semester-card-head .semester-meta strong {
     color: #103f73;
-    font-family: "Exo 2", "Segoe UI", sans-serif;
+    font-family: "Space Grotesk", "Inter", "Segoe UI", sans-serif;
 }
 
 .score-letter {
@@ -1093,7 +1095,7 @@
     padding: 2px 9px;
     border-radius: 8px;
     font-weight: 800;
-    font-family: "Exo 2", "Segoe UI", sans-serif;
+    font-family: "Space Grotesk", "Inter", "Segoe UI", sans-serif;
     font-size: 0.82rem;
     min-width: 32px;
     text-align: center;
@@ -1187,7 +1189,7 @@
 
 .register-toolbar-count strong {
     color: var(--accent-strong);
-    font-family: "Exo 2", "Segoe UI", sans-serif;
+    font-family: "Space Grotesk", "Inter", "Segoe UI", sans-serif;
     font-size: 1.15rem;
     margin-left: 6px;
 }
@@ -1256,7 +1258,7 @@
 
 .subject-card-head h3 {
     margin: 0 0 4px;
-    font-family: "Exo 2", "Segoe UI", sans-serif;
+    font-family: "Space Grotesk", "Inter", "Segoe UI", sans-serif;
     color: #14406f;
     font-size: 1.05rem;
     line-height: 1.18;
@@ -1296,7 +1298,7 @@
 .subject-class-code {
     font-weight: 800;
     color: #103f73;
-    font-family: "Exo 2", "Segoe UI", sans-serif;
+    font-family: "Space Grotesk", "Inter", "Segoe UI", sans-serif;
 }
 
 .subject-class-seats {
@@ -1332,7 +1334,7 @@
 .subject-card-footer .fee {
     color: var(--accent-strong);
     font-weight: 800;
-    font-family: "Exo 2", "Segoe UI", sans-serif;
+    font-family: "Space Grotesk", "Inter", "Segoe UI", sans-serif;
     font-size: 0.98rem;
 }
 
@@ -1408,7 +1410,7 @@
 .schedule-toolbar h3 {
     margin: 0 0 2px;
     color: #14406f;
-    font-family: "Exo 2", "Segoe UI", sans-serif;
+    font-family: "Space Grotesk", "Inter", "Segoe UI", sans-serif;
     font-size: 1.05rem;
 }
 
@@ -1538,7 +1540,7 @@
 
 .schedule-event strong {
     font-weight: 800;
-    font-family: "Exo 2", "Segoe UI", sans-serif;
+    font-family: "Space Grotesk", "Inter", "Segoe UI", sans-serif;
     font-size: 0.8rem;
 }
 
@@ -1587,7 +1589,7 @@
     justify-content: space-between;
     margin-bottom: 8px;
     color: #14406f;
-    font-family: "Exo 2", "Segoe UI", sans-serif;
+    font-family: "Space Grotesk", "Inter", "Segoe UI", sans-serif;
 }
 
 .mini-calendar-head strong {
@@ -1698,7 +1700,7 @@
 
 .schedule-list li strong {
     color: #14406f;
-    font-family: "Exo 2", "Segoe UI", sans-serif;
+    font-family: "Space Grotesk", "Inter", "Segoe UI", sans-serif;
     font-size: 0.9rem;
 }
 
@@ -1720,7 +1722,7 @@
 
 .tuition-summary-ident strong {
     display: block;
-    font-family: "Exo 2", "Segoe UI", sans-serif;
+    font-family: "Space Grotesk", "Inter", "Segoe UI", sans-serif;
     color: #14406f;
     font-size: 1rem;
 }
@@ -1776,7 +1778,7 @@
 }
 
 .tuition-stat strong {
-    font-family: "Exo 2", "Segoe UI", sans-serif;
+    font-family: "Space Grotesk", "Inter", "Segoe UI", sans-serif;
     font-size: 1.4rem;
     font-weight: 800;
     display: block;
@@ -1877,7 +1879,7 @@
 
 .portal-modal-head h3 {
     margin: 0;
-    font-family: "Exo 2", "Segoe UI", sans-serif;
+    font-family: "Space Grotesk", "Inter", "Segoe UI", sans-serif;
     font-size: 1.15rem;
 }
 
@@ -1987,3 +1989,603 @@
         display: none;
     }
 }
+
+/* =====================================================================
+   DARK THEME — Student Portal
+   Palette tokens (derived from landing.css)
+     --ink        : #e6edf8  (primary text)
+     --ink-soft   : #9aa8c0  (secondary text / labels)
+     --surface    : #121a2a  (card / panel background)
+     --surface-soft: #0f1a2a (subtle / alt background)
+     --line       : #1f2a3d  (borders / dividers)
+   Extra tokens used below:
+     --dk-surface-2: #162338 (hover / nested surface)
+     --dk-surface-3: #0f1829 (input / deeper layer)
+     --dk-text     : #e6edf8
+     --dk-text-2   : #c9d4e6 (slightly dimmed body text)
+     --dk-text-3   : #9aa8c0 (muted / captions)
+     --dk-text-4   : #6b7a93 (disabled / extra-muted)
+     --dk-accent   : #6f8dff (primary link / accent)
+     --dk-accent-2 : #8aa3ff (accent hover)
+   ===================================================================== */
+html[data-theme="dark"] {
+    --dk-surface-2: #162338;
+    --dk-surface-3: #0f1829;
+    --dk-text: #e6edf8;
+    --dk-text-2: #c9d4e6;
+    --dk-text-3: #9aa8c0;
+    --dk-text-4: #6b7a93;
+    --dk-accent: #6f8dff;
+    --dk-accent-2: #8aa3ff;
+}
+
+/* ---------- Page shell ---------- */
+html[data-theme="dark"] .portal-body,
+html[data-theme="dark"] body.portal-body {
+    background:
+        radial-gradient(circle at 5% 8%, rgba(111, 141, 255, 0.14), transparent 26%),
+        radial-gradient(circle at 92% 20%, rgba(251, 191, 36, 0.06), transparent 30%),
+        linear-gradient(180deg, #0a1220 0%, #0e1828 46%, #0a1322 100%);
+    color: var(--dk-text);
+}
+
+/* Hero keeps its vivid blue gradient but tuned slightly darker */
+html[data-theme="dark"] .portal-hero {
+    background:
+        radial-gradient(circle at 10% 10%, rgba(255, 255, 255, 0.1), transparent 30%),
+        radial-gradient(circle at 90% 110%, rgba(255, 157, 29, 0.18), transparent 35%),
+        linear-gradient(130deg, #0b355f 0%, #134879 48%, #1a5ea8 100%);
+    box-shadow: 0 18px 34px rgba(0, 0, 0, 0.45);
+}
+
+/* ---------- Generic surface: sidebar, panel head, card, modal ---------- */
+html[data-theme="dark"] .portal-sidebar,
+html[data-theme="dark"] .portal-panel-head,
+html[data-theme="dark"] .portal-card,
+html[data-theme="dark"] .kpi-card,
+html[data-theme="dark"] .semester-card,
+html[data-theme="dark"] .subject-card,
+html[data-theme="dark"] .schedule-card,
+html[data-theme="dark"] .portal-modal-dialog {
+    background: var(--surface);
+    color: var(--dk-text);
+    border-color: var(--line);
+    box-shadow: 0 10px 26px rgba(0, 0, 0, 0.45);
+}
+
+/* Dashed / dotted separators inside cards */
+html[data-theme="dark"] .portal-card-head,
+html[data-theme="dark"] .portal-card-footer,
+html[data-theme="dark"] .subject-card-head,
+html[data-theme="dark"] .subject-card-footer,
+html[data-theme="dark"] .info-list li,
+html[data-theme="dark"] .modal-info-grid dd {
+    border-color: var(--line);
+}
+
+/* ---------- Sidebar ---------- */
+html[data-theme="dark"] .portal-sidebar-title { color: var(--dk-text-3); }
+html[data-theme="dark"] .portal-nav a {
+    color: var(--dk-text-2);
+    background: transparent;
+}
+html[data-theme="dark"] .portal-nav a i { color: var(--dk-text-3); }
+html[data-theme="dark"] .portal-nav a:hover {
+    background: rgba(111, 141, 255, 0.1);
+    color: #ffffff;
+}
+html[data-theme="dark"] .portal-nav a:hover i { color: var(--dk-accent-2); }
+html[data-theme="dark"] .portal-nav a.is-active {
+    background: linear-gradient(120deg, #3a5fd0, #2746a8);
+    color: #ffffff;
+    box-shadow: 0 10px 22px rgba(20, 38, 96, 0.5);
+}
+html[data-theme="dark"] .portal-nav a.is-active i { color: #ffffff; }
+
+/* Sidebar "Need help" block stays warm but softened */
+html[data-theme="dark"] .portal-sidebar-help {
+    background: linear-gradient(135deg, rgba(255, 157, 29, 0.18), rgba(255, 122, 0, 0.12));
+    border-color: rgba(251, 191, 36, 0.3);
+    color: #fbe4b4;
+}
+html[data-theme="dark"] .portal-sidebar-help strong { color: #ffe2b3; }
+html[data-theme="dark"] .portal-sidebar-help p { color: #f0cf9a; }
+html[data-theme="dark"] .portal-sidebar-help span { color: #ffd58f; }
+
+/* ---------- Panel head ---------- */
+html[data-theme="dark"] .portal-panel-head h2 { color: var(--dk-text); }
+html[data-theme="dark"] .portal-readonly-note {
+    background: rgba(111, 141, 255, 0.12);
+    color: var(--dk-accent-2);
+    border-color: rgba(111, 141, 255, 0.3);
+}
+html[data-theme="dark"] .portal-card-badge {
+    background: rgba(111, 141, 255, 0.12);
+    color: var(--dk-accent-2);
+    border-color: rgba(111, 141, 255, 0.3);
+}
+
+/* ---------- Card headings & links ---------- */
+html[data-theme="dark"] .portal-card-head h3,
+html[data-theme="dark"] .subject-card-head h3,
+html[data-theme="dark"] .schedule-toolbar h3,
+html[data-theme="dark"] .mini-calendar-head,
+html[data-theme="dark"] .mini-calendar-head strong,
+html[data-theme="dark"] .score-profile-head strong,
+html[data-theme="dark"] .semester-card-head h3 { color: var(--dk-text); }
+html[data-theme="dark"] .portal-card-head h3 i,
+html[data-theme="dark"] .semester-card-head h3 i { color: var(--dk-accent-2); }
+html[data-theme="dark"] .portal-link { color: var(--dk-accent); }
+html[data-theme="dark"] .portal-link:hover { color: var(--dk-accent-2); }
+
+/* ---------- Info lists ---------- */
+html[data-theme="dark"] .info-list span { color: var(--dk-text-3); }
+html[data-theme="dark"] .info-list strong { color: var(--dk-text); }
+html[data-theme="dark"] .portal-tile {
+    background: var(--dk-surface-3);
+    border-color: var(--line);
+    color: var(--dk-text);
+}
+html[data-theme="dark"] .portal-tile:hover {
+    background: var(--dk-surface-2);
+    border-color: rgba(111, 141, 255, 0.4);
+    box-shadow: 0 12px 24px rgba(0, 0, 0, 0.45);
+}
+
+/* ---------- Chips ---------- */
+html[data-theme="dark"] .portal-chip {
+    background: rgba(111, 141, 255, 0.14);
+    color: var(--dk-accent-2);
+    border-color: rgba(111, 141, 255, 0.32);
+}
+html[data-theme="dark"] .portal-chip.chip-green {
+    background: rgba(52, 211, 153, 0.15);
+    color: #6ee7b7;
+    border-color: rgba(52, 211, 153, 0.36);
+}
+html[data-theme="dark"] .portal-chip.chip-yellow {
+    background: rgba(251, 191, 36, 0.14);
+    color: #fcd34d;
+    border-color: rgba(251, 191, 36, 0.36);
+}
+html[data-theme="dark"] .portal-chip.chip-red {
+    background: rgba(248, 113, 113, 0.15);
+    color: #fca5a5;
+    border-color: rgba(248, 113, 113, 0.36);
+}
+
+/* ---------- Tables ---------- */
+html[data-theme="dark"] .portal-table thead th {
+    background: var(--dk-surface-3) !important;
+    color: var(--dk-text-3) !important;
+    border-bottom-color: var(--line) !important;
+}
+html[data-theme="dark"] .portal-table tbody td {
+    color: var(--dk-text-2);
+    border-bottom-color: var(--line);
+}
+html[data-theme="dark"] .portal-table tbody tr:hover td {
+    background: rgba(111, 141, 255, 0.06);
+}
+html[data-theme="dark"] .portal-table td strong { color: var(--dk-text); }
+html[data-theme="dark"] .portal-table td small { color: var(--dk-text-3); }
+html[data-theme="dark"] .portal-table .empty { color: var(--dk-text-3); }
+
+/* ---------- Forms ---------- */
+html[data-theme="dark"] .portal-form label,
+html[data-theme="dark"] .register-toolbar-filters label { color: var(--dk-text-2); }
+html[data-theme="dark"] .portal-form input,
+html[data-theme="dark"] .portal-form select,
+html[data-theme="dark"] .register-toolbar-filters input,
+html[data-theme="dark"] .register-toolbar-filters select {
+    background: var(--dk-surface-3);
+    color: var(--dk-text);
+    border-color: var(--line);
+}
+html[data-theme="dark"] .portal-form input::placeholder,
+html[data-theme="dark"] .register-toolbar-filters input::placeholder { color: var(--dk-text-4); }
+html[data-theme="dark"] .portal-form input:focus,
+html[data-theme="dark"] .portal-form select:focus,
+html[data-theme="dark"] .register-toolbar-filters input:focus,
+html[data-theme="dark"] .register-toolbar-filters select:focus {
+    background: #122036;
+    border-color: var(--dk-accent);
+    box-shadow: 0 0 0 3px rgba(111, 141, 255, 0.22);
+}
+html[data-theme="dark"] .register-toolbar-count { color: var(--dk-text-3); }
+html[data-theme="dark"] .register-toolbar-count strong { color: #fdba74; }
+
+html[data-theme="dark"] .portal-message { color: var(--dk-text-2); }
+html[data-theme="dark"] .portal-message.success {
+    background: rgba(52, 211, 153, 0.12);
+    color: #6ee7b7;
+    border-color: rgba(52, 211, 153, 0.32);
+}
+html[data-theme="dark"] .portal-message.error {
+    background: rgba(248, 113, 113, 0.12);
+    color: #fca5a5;
+    border-color: rgba(248, 113, 113, 0.32);
+}
+
+/* ---------- Hints / content list ---------- */
+html[data-theme="dark"] .portal-hints li {
+    background: var(--dk-surface-3);
+    border-color: var(--line);
+    color: var(--dk-text-2);
+}
+html[data-theme="dark"] .portal-hints li a { color: var(--dk-accent-2); }
+html[data-theme="dark"] .portal-content-list article {
+    background: var(--dk-surface-3);
+    border-color: var(--line);
+}
+html[data-theme="dark"] .portal-content-list article strong { color: var(--dk-text); }
+html[data-theme="dark"] .portal-content-list article p { color: var(--dk-text-3); }
+html[data-theme="dark"] .portal-content-list article span { color: var(--dk-text-4); }
+
+/* ---------- Sub-tabs ---------- */
+html[data-theme="dark"] .portal-subtabs {
+    background: var(--dk-surface-3);
+    border-color: var(--line);
+}
+html[data-theme="dark"] .portal-subtabs button { color: var(--dk-text-3); }
+html[data-theme="dark"] .portal-subtabs button:hover {
+    background: var(--dk-surface-2);
+    color: var(--dk-text);
+}
+html[data-theme="dark"] .portal-subtabs button.is-active {
+    background: linear-gradient(120deg, #ff9d1d, #ff7a00);
+    color: #ffffff;
+    box-shadow: 0 8px 16px rgba(255, 122, 0, 0.35);
+}
+
+/* ---------- KPI cards ---------- */
+html[data-theme="dark"] .kpi-card p { color: var(--dk-text-3); }
+html[data-theme="dark"] .kpi-card strong { color: var(--dk-text); }
+
+/* ---------- Score (Grades) layout ---------- */
+html[data-theme="dark"] .score-profile-card {
+    background: linear-gradient(145deg, #13213a 0%, #101a2c 100%);
+    border-color: var(--line);
+}
+html[data-theme="dark"] .score-profile-head { border-bottom-color: var(--line); }
+html[data-theme="dark"] .score-profile-head small { color: var(--dk-accent-2); }
+html[data-theme="dark"] .score-profile-list { color: var(--dk-text-2); }
+html[data-theme="dark"] .score-profile-list i { color: var(--dk-accent); }
+html[data-theme="dark"] .score-recent-list li {
+    background: var(--dk-surface-3);
+    border-color: var(--line);
+}
+html[data-theme="dark"] .score-recent-list li.empty {
+    color: var(--dk-text-3);
+    border-color: var(--line);
+    background: transparent;
+}
+html[data-theme="dark"] .score-recent-list .recent-name { color: var(--dk-text-2); }
+html[data-theme="dark"] .score-recent-list .recent-value {
+    background: #2746a8;
+    color: #ffffff;
+}
+html[data-theme="dark"] .score-total-list > div {
+    background: var(--dk-surface-3);
+    border-color: var(--line);
+}
+html[data-theme="dark"] .score-total-list dt { color: var(--dk-text-3); }
+html[data-theme="dark"] .score-total-list dd { color: var(--dk-text); }
+html[data-theme="dark"] .semester-card-head {
+    background: linear-gradient(120deg, #15223a, #0f1a2f);
+    border-bottom-color: var(--line);
+    color: var(--dk-text);
+}
+html[data-theme="dark"] .semester-card-head .semester-meta { color: var(--dk-text-3); }
+html[data-theme="dark"] .semester-card-head .semester-meta strong { color: var(--dk-text); }
+html[data-theme="dark"] .score-judge.judge-ok {
+    background: rgba(52, 211, 153, 0.14);
+    color: #6ee7b7;
+    border-color: rgba(52, 211, 153, 0.34);
+}
+html[data-theme="dark"] .score-judge.judge-fail {
+    background: rgba(248, 113, 113, 0.14);
+    color: #fca5a5;
+    border-color: rgba(248, 113, 113, 0.34);
+}
+html[data-theme="dark"] .score-judge.judge-pending {
+    background: rgba(111, 141, 255, 0.12);
+    color: var(--dk-accent-2);
+    border-color: rgba(111, 141, 255, 0.3);
+}
+
+/* ---------- Subject cards (course register / my enrollments) ---------- */
+html[data-theme="dark"] .subject-card { box-shadow: 0 10px 22px rgba(0, 0, 0, 0.45); }
+html[data-theme="dark"] .subject-card-head small { color: var(--dk-text-3); }
+html[data-theme="dark"] .subject-card-tag {
+    background: rgba(111, 141, 255, 0.14);
+    color: var(--dk-accent-2);
+    border-color: rgba(111, 141, 255, 0.3);
+}
+html[data-theme="dark"] .subject-class {
+    background: var(--dk-surface-3);
+    border-color: var(--line);
+}
+html[data-theme="dark"] .subject-class-code { color: var(--dk-text); }
+html[data-theme="dark"] .subject-class-seats { color: var(--dk-text-3); }
+html[data-theme="dark"] .subject-class-meta { color: var(--dk-text-3); }
+html[data-theme="dark"] .subject-class-meta i { color: var(--dk-accent); }
+html[data-theme="dark"] .subject-card-footer {
+    background: var(--dk-surface-3);
+    border-top-color: var(--line);
+}
+html[data-theme="dark"] .subject-card-footer .fee { color: #fdba74; }
+html[data-theme="dark"] .subject-status {
+    background: rgba(111, 141, 255, 0.14);
+    color: var(--dk-accent-2);
+    border-color: rgba(111, 141, 255, 0.3);
+}
+html[data-theme="dark"] .subject-status.is-enrolled {
+    background: rgba(52, 211, 153, 0.16);
+    color: #6ee7b7;
+    border-color: rgba(52, 211, 153, 0.36);
+}
+html[data-theme="dark"] .subject-status.is-pending {
+    background: rgba(251, 191, 36, 0.14);
+    color: #fcd34d;
+    border-color: rgba(251, 191, 36, 0.36);
+}
+html[data-theme="dark"] .subject-status.is-dropped {
+    background: rgba(248, 113, 113, 0.14);
+    color: #fca5a5;
+    border-color: rgba(248, 113, 113, 0.36);
+}
+html[data-theme="dark"] .subject-grid > .empty {
+    background: var(--surface);
+    border-color: var(--line);
+    color: var(--dk-text-3);
+}
+
+/* ---------- Schedule (week grid + mini cal + list) ---------- */
+html[data-theme="dark"] .schedule-toolbar {
+    background: linear-gradient(120deg, #121e34, #0e1828);
+    border-bottom-color: var(--line);
+}
+html[data-theme="dark"] .schedule-toolbar p { color: var(--dk-text-3); }
+html[data-theme="dark"] .schedule-nav-arrow {
+    background: var(--dk-surface-3);
+    color: var(--dk-text);
+    border-color: var(--line);
+}
+html[data-theme="dark"] .schedule-nav-arrow:hover {
+    background: linear-gradient(120deg, #ff9d1d, #ff7a00);
+    color: #fff;
+    border-color: transparent;
+}
+html[data-theme="dark"] .schedule-grid { background: var(--surface); }
+html[data-theme="dark"] .schedule-day-head {
+    background: var(--dk-surface-3);
+    color: var(--dk-text-2);
+    border-bottom-color: var(--line);
+    border-left-color: var(--line);
+}
+html[data-theme="dark"] .schedule-day-head small { color: var(--dk-text-3); }
+html[data-theme="dark"] .schedule-day-head.is-today {
+    background: linear-gradient(120deg, #ff9d1d, #ff7a00);
+    color: #fff;
+}
+html[data-theme="dark"] .schedule-day-head.is-today small { color: rgba(255, 255, 255, 0.9); }
+html[data-theme="dark"] .schedule-corner {
+    background: var(--dk-surface-3);
+    border-bottom-color: var(--line);
+}
+html[data-theme="dark"] .schedule-time-cell {
+    background: var(--dk-surface-3);
+    color: var(--dk-text-3);
+    border-bottom-color: var(--line);
+}
+html[data-theme="dark"] .schedule-slot {
+    border-bottom-color: var(--line);
+    border-left-color: var(--line);
+}
+html[data-theme="dark"] .schedule-slot.is-today { background: rgba(255, 157, 29, 0.08); }
+html[data-theme="dark"] .schedule-empty { color: var(--dk-text-3); }
+
+html[data-theme="dark"] .mini-cal-label { color: var(--dk-text-3); }
+html[data-theme="dark"] .mini-cal-day { color: var(--dk-text-2); }
+html[data-theme="dark"] .mini-cal-day.is-out { color: var(--dk-text-4); }
+html[data-theme="dark"] .mini-cal-day:hover { background: rgba(111, 141, 255, 0.14); }
+html[data-theme="dark"] .mini-cal-day.is-today {
+    background: linear-gradient(120deg, #ff9d1d, #ff7a00);
+    color: #fff;
+}
+html[data-theme="dark"] .mini-cal-day.is-selected { outline-color: var(--dk-accent); }
+html[data-theme="dark"] .schedule-list li {
+    background: var(--dk-surface-3);
+    border-color: var(--line);
+}
+html[data-theme="dark"] .schedule-list li.empty {
+    background: transparent;
+    color: var(--dk-text-3);
+}
+html[data-theme="dark"] .schedule-list li strong { color: var(--dk-text); }
+html[data-theme="dark"] .schedule-list li span { color: var(--dk-text-3); }
+
+/* ---------- Tuition ---------- */
+html[data-theme="dark"] .tuition-summary-card {
+    background: linear-gradient(120deg, #13213a, #0f1a2c);
+}
+html[data-theme="dark"] .tuition-summary-ident strong { color: var(--dk-text); }
+html[data-theme="dark"] .tuition-summary-ident span { color: var(--dk-text-3); }
+
+/* ---------- Payment guide ---------- */
+html[data-theme="dark"] .payment-guide-box {
+    background: var(--dk-surface-3);
+    border-color: var(--line);
+    color: var(--dk-text-2);
+}
+html[data-theme="dark"] .payment-guide-box code {
+    background: var(--surface);
+    border-color: var(--line);
+    color: var(--dk-text);
+}
+
+/* ---------- Modal ---------- */
+html[data-theme="dark"] .portal-modal-backdrop { background: rgba(2, 8, 20, 0.72); }
+html[data-theme="dark"] .portal-modal-dialog {
+    box-shadow: 0 28px 56px rgba(0, 0, 0, 0.6);
+}
+html[data-theme="dark"] .portal-modal-head {
+    background: linear-gradient(120deg, #1e3a7a, #132855);
+}
+html[data-theme="dark"] .portal-modal-body { color: var(--dk-text-2); }
+html[data-theme="dark"] .modal-info-grid dt { color: var(--dk-text-3); }
+html[data-theme="dark"] .modal-info-grid dd { color: var(--dk-text); }
+
+/* ---------- Warning block ---------- */
+html[data-theme="dark"] .portal-warning {
+    background: linear-gradient(135deg, rgba(255, 157, 29, 0.18), rgba(255, 122, 0, 0.1));
+    border-color: rgba(251, 191, 36, 0.3);
+    color: #fbe4b4;
+}
+html[data-theme="dark"] .portal-warning i { color: #fdba74; }
+html[data-theme="dark"] .portal-warning h2 { color: #ffe2b3; }
+html[data-theme="dark"] .portal-warning p { color: #f0cf9a; }
+
+/* =====================================================================
+   Dark theme — Global contrast hardening
+   Forces readable text on every portal surface to make sure nothing falls
+   back to a dark navy (#14406f, #2d557d…) color inherited from light mode.
+   ===================================================================== */
+html[data-theme="dark"] .portal-card,
+html[data-theme="dark"] .subject-card,
+html[data-theme="dark"] .semester-card,
+html[data-theme="dark"] .score-profile-card,
+html[data-theme="dark"] .schedule-card,
+html[data-theme="dark"] .kpi-card,
+html[data-theme="dark"] .tuition-summary-card {
+    color: var(--dk-text-2) !important;
+}
+html[data-theme="dark"] .portal-card h1,
+html[data-theme="dark"] .portal-card h2,
+html[data-theme="dark"] .portal-card h3,
+html[data-theme="dark"] .portal-card h4,
+html[data-theme="dark"] .subject-card h1,
+html[data-theme="dark"] .subject-card h2,
+html[data-theme="dark"] .subject-card h3,
+html[data-theme="dark"] .subject-card h4,
+html[data-theme="dark"] .semester-card h1,
+html[data-theme="dark"] .semester-card h2,
+html[data-theme="dark"] .semester-card h3,
+html[data-theme="dark"] .semester-card h4,
+html[data-theme="dark"] .score-profile-card h1,
+html[data-theme="dark"] .score-profile-card h2,
+html[data-theme="dark"] .score-profile-card h3,
+html[data-theme="dark"] .score-profile-card h4,
+html[data-theme="dark"] .tuition-summary-card h1,
+html[data-theme="dark"] .tuition-summary-card h2,
+html[data-theme="dark"] .tuition-summary-card h3,
+html[data-theme="dark"] .tuition-summary-card h4 { color: var(--dk-text) !important; }
+
+html[data-theme="dark"] .portal-card strong,
+html[data-theme="dark"] .subject-card strong,
+html[data-theme="dark"] .semester-card strong,
+html[data-theme="dark"] .score-profile-card strong,
+html[data-theme="dark"] .kpi-card strong,
+html[data-theme="dark"] .schedule-card strong,
+html[data-theme="dark"] .tuition-summary-card strong { color: var(--dk-text) !important; }
+
+html[data-theme="dark"] .portal-card p,
+html[data-theme="dark"] .portal-card li,
+html[data-theme="dark"] .portal-card dd,
+html[data-theme="dark"] .subject-card p,
+html[data-theme="dark"] .subject-card li,
+html[data-theme="dark"] .semester-card p,
+html[data-theme="dark"] .semester-card li,
+html[data-theme="dark"] .tuition-summary-card p,
+html[data-theme="dark"] .tuition-summary-card li { color: var(--dk-text-2); }
+
+/* Inline labels (dt / span) stay muted but readable */
+html[data-theme="dark"] .portal-card span:not(.portal-chip):not(.subject-card-tag):not(.subject-status):not(.score-judge):not(.portal-card-badge),
+html[data-theme="dark"] .portal-card dt,
+html[data-theme="dark"] .subject-card dt,
+html[data-theme="dark"] .semester-card dt { color: var(--dk-text-3); }
+
+/* Status chips often have hardcoded text — keep them legible */
+html[data-theme="dark"] .portal-chip { color: inherit; }
+html[data-theme="dark"] .portal-chip.chip-green strong,
+html[data-theme="dark"] .portal-chip.chip-yellow strong,
+html[data-theme="dark"] .portal-chip.chip-red strong { color: inherit !important; }
+
+/* Sidebar — boost overall contrast */
+html[data-theme="dark"] .portal-sidebar { color: var(--dk-text-2); }
+html[data-theme="dark"] .portal-sidebar p,
+html[data-theme="dark"] .portal-sidebar span,
+html[data-theme="dark"] .portal-sidebar small { color: inherit; }
+
+/* Generic empty placeholder (class="empty") — make sure the dim text stays visible on dark */
+html[data-theme="dark"] .empty,
+html[data-theme="dark"] p.empty,
+html[data-theme="dark"] td.empty,
+html[data-theme="dark"] li.empty,
+html[data-theme="dark"] .portal-card .empty,
+html[data-theme="dark"] .portal-table .empty {
+    color: var(--dk-text-3) !important;
+    background: transparent;
+}
+html[data-theme="dark"] .portal-card > p.empty {
+    background: var(--dk-surface-3);
+    border: 1px dashed var(--line);
+    border-radius: 12px;
+    padding: 18px;
+    text-align: center;
+}
+
+/* Course-register toolbar (class count strip) */
+html[data-theme="dark"] .register-toolbar,
+html[data-theme="dark"] .register-toolbar-filters {
+    background: transparent;
+    color: var(--dk-text-2);
+}
+html[data-theme="dark"] .register-toolbar > div { color: var(--dk-text-3); }
+
+/* Sub-navigation (Transcript / Failed courses / Knowledge blocks / Alerts) */
+html[data-theme="dark"] .score-tabs,
+html[data-theme="dark"] .portal-tabs {
+    background: var(--dk-surface-3);
+    border-color: var(--line);
+}
+html[data-theme="dark"] .score-tabs button,
+html[data-theme="dark"] .portal-tabs button { color: var(--dk-text-3); }
+html[data-theme="dark"] .score-tabs button:hover,
+html[data-theme="dark"] .portal-tabs button:hover { color: var(--dk-text); background: rgba(111, 141, 255, 0.1); }
+html[data-theme="dark"] .score-tabs button.is-active,
+html[data-theme="dark"] .portal-tabs button.is-active,
+html[data-theme="dark"] .score-tabs button.active,
+html[data-theme="dark"] .portal-tabs button.active {
+    background: linear-gradient(120deg, #3a5fd0, #2746a8);
+    color: #ffffff;
+    box-shadow: 0 8px 18px rgba(20, 38, 96, 0.45);
+}
+
+/* Semester card table rows */
+html[data-theme="dark"] .semester-card .portal-table tbody td { color: var(--dk-text-2) !important; }
+html[data-theme="dark"] .semester-card .portal-table tbody td strong { color: var(--dk-text) !important; }
+
+/* "Failed / outstanding courses" block + Totals block on grades page */
+html[data-theme="dark"] .score-fail-card,
+html[data-theme="dark"] .score-knowledge-card,
+html[data-theme="dark"] .score-total-card,
+html[data-theme="dark"] .score-alert-card {
+    background: var(--surface);
+    color: var(--dk-text-2);
+    border-color: var(--line);
+}
+html[data-theme="dark"] .score-fail-card h2,
+html[data-theme="dark"] .score-fail-card h3,
+html[data-theme="dark"] .score-knowledge-card h2,
+html[data-theme="dark"] .score-knowledge-card h3,
+html[data-theme="dark"] .score-total-card h2,
+html[data-theme="dark"] .score-total-card h3,
+html[data-theme="dark"] .score-alert-card h2,
+html[data-theme="dark"] .score-alert-card h3 { color: var(--dk-text); }
+
+/* Enrolled badge override when text stays dark */
+html[data-theme="dark"] .subject-status.is-enrolled,
+html[data-theme="dark"] .subject-status.is-enrolled * { color: #6ee7b7 !important; }
+

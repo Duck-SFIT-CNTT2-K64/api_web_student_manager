@@ -1,15 +1,65 @@
 <!DOCTYPE html>
-<html lang="vi">
+<html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}CLASSES369{% endblock %}</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="stylesheet"
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;600;700&display=swap">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/auth.css') }}">
+    <script>
+        (function () {
+            try {
+                var t = localStorage.getItem('classes369_theme');
+                if (!t) {
+                    t = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+                }
+                document.documentElement.setAttribute('data-theme', t);
+                document.documentElement.style.colorScheme = t;
+            } catch (e) { }
+        })();
+    </script>
     {% block extra_css %}{% endblock %}
 </head>
+
 <body>
-    <div class="auth-bg" aria-hidden="true"></div>
-    {% block content %}{% endblock %}
+    <header class="auth-topbar">
+        <a class="auth-topbar-brand" href="/">
+            <span class="auth-topbar-logo">
+                <i class="fas fa-graduation-cap"></i>
+            </span>
+            <span class="auth-topbar-brand-text">
+                <strong>CLASSES369</strong>
+                <small>Applied Computer Training Center</small>
+            </span>
+        </a>
+        <div class="auth-topbar-right">
+            <p class="auth-topbar-tagline">
+                <span class="auth-topbar-tag-label">LEARNING &amp; MANAGEMENT PLATFORM</span>
+            </p>
+            <button type="button" class="theme-toggle" data-theme-toggle
+                    title="Toggle theme" aria-label="Toggle theme" aria-pressed="false">
+                <i class="fas fa-moon" data-theme-icon></i>
+            </button>
+        </div>
+    </header>
+
+    <main class="auth-main">
+        {% block content %}{% endblock %}
+    </main>
+
+    <footer class="auth-footer-bar">
+        <p><strong>CLASSES369</strong> &mdash; Computer training center management system</p>
+        <p>Online support: <a href="tel:0901234369">0901 234 369</a>
+            &middot; <a href="mailto:hello@classes369.vn">hello@classes369.vn</a>
+            &middot; <a href="/">Back to homepage</a></p>
+    </footer>
+
+    <script src="{{ url_for('static', filename='js/theme.js') }}"></script>
 </body>
+
 </html>

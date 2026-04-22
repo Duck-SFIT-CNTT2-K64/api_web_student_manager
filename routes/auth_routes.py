@@ -92,13 +92,13 @@ def register_submit():
     confirm_password = payload["confirm_password"]
 
     if not full_name or not email or not password or not confirm_password:
-        message = "Vui lòng điền đầy đủ họ tên, email, mật khẩu và xác nhận mật khẩu."
+        message = "Please fill in your full name, email, password and confirm password."
         if request.is_json:
             return jsonify({"success": False, "error": message}), 400
         return render_template("register.html", error=message, form_data=payload), 400
 
     if password != confirm_password:
-        message = "Mật khẩu xác nhận không khớp."
+        message = "Password confirmation does not match."
         if request.is_json:
             return jsonify({"success": False, "error": message}), 400
         return render_template("register.html", error=message, form_data=payload), 400
@@ -119,7 +119,7 @@ def register_submit():
             return jsonify({"success": False, "error": str(exc)}), 400
         return render_template("register.html", error=str(exc), form_data=payload), 400
     except Exception:
-        message = "Đăng ký thất bại. Vui lòng thử lại sau."
+        message = "Registration failed. Please try again later."
         if request.is_json:
             return jsonify({"success": False, "error": message}), 500
         return render_template("register.html", error=message, form_data=payload), 500
@@ -128,7 +128,7 @@ def register_submit():
         return jsonify(
             {
                 "success": True,
-                "message": "Đăng ký thành công. Tài khoản mặc định role Student.",
+                "message": "Registration successful. New accounts default to the Student role.",
                 "data": {
                     "student": created_student,
                     "redirectPath": "/login",
@@ -136,7 +136,7 @@ def register_submit():
             }
         ), 201
 
-    return redirect(url_for("auth.login_page", success="Đăng ký thành công. Vui lòng đăng nhập."))
+    return redirect(url_for("auth.login_page", success="Registration successful. Please sign in."))
 
 
 @auth_bp.post("/login")
@@ -149,7 +149,7 @@ def login_submit():
             return jsonify({"success": False, "error": "Username/email and password are required."}), 400
         return render_template(
             "login.html",
-            error="Vui lòng nhập tên đăng nhập/email và mật khẩu.",
+            error="Please enter your username/email and password.",
             next_path=next_path,
         ), 400
 
@@ -159,7 +159,7 @@ def login_submit():
             return jsonify({"success": False, "error": "Invalid credentials or inactive account."}), 401
         return render_template(
             "login.html",
-            error="Sai thông tin đăng nhập hoặc tài khoản bị khóa.",
+            error="Invalid credentials or the account has been locked.",
             next_path=next_path,
         ), 401
 

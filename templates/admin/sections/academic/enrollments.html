@@ -1,0 +1,41 @@
+{#
+    Academic > Enrollment
+    Enrollment form + enrollments list table (dashboard.js → renderEnrollments).
+#}
+<section id="enrollments" class="section">
+    <div class="section-heading">
+        <div>
+            <h2>Enrollment</h2>
+            <p>Enroll students into classes and automatically create the corresponding tuition records.</p>
+        </div>
+    </div>
+    <div class="grid form-and-table">
+        <div class="panel">
+            <h3>New enrollment</h3>
+            <form id="enrollmentForm" class="form-grid">
+                <label>Student <select name="StudentId" id="enrollmentStudentSelect" required></select></label>
+                <label>Class <select name="ClassId" id="enrollmentClassSelect" required></select></label>
+                <label>Status <input name="Status" value="Enrolled"></label>
+                <button class="btn btn-primary" type="submit"><i class="fas fa-user-plus"></i> Enroll</button>
+            </form>
+            <p id="enrollmentMessage" class="message"></p>
+        </div>
+        <div class="panel table-panel">
+            <h3>Enrollments list</h3>
+            <div class="table-wrap">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Student</th>
+                            <th>Class</th>
+                            <th>Course</th>
+                            <th>Enrollment date</th>
+                            <th>Tuition</th>
+                        </tr>
+                    </thead>
+                    <tbody id="enrollmentsTableBody"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</section>

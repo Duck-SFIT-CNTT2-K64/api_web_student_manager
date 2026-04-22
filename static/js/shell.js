@@ -30,6 +30,59 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     });
 
+    /* ──────────────────────────────────────────────────────────
+       Collapsible nav groups (admin sidebar)
+       - Bấm .nav-group-header → toggle class `open` trên .nav-group
+       - State mỗi group lưu vào localStorage theo data-group
+       - Nhóm chứa item active sẽ luôn tự mở khi load page
+       ────────────────────────────────────────────────────────── */
+    var NAV_STATE_KEY = 'adminNavGroupState_v1';
+
+    function loadNavGroupState() {
+        try {
+            return JSON.parse(localStorage.getItem(NAV_STATE_KEY) || '{}') || {};
+        } catch (e) {
+            return {};
+        }
+    }
+
+    function saveNavGroupState(state) {
+        try {
+            localStorage.setItem(NAV_STATE_KEY, JSON.stringify(state));
+        } catch (e) { /* storage không khả dụng, bỏ qua */ }
+    }
+
+    var navGroups = document.querySelectorAll('.sidebar-nav .nav-group');
+    if (navGroups.length) {
+        var storedState = loadNavGroupState();
+
+        navGroups.forEach(function (group) {
+            var key = group.getAttribute('data-group') || '';
+            var header = group.querySelector('.nav-group-header');
+            var hasActive = !!group.querySelector('.nav-item.active');
+
+            // Ưu tiên: có item active → luôn mở.
+            // Ngược lại: dùng state đã lưu, fallback sang render ban đầu (class `open` từ Jinja).
+            if (hasActive) {
+                group.classList.add('open');
+            } else if (key && Object.prototype.hasOwnProperty.call(storedState, key)) {
+                group.classList.toggle('open', !!storedState[key]);
+            }
+
+            if (header) {
+                header.addEventListener('click', function (ev) {
+                    ev.preventDefault();
+                    group.classList.toggle('open');
+                    if (key) {
+                        var next = loadNavGroupState();
+                        next[key] = group.classList.contains('open');
+                        saveNavGroupState(next);
+                    }
+                });
+            }
+        });
+    }
+
     window.addEventListener('resize', function () {
         if (window.innerWidth > 1024 && sidebar) {
             sidebar.classList.remove('open');

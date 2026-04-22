@@ -42,6 +42,70 @@
     --transition: 0.2s ease;
 }
 
+/* ----- 1.b Dark theme overrides ----- */
+html[data-theme="dark"] {
+    --sidebar-bg: #0b1220;
+    --sidebar-hover: rgba(255, 255, 255, 0.05);
+    --sidebar-active: rgba(255, 255, 255, 0.1);
+
+    --primary: #6f8dff;
+    --primary-dark: #4f6dff;
+    --primary-light: rgba(111, 141, 255, 0.16);
+    --success: #34d399;
+    --success-light: rgba(52, 211, 153, 0.18);
+    --warning: #fbbf24;
+    --warning-light: rgba(251, 191, 36, 0.18);
+    --danger: #f87171;
+    --danger-light: rgba(248, 113, 113, 0.18);
+    --info: #60a5fa;
+    --info-light: rgba(96, 165, 250, 0.18);
+
+    --surface: #121a2a;
+    --page-bg: #0a1220;
+    --text: #e6edf8;
+    --text-secondary: #9aa8c0;
+    --text-muted: #6b7a93;
+    --border: #1f2a3d;
+    --border-light: #17202f;
+
+    --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.4);
+    --shadow: 0 2px 8px rgba(0, 0, 0, 0.45);
+    --shadow-md: 0 6px 16px rgba(0, 0, 0, 0.45);
+    --shadow-lg: 0 18px 30px rgba(0, 0, 0, 0.5);
+    color-scheme: dark;
+}
+
+html[data-theme="dark"] body { background: var(--page-bg); color: var(--text); }
+html[data-theme="dark"] input,
+html[data-theme="dark"] select,
+html[data-theme="dark"] textarea {
+    background: #0f1829;
+    color: var(--text);
+    border-color: var(--border);
+}
+html[data-theme="dark"] input::placeholder,
+html[data-theme="dark"] textarea::placeholder { color: var(--text-muted); }
+html[data-theme="dark"] table { color: var(--text); }
+html[data-theme="dark"] th { background: #0f1829 !important; color: var(--text-secondary) !important; border-color: var(--border) !important; }
+html[data-theme="dark"] td { border-color: var(--border) !important; }
+html[data-theme="dark"] tr:hover td { background: rgba(111, 141, 255, 0.06); }
+
+/* Global theme toggle button (used in topbar / landing / auth) */
+.theme-toggle {
+    width: 38px; height: 38px;
+    display: inline-grid; place-items: center;
+    border-radius: 10px;
+    border: 1px solid var(--border);
+    background: var(--surface);
+    color: var(--text-secondary);
+    cursor: pointer;
+    transition: color .2s, background .2s, border-color .2s, transform .15s;
+}
+.theme-toggle:hover { color: var(--primary); border-color: var(--primary); transform: translateY(-1px); }
+.theme-toggle i { font-size: 15px; }
+html[data-theme="dark"] .theme-toggle { background: #121a2a; color: #fde68a; }
+html[data-theme="dark"] .theme-toggle:hover { color: #fff; border-color: #fbbf24; }
+
 /* ----- 2. Reset ----- */
 *,
 *::before,
@@ -163,6 +227,7 @@ textarea {
     display: flex;
     flex-direction: column;
     gap: 2px;
+    overflow-y: auto;
 }
 
 .nav-divider {
@@ -173,6 +238,107 @@ textarea {
     padding: 16px 12px 6px;
     font-weight: 700;
 }
+
+/* ====== Collapsible sidebar groups (admin) ======
+   Mỗi .nav-group gồm:
+     - .nav-group-header  : header bấm được (toggle)
+     - .nav-group-items   : container chứa các .nav-item (ẩn khi group chưa open)
+   Class `.open` trên .nav-group = đang xổ.
+================================================== */
+.nav-group {
+    display: flex;
+    flex-direction: column;
+    margin-top: 4px;
+}
+
+.nav-group-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    padding: 10px 14px;
+    width: 100%;
+    background: transparent;
+    border: 0;
+    border-radius: var(--radius);
+    color: rgba(255, 255, 255, 0.82);
+    font-family: inherit;
+    font-size: 0.82rem;
+    font-weight: 600;
+    text-align: left;
+    cursor: pointer;
+    transition: background var(--transition), color var(--transition);
+}
+
+.nav-group-header:hover {
+    background: var(--sidebar-hover);
+    color: #fff;
+}
+
+.nav-group-title {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.nav-group-emoji {
+    font-size: 1rem;
+    line-height: 1;
+    width: 20px;
+    text-align: center;
+    flex-shrink: 0;
+}
+
+.nav-group-chevron {
+    font-size: 0.7rem;
+    color: rgba(255, 255, 255, 0.55);
+    transition: transform var(--transition);
+    flex-shrink: 0;
+}
+
+.nav-group.open .nav-group-chevron {
+    transform: rotate(180deg);
+    color: #fff;
+}
+
+/* Khi trong nhóm có item active → làm header sáng hơn để dễ nhận biết */
+.nav-group:has(.nav-item.active) .nav-group-header {
+    color: #fff;
+}
+
+.nav-group-items {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    max-height: 0;
+    overflow: hidden;
+    padding-left: 14px;
+    margin-left: 6px;
+    border-left: 1px dashed rgba(255, 255, 255, 0.12);
+    opacity: 0;
+    transition: max-height .28s ease, opacity .2s ease, margin .2s ease, padding .2s ease;
+}
+
+.nav-group.open .nav-group-items {
+    max-height: 420px;
+    opacity: 1;
+    margin-top: 4px;
+    margin-bottom: 4px;
+}
+
+.nav-group-items .nav-item {
+    padding: 8px 12px;
+    font-size: 0.83rem;
+}
+
+.nav-group-items .nav-item i {
+    font-size: 13px;
+    width: 18px;
+}
+/* ================================================== */
 
 .nav-item {
     display: flex;
@@ -1515,3 +1681,181 @@ textarea:focus {
         grid-template-columns: 1fr;
     }
 }
+
+/* ============================================================
+   Dark theme — override hardcoded surfaces/borders across app.css
+   ============================================================ */
+html[data-theme="dark"] thead th,
+html[data-theme="dark"] tbody tr:hover,
+html[data-theme="dark"] .table-wrapper thead th,
+html[data-theme="dark"] .section-table thead th {
+    background: #0f1829 !important;
+    color: var(--text-secondary);
+}
+html[data-theme="dark"] .card,
+html[data-theme="dark"] .stat-card,
+html[data-theme="dark"] .section,
+html[data-theme="dark"] .section-card,
+html[data-theme="dark"] .modal,
+html[data-theme="dark"] .modal-content,
+html[data-theme="dark"] .form-section,
+html[data-theme="dark"] .panel,
+html[data-theme="dark"] .kpi-card,
+html[data-theme="dark"] .chart-card,
+html[data-theme="dark"] .widget,
+html[data-theme="dark"] .dashboard-card,
+html[data-theme="dark"] .main-footer {
+    background: var(--surface);
+    color: var(--text);
+    border-color: var(--border);
+}
+html[data-theme="dark"] .btn-secondary,
+html[data-theme="dark"] .btn-outline,
+html[data-theme="dark"] .btn-ghost {
+    background: transparent;
+    color: var(--text);
+    border-color: var(--border);
+}
+html[data-theme="dark"] .btn-secondary:hover,
+html[data-theme="dark"] .btn-outline:hover,
+html[data-theme="dark"] .btn-ghost:hover {
+    background: rgba(111, 141, 255, 0.1);
+    border-color: var(--primary);
+    color: var(--primary);
+}
+html[data-theme="dark"] .topbar,
+html[data-theme="dark"] .topbar-user,
+html[data-theme="dark"] .topbar-avatar,
+html[data-theme="dark"] .search-filter-premium,
+html[data-theme="dark"] .filter-pill,
+html[data-theme="dark"] .form-group label {
+    background: var(--surface);
+    color: var(--text);
+    border-color: var(--border);
+}
+html[data-theme="dark"] .topbar { border-bottom-color: var(--border); }
+html[data-theme="dark"] .topbar-title,
+html[data-theme="dark"] .topbar-user-name { color: var(--text); }
+html[data-theme="dark"] .topbar-user-role,
+html[data-theme="dark"] .form-group label,
+html[data-theme="dark"] small,
+html[data-theme="dark"] .muted,
+html[data-theme="dark"] .section-subtitle { color: var(--text-secondary); }
+html[data-theme="dark"] .main-footer,
+html[data-theme="dark"] .page-footer { color: var(--text-muted); border-top-color: var(--border); }
+
+html[data-theme="dark"] .section-header,
+html[data-theme="dark"] .page-content h1,
+html[data-theme="dark"] .page-content h2,
+html[data-theme="dark"] .page-content h3 { color: var(--text); }
+
+html[data-theme="dark"] .badge,
+html[data-theme="dark"] .tag,
+html[data-theme="dark"] .pill {
+    background: rgba(111, 141, 255, 0.12);
+    color: #c7d4ff;
+    border-color: rgba(111, 141, 255, 0.3);
+}
+
+html[data-theme="dark"] ::placeholder { color: #6b7a93; }
+html[data-theme="dark"] .sidebar-overlay { background: rgba(0, 0, 0, 0.55); }
+
+/* ============================================================
+   Dark theme — fill remaining gaps (admin/dashboard components)
+   ============================================================ */
+/* Tables: override hardcoded whitish backgrounds */
+html[data-theme="dark"] thead th,
+html[data-theme="dark"] tbody tr:hover {
+    background: #0f1829 !important;
+}
+html[data-theme="dark"] tbody tr:hover td {
+    background: rgba(111, 141, 255, 0.06) !important;
+    color: var(--text);
+}
+html[data-theme="dark"] td { color: var(--text); }
+html[data-theme="dark"] td small { color: var(--text-secondary); }
+
+/* Inputs: make sure they all pick up dark surface */
+html[data-theme="dark"] input,
+html[data-theme="dark"] select,
+html[data-theme="dark"] textarea {
+    background: #0f1829 !important;
+    color: var(--text) !important;
+    border-color: var(--border) !important;
+}
+
+/* Generic secondary surfaces (rank item, notice card, etc.) */
+html[data-theme="dark"] .rank-item,
+html[data-theme="dark"] .notice-card,
+html[data-theme="dark"] .activity-item,
+html[data-theme="dark"] .list-item,
+html[data-theme="dark"] .quick-action,
+html[data-theme="dark"] .info-item,
+html[data-theme="dark"] .detail-item {
+    background: #0f1829;
+    border-color: var(--border);
+    color: var(--text);
+}
+html[data-theme="dark"] .rank-item:hover,
+html[data-theme="dark"] .activity-item:hover,
+html[data-theme="dark"] .list-item:hover,
+html[data-theme="dark"] .quick-action:hover {
+    background: #162338;
+}
+html[data-theme="dark"] .rank-item small,
+html[data-theme="dark"] .notice-card p { color: var(--text-secondary); }
+
+/* Contextual badges / pastel blocks — lighten so text is readable */
+html[data-theme="dark"] .badge-success,
+html[data-theme="dark"] .tag-success,
+html[data-theme="dark"] .pill-success,
+html[data-theme="dark"] .status-success,
+html[data-theme="dark"] .status-active {
+    background: rgba(52, 211, 153, 0.15) !important;
+    color: #6ee7b7 !important;
+    border-color: rgba(52, 211, 153, 0.35) !important;
+}
+html[data-theme="dark"] .badge-warning,
+html[data-theme="dark"] .tag-warning,
+html[data-theme="dark"] .pill-warning,
+html[data-theme="dark"] .status-warning,
+html[data-theme="dark"] .status-pending {
+    background: rgba(251, 191, 36, 0.14) !important;
+    color: #fcd34d !important;
+    border-color: rgba(251, 191, 36, 0.35) !important;
+}
+html[data-theme="dark"] .badge-danger,
+html[data-theme="dark"] .tag-danger,
+html[data-theme="dark"] .pill-danger,
+html[data-theme="dark"] .status-danger,
+html[data-theme="dark"] .status-inactive {
+    background: rgba(248, 113, 113, 0.14) !important;
+    color: #fca5a5 !important;
+    border-color: rgba(248, 113, 113, 0.35) !important;
+}
+html[data-theme="dark"] .badge-info,
+html[data-theme="dark"] .tag-info,
+html[data-theme="dark"] .pill-info,
+html[data-theme="dark"] .status-info {
+    background: rgba(96, 165, 250, 0.14) !important;
+    color: #93c5fd !important;
+    border-color: rgba(96, 165, 250, 0.35) !important;
+}
+
+/* Sidebar scroll + links in admin shell */
+html[data-theme="dark"] .sidebar .nav-link { color: #cbd5e8; }
+html[data-theme="dark"] .sidebar .nav-link:hover { color: #ffffff; }
+html[data-theme="dark"] .sidebar .nav-link.active { color: #ffffff; }
+html[data-theme="dark"] .sidebar .nav-section-title { color: #7a8aa3; }
+
+/* Topbar subtitle + titles inside admin shell */
+html[data-theme="dark"] .page-title,
+html[data-theme="dark"] .page-header h1,
+html[data-theme="dark"] .page-header h2,
+html[data-theme="dark"] .card-title,
+html[data-theme="dark"] .section-title { color: var(--text); }
+html[data-theme="dark"] .page-subtitle,
+html[data-theme="dark"] .card-subtitle { color: var(--text-secondary); }
+
+/* Dashed / divider lines sometimes hardcoded as #e5e7eb */
+html[data-theme="dark"] hr { border-color: var(--border); }

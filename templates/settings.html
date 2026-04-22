@@ -1,41 +1,55 @@
 <!DOCTYPE html>
-<html lang="vi">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Cài đặt tài khoản | CLASSES369</title>
+    <title>Account settings | CLASSES369</title>
     <link rel="icon" type="image/png" href="{{ url_for('static', filename='image/logo.png') }}">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&family=Exo+2:wght@600;700;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/landing.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/settings.css') }}">
+    <script>
+        (function () {
+            try {
+                var t = localStorage.getItem('classes369_theme');
+                if (!t) t = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+                document.documentElement.setAttribute('data-theme', t);
+                document.documentElement.style.colorScheme = t;
+            } catch (e) { }
+        })();
+    </script>
 </head>
 <body class="settings-body">
     {% set role_name = (profile.RoleName or '')|lower %}
     {% set full_name = (profile.FullName or '')|trim %}
     {% set user_initial = (full_name[:1] if full_name else 'U')|upper %}
-    {% set role_label = 'Quản trị viên' if role_name == 'admin' else 'Giảng viên' if role_name == 'teacher' else 'Sinh viên' if role_name == 'student' else 'Thành viên' %}
+    {% set role_label = 'Administrator' if role_name == 'admin' else 'Instructor' if role_name == 'teacher' else 'Student' if role_name == 'student' else 'Member' %}
     {% set home_path = '/home' if role_name in ['admin', 'teacher'] else '/student/home' if role_name == 'student' else '/' %}
     {% set dob_value = profile.DateOfBirth[:10] if profile.DateOfBirth else '' %}
 
     <header class="site-header">
         <div class="header-inner">
-            <a class="brand" href="/" aria-label="Trang chủ">
+            <a class="brand" href="/" aria-label="Home">
                 <img class="brand-logo" src="{{ url_for('static', filename='image/logo.png') }}" alt="CLASSES369">
             </a>
             <nav class="settings-breadcrumbs">
-                <a href="/"><i class="fas fa-house"></i> Trang chủ</a>
+                <a href="/"><i class="fas fa-house"></i> Home</a>
                 <span class="crumb-sep">/</span>
                 <a href="{{ home_path }}">{{ role_label }}</a>
                 <span class="crumb-sep">/</span>
-                <span class="crumb-current">Cài đặt tài khoản</span>
+                <span class="crumb-current">Account settings</span>
             </nav>
             <div class="header-tools">
+                <button type="button" class="theme-toggle" data-theme-toggle
+                        title="Toggle theme" aria-label="Toggle theme" aria-pressed="false">
+                    <i class="fas fa-moon" data-theme-icon></i>
+                </button>
                 <a class="header-secondary" href="{{ home_path }}">
                     <i class="fas fa-arrow-left"></i>
-                    <span>Về bảng điều khiển</span>
+                    <span>Back to workspace</span>
                 </a>
             </div>
         </div>
@@ -48,30 +62,30 @@
                 <div class="settings-user-info">
                     <strong>{{ full_name or profile.Username }}</strong>
                     <span>{{ role_label }}</span>
-                    {% if profile.StudentCode %}<small>Mã SV: {{ profile.StudentCode }}</small>{% endif %}
-                    {% if profile.TeacherCode %}<small>Mã GV: {{ profile.TeacherCode }}</small>{% endif %}
+                    {% if profile.StudentCode %}<small>Student ID: {{ profile.StudentCode }}</small>{% endif %}
+                    {% if profile.TeacherCode %}<small>Teacher ID: {{ profile.TeacherCode }}</small>{% endif %}
                 </div>
             </div>
 
             <nav class="settings-nav" id="settingsNav">
                 <button type="button" class="is-active" data-tab="profile">
-                    <i class="fas fa-id-card"></i><span>Hồ sơ cá nhân</span>
+                    <i class="fas fa-id-card"></i><span>Personal profile</span>
                 </button>
                 <button type="button" data-tab="security">
-                    <i class="fas fa-shield-halved"></i><span>Bảo mật &amp; mật khẩu</span>
+                    <i class="fas fa-shield-halved"></i><span>Security &amp; password</span>
                 </button>
                 <button type="button" data-tab="preferences">
-                    <i class="fas fa-sliders"></i><span>Tuỳ chọn hiển thị</span>
+                    <i class="fas fa-sliders"></i><span>Display preferences</span>
                 </button>
                 <button type="button" data-tab="sessions">
-                    <i class="fas fa-circle-info"></i><span>Phiên đăng nhập</span>
+                    <i class="fas fa-circle-info"></i><span>Sign-in sessions</span>
                 </button>
             </nav>
 
             <form method="post" action="/logout" class="settings-logout">
                 <button type="submit">
                     <i class="fas fa-right-from-bracket"></i>
-                    <span>Đăng xuất</span>
+                    <span>Sign out</span>
                 </button>
             </form>
         </aside>
@@ -79,9 +93,9 @@
         <section class="settings-content">
             <header class="settings-page-head">
                 <div>
-                    <p class="eyebrow">Cài đặt tài khoản</p>
-                    <h1>Quản lý thông tin &amp; bảo mật</h1>
-                    <p class="settings-sub">Cập nhật hồ sơ cá nhân, đổi mật khẩu và tuỳ biến trải nghiệm của bạn trên CLASSES369.</p>
+                    <p class="eyebrow">Account settings</p>
+                    <h1>Manage your profile &amp; security</h1>
+                    <p class="settings-sub">Update your personal information, change your password and customize your CLASSES369 experience.</p>
                 </div>
             </header>
 
@@ -89,64 +103,64 @@
 
             <article class="settings-panel is-active" data-panel="profile">
                 <header class="panel-head">
-                    <h2>Hồ sơ cá nhân</h2>
-                    <p>Thông tin này được dùng để liên hệ và hiển thị trên các tài liệu học tập.</p>
+                    <h2>Personal profile</h2>
+                    <p>This information is used for contact and appears on your learning documents.</p>
                 </header>
 
                 <form id="profileForm" class="settings-form" autocomplete="off">
                     <div class="form-grid">
                         <label class="field">
-                            <span>Họ và tên <em>*</em></span>
+                            <span>Full name <em>*</em></span>
                             <input type="text" name="FullName" value="{{ profile.FullName or '' }}" required>
                         </label>
                         <label class="field">
-                            <span>Tên đăng nhập</span>
+                            <span>Username</span>
                             <input type="text" value="{{ profile.Username or '' }}" disabled>
-                            <small class="field-hint">Tên đăng nhập không thể thay đổi.</small>
+                            <small class="field-hint">Username cannot be changed.</small>
                         </label>
                         <label class="field">
                             <span>Email <em>*</em></span>
                             <input type="email" name="Email" value="{{ profile.Email or '' }}" required>
                         </label>
                         <label class="field">
-                            <span>Số điện thoại</span>
+                            <span>Phone number</span>
                             <input type="tel" name="PhoneNumber" value="{{ profile.PhoneNumber or '' }}" pattern="[0-9+\-\s]{0,20}">
                         </label>
 
                         {% if role_name == 'student' %}
                         <label class="field">
-                            <span>Ngày sinh</span>
+                            <span>Date of birth</span>
                             <input type="date" name="DateOfBirth" value="{{ dob_value }}">
                         </label>
                         <label class="field">
-                            <span>Giới tính</span>
+                            <span>Gender</span>
                             <select name="Gender">
-                                <option value="">— Chọn —</option>
-                                <option value="Nam" {% if profile.Gender == 'Nam' %}selected{% endif %}>Nam</option>
-                                <option value="Nữ" {% if profile.Gender == 'Nữ' %}selected{% endif %}>Nữ</option>
-                                <option value="Khác" {% if profile.Gender == 'Khác' %}selected{% endif %}>Khác</option>
+                                <option value="">— Select —</option>
+                                <option value="Nam" {% if profile.Gender == 'Nam' %}selected{% endif %}>Male</option>
+                                <option value="Nữ" {% if profile.Gender == 'Nữ' %}selected{% endif %}>Female</option>
+                                <option value="Khác" {% if profile.Gender == 'Khác' %}selected{% endif %}>Other</option>
                             </select>
                         </label>
                         <label class="field field-wide">
-                            <span>Địa chỉ</span>
+                            <span>Address</span>
                             <input type="text" name="Address" value="{{ profile.Address or '' }}">
                         </label>
                         {% endif %}
 
                         {% if role_name == 'teacher' %}
                         <label class="field field-wide">
-                            <span>Chuyên môn</span>
+                            <span>Specialization</span>
                             <input type="text" value="{{ profile.Specialization or '' }}" disabled>
-                            <small class="field-hint">Liên hệ phòng đào tạo để cập nhật chuyên môn.</small>
+                            <small class="field-hint">Contact the academic office to update your specialization.</small>
                         </label>
                         {% endif %}
                     </div>
 
                     <div class="form-actions">
-                        <button type="reset" class="btn btn-outline">Khôi phục</button>
+                        <button type="reset" class="btn btn-outline">Reset</button>
                         <button type="submit" class="btn btn-primary">
                             <i class="fas fa-save"></i>
-                            <span>Lưu thay đổi</span>
+                            <span>Save changes</span>
                         </button>
                     </div>
                 </form>
@@ -154,83 +168,83 @@
 
             <article class="settings-panel" data-panel="security">
                 <header class="panel-head">
-                    <h2>Bảo mật &amp; đổi mật khẩu</h2>
-                    <p>Đổi mật khẩu định kỳ để bảo vệ tài khoản của bạn.</p>
+                    <h2>Security &amp; password</h2>
+                    <p>Change your password regularly to keep your account safe.</p>
                 </header>
 
                 <form id="passwordForm" class="settings-form" autocomplete="off">
                     <div class="form-grid">
                         <label class="field field-wide">
-                            <span>Mật khẩu hiện tại <em>*</em></span>
+                            <span>Current password <em>*</em></span>
                             <input type="password" name="CurrentPassword" required>
                         </label>
                         <label class="field">
-                            <span>Mật khẩu mới <em>*</em></span>
+                            <span>New password <em>*</em></span>
                             <input type="password" name="NewPassword" minlength="6" required>
-                            <small class="field-hint">Tối thiểu 6 ký tự.</small>
+                            <small class="field-hint">At least 6 characters.</small>
                         </label>
                         <label class="field">
-                            <span>Xác nhận mật khẩu mới <em>*</em></span>
+                            <span>Confirm new password <em>*</em></span>
                             <input type="password" name="ConfirmPassword" minlength="6" required>
                         </label>
                     </div>
 
                     <div class="form-actions">
-                        <button type="reset" class="btn btn-outline">Huỷ</button>
+                        <button type="reset" class="btn btn-outline">Cancel</button>
                         <button type="submit" class="btn btn-primary">
                             <i class="fas fa-key"></i>
-                            <span>Đổi mật khẩu</span>
+                            <span>Change password</span>
                         </button>
                     </div>
                 </form>
 
                 <div class="security-tips">
-                    <h3><i class="fas fa-lightbulb"></i> Mẹo bảo mật</h3>
+                    <h3><i class="fas fa-lightbulb"></i> Security tips</h3>
                     <ul>
-                        <li>Không dùng chung mật khẩu với các dịch vụ khác.</li>
-                        <li>Kết hợp chữ hoa, chữ thường, số và ký tự đặc biệt.</li>
-                        <li>Không chia sẻ thông tin đăng nhập qua email hoặc tin nhắn.</li>
+                        <li>Don't reuse your password across other services.</li>
+                        <li>Combine uppercase, lowercase, numbers and special characters.</li>
+                        <li>Never share sign-in information via email or messaging apps.</li>
                     </ul>
                 </div>
             </article>
 
             <article class="settings-panel" data-panel="preferences">
                 <header class="panel-head">
-                    <h2>Tuỳ chọn hiển thị</h2>
-                    <p>Các tuỳ chọn lưu trên thiết bị này.</p>
+                    <h2>Display preferences</h2>
+                    <p>These preferences are saved on this device.</p>
                 </header>
 
                 <form id="preferencesForm" class="settings-form">
                     <div class="pref-grid">
                         <label class="pref-item">
                             <div>
-                                <strong>Chế độ tối</strong>
-                                <p>Giảm chói mắt khi học vào buổi tối.</p>
+                                <strong>Dark mode</strong>
+                                <p>Reduce glare while studying at night.</p>
                             </div>
-                            <input type="checkbox" name="darkMode">
+                            <input type="checkbox" name="darkMode" data-theme-toggle-checkbox>
                         </label>
                         <label class="pref-item">
                             <div>
-                                <strong>Thông báo email</strong>
-                                <p>Nhận email về lịch khai giảng và học phí.</p>
+                                <strong>Email notifications</strong>
+                                <p>Get emails about class openings and tuition.</p>
                             </div>
                             <input type="checkbox" name="emailNotify" checked>
                         </label>
                         <label class="pref-item">
                             <div>
-                                <strong>Thông báo trên trình duyệt</strong>
-                                <p>Hiển thị popup khi có cập nhật mới.</p>
+                                <strong>Browser notifications</strong>
+                                <p>Show a popup when there are new updates.</p>
                             </div>
                             <input type="checkbox" name="browserNotify" checked>
                         </label>
                         <label class="pref-item">
                             <div>
-                                <strong>Ngôn ngữ</strong>
-                                <p>Ngôn ngữ giao diện hiện tại.</p>
+                                <strong>Language</strong>
+                                <p>Current interface language.</p>
                             </div>
                             <select name="language">
-                                <option value="vi" selected>Tiếng Việt</option>
-                                <option value="en">English</option>
+                                <option value="en" selected>English</option>
+                                <option value="vi">Tiếng Việt</option>
                             </select>
                         </label>
                     </div>
@@ -238,7 +252,7 @@
                     <div class="form-actions">
                         <button type="submit" class="btn btn-primary">
                             <i class="fas fa-check"></i>
-                            <span>Lưu tuỳ chọn</span>
+                            <span>Save preferences</span>
                         </button>
                     </div>
                 </form>
@@ -246,25 +260,25 @@
 
             <article class="settings-panel" data-panel="sessions">
                 <header class="panel-head">
-                    <h2>Phiên đăng nhập</h2>
-                    <p>Thông tin về phiên làm việc hiện tại.</p>
+                    <h2>Sign-in sessions</h2>
+                    <p>Details about your current session.</p>
                 </header>
 
                 <div class="session-grid">
                     <div class="session-card">
                         <div class="session-icon"><i class="fas fa-desktop"></i></div>
                         <div>
-                            <strong>Trình duyệt hiện tại</strong>
+                            <strong>Current browser</strong>
                             <p id="sessionUserAgent">—</p>
-                            <small>Phiên đăng nhập đang hoạt động.</small>
+                            <small>Active sign-in session.</small>
                         </div>
                     </div>
                     <div class="session-card">
                         <div class="session-icon"><i class="fas fa-user-shield"></i></div>
                         <div>
-                            <strong>Vai trò</strong>
+                            <strong>Role</strong>
                             <p>{{ role_label }}</p>
-                            <small>Trạng thái tài khoản: {{ profile.Status or 'Active' }}</small>
+                            <small>Account status: {{ profile.Status or 'Active' }}</small>
                         </div>
                     </div>
                 </div>
@@ -272,7 +286,7 @@
                 <form method="post" action="/logout" class="session-logout">
                     <button type="submit" class="btn btn-danger">
                         <i class="fas fa-right-from-bracket"></i>
-                        <span>Đăng xuất khỏi thiết bị này</span>
+                        <span>Sign out of this device</span>
                     </button>
                 </form>
             </article>
@@ -280,9 +294,10 @@
     </main>
 
     <footer class="settings-footer">
-        <p>&copy; 2026 CLASSES369 — Mọi thay đổi được ghi nhận an toàn.</p>
+        <p>&copy; 2026 CLASSES369 &mdash; All changes are safely recorded.</p>
     </footer>
 
+    <script src="{{ url_for('static', filename='js/theme.js') }}"></script>
     <script src="{{ url_for('static', filename='js/settings.js') }}"></script>
 </body>
 </html>

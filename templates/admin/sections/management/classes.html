@@ -1,0 +1,54 @@
+{#
+    Management > Classes
+    CRUD form + classes list table (dashboard.js → renderClasses).
+#}
+<section id="classes" class="section">
+    <div class="section-heading">
+        <div>
+            <h2>Classes</h2>
+            <p>Organize classes by course, instructor and capacity.</p>
+        </div>
+    </div>
+    <div class="grid form-and-table">
+        <div class="panel table-panel">
+
+            <h3 id="classFormTitle">Create class</h3>
+            <form id="classForm" class="form-grid">
+                <input type="hidden" name="EditId" value="">
+                <label>Class code <input name="ClassCode" required></label>
+                <label>Class name <input name="ClassName" required></label>
+                <label>Course <select name="CourseId" id="classCourseSelect" required></select></label>
+                <label>Instructor <select name="TeacherId" id="classTeacherSelect"></select></label>
+                <label>Max students <input name="MaxStudents" type="number" min="1" value="30"></label>
+                <div style="display:flex;gap:8px">
+                    <button class="btn btn-primary submit-btn" type="submit"><i class="fas fa-save"></i> <span>Save
+                            class</span></button>
+                    <button class="btn btn-outline cancel-btn" type="button" style="display:none"><i
+                            class="fas fa-times"></i> Cancel</button>
+                </div>
+            </form>
+            <p id="classMessage" class="message"></p>
+        </div>
+        <div class="panel table-panel">
+            <div class="table-header">
+                <h3>Classes list</h3>
+                <input id="classSearch" class="search-input" placeholder="Search code, name, instructor...">
+            </div>
+            <div class="table-wrap">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Class code</th>
+                            <th>Class name</th>
+                            <th>Course</th>
+                            <th>Instructor</th>
+                            <th>Enrolled</th>
+                            <th style="width:60px"></th>
+                        </tr>
+                    </thead>
+                    <tbody id="classesTableBody"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</section>
