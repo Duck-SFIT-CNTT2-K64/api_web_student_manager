@@ -416,15 +416,15 @@ INSERT INTO Users (UserId, RoleId, Username, PasswordHash, FullName, Email, Phon
 (2, 2, N'teacher01', N'teacher@123', N'Hoàng Quốc Anh', N'giaovu@itcenter.edu', '0922222222', N'Active'),
 (3, 3, N'student01', N'student@123', N'Đinh Quang Hưng', N'ketoan@itcenter.edu', '0933333333', N'Active'),
 -- Giảng viên (Mới thêm - Khớp với TeacherId 1 và 2)
-(4, 2, N'hung.dq', N'$2a$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92s.ag/iHjO8MYL/7o7i.', N'Đinh Quang Hưng', N'hung.dq@itcenter.edu', '0944444444', N'Active'),
-(5, 2, N'anh.dh', N'$2a$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92s.ag/iHjO8MYL/7o7i.', N'Hoàng Quốc Anh', N'huy.dh@itcenter.edu', '0955555555', N'Active'),
+(4, 2, N'hung.dq', N'123456', N'Đinh Quang Hưng', N'hung.dq@itcenter.edu', '0944444444', N'Active'),
+(5, 2, N'anh.dh', N'1234567', N'Hoàng Quốc Anh', N'huy.dh@itcenter.edu', '0955555555', N'Active'),
 
 -- Sinh viên (Mới thêm - Khớp với StudentId từ 1 đến 5)
-(6, 3, N'tien.nm', N'$2a$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92s.ag/iHjO8MYL/7o7i.', N'Nguyễn Mạnh Tiến', N'tien.nm@itcenter.edu', '0966666666', N'Active'),
-(7, 3, N'a.nv', N'$2a$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92s.ag/iHjO8MYL/7o7i.', N'Nguyễn Văn A', N'a.nv@itcenter.edu', '0977777777', N'Active'),
-(8, 3, N'b.tt', N'$2a$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92s.ag/iHjO8MYL/7o7i.', N'Trần Thị B', N'b.tt@itcenter.edu', '0988888888', N'Active'),
-(9, 3, N'c.lm', N'$2a$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92s.ag/iHjO8MYL/7o7i.', N'Lê Minh C', N'c.lm@itcenter.edu', '0999999999', N'Active'),
-(10, 3, N'd.ph', N'$2a$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92s.ag/iHjO8MYL/7o7i.', N'Phạm Hoàng D', N'd.ph@itcenter.edu', '0912345678', N'Active');
+(6, 3, N'tien.nm', N'345678', N'Nguyễn Mạnh Tiến', N'tien.nm@itcenter.edu', '0966666666', N'Active'),
+(7, 3, N'a.nv', N'3456', N'Nguyễn Văn A', N'a.nv@itcenter.edu', '0977777777', N'Active'),
+(8, 3, N'b.tt', N'2203', N'Trần Thị B', N'b.tt@itcenter.edu', '0988888888', N'Active'),
+(9, 3, N'c.lm', N'73647', N'Lê Minh C', N'c.lm@itcenter.edu', '0999999999', N'Active'),
+(10, 3, N'd.ph', N'93843', N'Phạm Hoàng D', N'd.ph@itcenter.edu', '0912345678', N'Active');
 SET IDENTITY_INSERT Users OFF;
 GO
 
@@ -573,6 +573,39 @@ INSERT INTO NotificationRecipients (NotificationId, RecipientId, IsRead) VALUES
 (2, 4, 1), (2, 5, 1), (2, 6, 1), (2, 7, 1), (2, 8, 1), (2, 9, 0), (2, 10, 0);
 GO
 
+-- 21. Bảng Exams
+CREATE TABLE Exams (
+    ExamId        INT IDENTITY(1,1) PRIMARY KEY,
+    ClassId       INT NOT NULL,
+    UserId        INT NOT NULL,      
+    Title         NVARCHAR(255) NOT NULL,
+    ExamType      NVARCHAR(50) NOT NULL
+                  DEFAULT N'Trắc nghiệm',
+    Description   NVARCHAR(MAX) NULL,
+    DueDate       DATETIME NOT NULL,
+    CreatedDate   DATETIME DEFAULT GETDATE(),
+    Status        NVARCHAR(20) DEFAULT N'Active',
+
+    CONSTRAINT FK_Exams_Class    FOREIGN KEY (ClassId) REFERENCES Classes(ClassId),
+    CONSTRAINT FK_Exams_User     FOREIGN KEY (UserId)  REFERENCES Users(UserId)
+);
+
+-- 22. Bảng ExamSubmissions (Nộp bài thi)
+CREATE TABLE ExamSubmissions (
+    SubmissionId  INT IDENTITY(1,1) PRIMARY KEY,
+    ExamId        INT NOT NULL,
+    EnrollmentId  INT NOT NULL,
+    SubmittedAt   DATETIME NULL,
+    FileUrl       NVARCHAR(500) NULL,
+    Note          NVARCHAR(MAX) NULL,
+    Grade         DECIMAL(4,1) NULL,
+    Status        NVARCHAR(20) DEFAULT N'Pending',
+
+    CONSTRAINT FK_Submissions_Exam        FOREIGN KEY (ExamId)       REFERENCES Exams(ExamId),
+    CONSTRAINT FK_Submissions_Enrollment  FOREIGN KEY (EnrollmentId) REFERENCES Enrollments(EnrollmentId),
+    CONSTRAINT UQ_Submission UNIQUE (ExamId, EnrollmentId)
+);
+
 /* ================================================================================
  NHÓM 6: CÁC BẢNG GIAO DIỆN (Trang chủ)
 ================================================================================
@@ -708,6 +741,26 @@ BEGIN TRY
             WHERE u.UserId = @Student01UserId;
         END;
     END;
+
+-- Thêm bài kiểm tra mẫu (giả sử ClassId 1,2 và UserId của giảng viên là 2)
+INSERT INTO Exams (ClassId, UserId, Title, ExamType, Description, DueDate, Status)
+VALUES
+    (1, 2, N'Kiểm tra giữa kỳ', N'Tự luận', 
+     N'Kiểm tra chương 1 đến chương 3. Sinh viên cần ôn tập kỹ lý thuyết.', 
+     '2025-11-15 23:59:00', N'Active'),
+    (1, 2, N'Bài tập tuần 3', N'Tự luận', 
+     N'Làm bài tập chương 2, nộp file PDF.', 
+     '2025-10-20 23:59:00', N'Closed'),
+    (2, 2, N'Kiểm tra trắc nghiệm chương 1', N'Trắc nghiệm', 
+     N'30 câu trắc nghiệm, thời gian 45 phút.', 
+     '2025-11-01 10:00:00', N'Active');
+
+-- Thêm submissions mẫu
+INSERT INTO ExamSubmissions (ExamId, EnrollmentId, SubmittedAt, Note, Grade, Status)
+VALUES
+    (1, 1, '2025-11-14 20:30:00', N'Em nộp bài ạ.', 8.5, N'Graded'),
+    (1, 2, '2025-11-15 18:00:00', N'Bài làm của em.', NULL, N'Submitted'),
+    (2, 1, '2025-10-19 22:00:00', NULL, 9.0, N'Graded');
 
     -- Seed thêm giáo viên ảo
     DECLARE @TeacherSeed TABLE (
@@ -931,6 +984,8 @@ BEGIN TRY
     INNER JOIN Classes c ON c.ClassCode = es.ClassCode
     LEFT JOIN Enrollments e ON e.StudentId = s.StudentId AND e.ClassId = c.ClassId
     WHERE e.EnrollmentId IS NULL;
+
+
 
     -- Tạo khoản học phí cho mọi enrollment chưa có tuition
     INSERT INTO Tuitions (EnrollmentId, TotalFee, AmountPaid, DueDate, Status)
