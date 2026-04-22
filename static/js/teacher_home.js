@@ -28,6 +28,13 @@
     };
 
     var weekdayMap = {
+        "Monday": "Thứ Hai",
+        "Tuesday": "Thứ Ba",
+        "Wednesday": "Thứ Tư",
+        "Thursday": "Thứ Năm",
+        "Friday": "Thứ Sáu",
+        "Saturday": "Thứ Bảy",
+        "Sunday": "Chủ Nhật",
         "Thứ 2": "Thứ Hai",
         "Thứ 3": "Thứ Ba",
         "Thứ 4": "Thứ Tư",
@@ -35,6 +42,17 @@
         "Thứ 6": "Thứ Sáu",
         "Thứ 7": "Thứ Bảy",
         "Chủ nhật": "Chủ Nhật"
+    };
+
+    // Map tiếng Anh sang tiếng Việt cho calendar
+    var weekdayToVietnamese = {
+        "Monday": "Thứ 2",
+        "Tuesday": "Thứ 3",
+        "Wednesday": "Thứ 4",
+        "Thursday": "Thứ 5",
+        "Friday": "Thứ 6",
+        "Saturday": "Thứ 7",
+        "Sunday": "Chủ nhật"
     };
 
     function escapeHtml(value) {
@@ -208,17 +226,19 @@
         days.forEach(function (d) { map[d] = []; });
 
         (state.schedule || []).forEach(function (item) {
-            if (!map[item.Weekday]) return;
+            // Chuyển đổi weekday từ tiếng Anh sang tiếng Việt
+            var weekdayVi = weekdayToVietnamese[item.Weekday] || item.Weekday;
+            if (!map[weekdayVi]) return;
             var start = item.StartTime ? item.StartTime.slice(0, 5) : "--";
             var end = item.EndTime ? item.EndTime.slice(0, 5) : "--";
-            map[item.Weekday].push(
+            map[weekdayVi].push(
                 "<div class='calendar-item'>"
                 + "<strong>" + escapeHtml(item.ClassCode || "") + "</strong><br>"
                 + start + " – " + end + "<br>"
                 + "<small>" + escapeHtml(item.RoomName || "") + "</small><br>"
                 + "<div class='calendar-item-actions'>"
                 + "<button class='btn-cal' data-cal-detail='" + Number(item.ClassId) + "'"
-                + " data-cal-weekday='" + escapeHtml(item.Weekday) + "'>"
+                + " data-cal-weekday='" + escapeHtml(weekdayVi) + "'>"
                 + "<i class='fas fa-eye'></i> Xem chi tiết"
                 + "</button>"
                 + "</div>"
@@ -1046,15 +1066,24 @@
             var calDetailBtn = event.target.closest("[data-cal-detail]");
             if (calDetailBtn) {
                 var classId = Number(calDetailBtn.getAttribute("data-cal-detail"));
-                var weekday = calDetailBtn.getAttribute("data-cal-weekday");
+                var weekdayVi = calDetailBtn.getAttribute("data-cal-weekday");
 
                 var classInfo = (state.classes || []).find(function (c) {
                     return Number(c.ClassId) === classId;
                 });
+                // Chuyển đổi weekday tiếng Việt sang tiếng Anh để so khớp với dữ liệu từ API
+                var weekdayEn = null;
+                for (var key in weekdayToVietnamese) {
+                    if (weekdayToVietnamese[key] === weekdayVi) {
+                        weekdayEn = key;
+                        break;
+                    }
+                }
                 var schedInfo = (state.schedule || []).find(function (s) {
-                    return Number(s.ClassId) === classId && s.Weekday === weekday;
+                    return Number(s.ClassId) === classId && (s.Weekday === weekdayVi || s.Weekday === weekdayEn);
                 });
 
+                // Set tiêu đề
                 var modalTitle = document.getElementById("calDetailModalTitle");
                 var modalSub = document.getElementById("calDetailModalSubtitle");
                 if (modalTitle) modalTitle.textContent = classInfo
@@ -1066,8 +1095,13 @@
                     + " – " + (schedInfo.EndTime || "").slice(0, 5)
                     + " · " + (schedInfo.RoomName || "");
 
+                // Lưu classId vào modal để 2 button dùng
+                var modal = document.getElementById("calDetailModal");
+                if (modal) modal.dataset.classId = classId;
+
+                // Load danh sách sinh viên
                 var tbody = document.getElementById("calDetailTableBody");
-                if (tbody) tbody.innerHTML = '<tr><td colspan="5" class="empty">Đang tải...</td></tr>';
+                if (tbody) tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;padding:32px;color:#94a3b8;">Đang tải...</td></tr>';
 
                 getJson(endpoints.classStudents + classId)
                     .then(function (students) {
@@ -1080,13 +1114,42 @@
                                 + "<td>" + escapeHtml(sv.DateOfBirth || "—") + "</td>"
                                 + "<td>" + escapeHtml(sv.Gender || "—") + "</td>"
                                 + "</tr>";
-                        }).join("") || '<tr><td colspan="5" class="empty">Lớp chưa có sinh viên.</td></tr>';
+                        }).join("") || '<tr><td colspan="5" style="text-align:center;padding:32px;color:#94a3b8;">Lớp chưa có sinh viên.</td></tr>';
                     })
                     .catch(function () {
-                        if (tbody) tbody.innerHTML = '<tr><td colspan="5" class="empty">Lỗi tải dữ liệu.</td></tr>';
+                        if (tbody) tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:#ef4444;">Lỗi tải dữ liệu.</td></tr>';
                     });
 
-                var modal = document.getElementById("calDetailModal");
+                // Gán onclick cho button Nhập điểm
+                var goScoreBtn = document.getElementById("calDetailGoScore");
+                if (goScoreBtn) {
+                    goScoreBtn.onclick = function () {
+                        modal.style.display = "none";
+                        var sel = document.getElementById("teacherClassSelect");
+                        if (sel) sel.value = String(classId);
+                        window.location.hash = "#score-entry";
+                        loadClassStudents(classId).catch(function (err) {
+                            setMessage(err.message, "error");
+                        });
+                    };
+                }
+
+                // Gán onclick cho button Điểm danh
+                var goAttendBtn = document.getElementById("calDetailGoAttend");
+                if (goAttendBtn) {
+                    goAttendBtn.onclick = function () {
+                        modal.style.display = "none";
+                        var sel = document.getElementById("attendanceClassSelect");
+                        if (sel) sel.value = String(classId);
+                        // Tính đúng ngày theo thứ đang hiển thị
+                        var dateInput = document.getElementById("attendanceDateInput");
+                        if (dateInput) dateInput.value = getLastOccurrence(weekdayVi);
+                        window.location.hash = "#attendance";
+                        var searchBtn = document.getElementById("attendanceSearchBtn");
+                        if (searchBtn) searchBtn.click();
+                    };
+                }
+
                 if (modal) modal.style.display = "flex";
                 return;
             }
