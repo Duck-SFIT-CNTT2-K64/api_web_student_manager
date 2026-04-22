@@ -22,8 +22,11 @@ services:
       start_period: 20s
 
   db-init:
-    image: mcr.microsoft.com/mssql-tools:latest
+    # Dùng chính image mssql/server vì nó kèm sqlcmd v18
+    # (/opt/mssql-tools18/bin/sqlcmd) — hỗ trợ -f 65001 cho file UTF-8 BOM.
+    image: mcr.microsoft.com/mssql/server:2022-latest
     container_name: btl_api_db_init
+    user: "0:0"
     depends_on:
       db:
         condition: service_healthy
@@ -33,6 +36,9 @@ services:
       DB_ADMIN_USER: sa
       MSSQL_SA_PASSWORD: ${MSSQL_SA_PASSWORD}
       SCHEMA_FILE: /scripts/QLSV_TrungTamTinHoc.sql
+      BULK_SEED_FILE: /scripts/seed_bulk_data.sql
+      # auto | always | never (xem docker/db-init/init-db.sh)
+      RUN_BULK_SEED: ${RUN_BULK_SEED:-auto}
     volumes:
       - ./database:/scripts:ro
       - ./docker/db-init/init-db.sh:/init-db.sh:ro

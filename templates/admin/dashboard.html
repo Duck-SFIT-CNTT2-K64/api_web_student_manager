@@ -1,0 +1,81 @@
+{#
+    Admin dashboard — main administration page.
+
+    Sidebar & section structure is organized into 5 groups:
+      📊 Dashboard   →  #statistics   (Overview links to /admin/home)
+      🗂️ Management →  #students, #teachers, #courses, #classes, #rooms, #users
+      🎓 Academic   →  #enrollments, #schedules, #scores
+      💰 Finance    →  #tuitions
+      📢 Information →  #notifications
+
+    All section content has been split into
+      templates/admin/sections/<group>/<name>.html
+    to make navigation and edits easier.
+#}
+{% extends 'layouts/base.html' %}
+
+{% block title %}Admin dashboard | CLASSES369{% endblock %}
+{% block sidebar_subtitle %}Administrator{% endblock %}
+
+{% block sidebar_nav %}
+    {% with active = active|default('statistics') %}
+        {% include 'admin/partials/_sidebar_nav.html' %}
+    {% endwith %}
+{% endblock %}
+
+{% block topbar_title %}
+<h1>Admin dashboard</h1>
+<p>Manage the entire system</p>
+{% endblock %}
+
+{% block topbar_actions %}
+<button id="refreshAll" class="btn btn-primary" style="font-size:.85rem">
+    <i class="fas fa-rotate"></i> Refresh
+</button>
+{% endblock %}
+
+{% block content %}
+<p id="globalMessage" class="message" role="status"></p>
+
+{# ═════════════════════════════════════════
+   📊 DASHBOARD
+   ═════════════════════════════════════════ #}
+{% include 'admin/sections/dashboard/statistics.html' %}
+
+{# ═════════════════════════════════════════
+   🗂️ MANAGEMENT
+   ═════════════════════════════════════════ #}
+{% include 'admin/sections/management/students.html' %}
+{% include 'admin/sections/management/teachers.html' %}
+{% include 'admin/sections/management/courses.html' %}
+{% include 'admin/sections/management/classes.html' %}
+{% include 'admin/sections/management/rooms.html' %}
+{% include 'admin/sections/management/users.html' %}
+
+{# ═════════════════════════════════════════
+   🎓 ACADEMIC
+   ═════════════════════════════════════════ #}
+{% include 'admin/sections/academic/enrollments.html' %}
+{% include 'admin/sections/academic/schedules.html' %}
+{% include 'admin/sections/academic/scores.html' %}
+
+{# ═════════════════════════════════════════
+   💰 FINANCE
+   ═════════════════════════════════════════ #}
+{% include 'admin/sections/finance/tuitions.html' %}
+
+{# ═════════════════════════════════════════
+   📢 INFORMATION
+   ═════════════════════════════════════════ #}
+{% include 'admin/sections/info/notifications.html' %}
+
+{# Shared modals #}
+{% include 'admin/partials/_modals.html' %}
+{% endblock %}
+
+
+{% block extra_js %}
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+<script src="{{ url_for('static', filename='js/dashboard.js') }}"></script>
+{% endblock %}

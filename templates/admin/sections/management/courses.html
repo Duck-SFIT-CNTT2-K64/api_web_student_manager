@@ -1,0 +1,54 @@
+{#
+    Management > Courses
+    CRUD form + courses list table (dashboard.js → renderCourses).
+#}
+<section id="courses" class="section">
+    <div class="section-heading">
+        <div>
+            <h2>Courses</h2>
+            <p>Manage course catalog, tuition and credits.</p>
+        </div>
+    </div>
+    <div class="grid form-and-table">
+        <div class="panel">
+            <h3 id="courseFormTitle">Add course</h3>
+            <form id="courseForm" class="form-grid">
+                <input type="hidden" name="EditId" value="">
+                <label>Course code <input name="CourseCode" required></label>
+                <label>Course name <input name="CourseName" required></label>
+                <label>Duration <input name="Duration" placeholder="e.g. 3 months"></label>
+                <label>Tuition <input name="TuitionFee" type="number" min="0" step="1000" value="0"></label>
+                <label>Credits <input name="Credits" type="number" min="0"></label>
+                <label>Description <textarea name="Description" rows="3"></textarea></label>
+                <div style="display:flex;gap:8px">
+                    <button class="btn btn-primary submit-btn" type="submit"><i class="fas fa-save"></i> <span>Save
+                            course</span></button>
+                    <button class="btn btn-outline cancel-btn" type="button" style="display:none"><i
+                            class="fas fa-times"></i> Cancel</button>
+                </div>
+            </form>
+            <p id="courseMessage" class="message"></p>
+        </div>
+        <div class="panel table-panel">
+            <div class="table-header">
+                <h3>Courses list</h3>
+                <input id="courseSearch" class="search-input" placeholder="Search courses...">
+            </div>
+            <div class="table-wrap">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Code</th>
+                            <th>Course name</th>
+                            <th>Duration</th>
+                            <th>Tuition</th>
+                            <th>Classes/Students</th>
+                            <th style="width:60px"></th>
+                        </tr>
+                    </thead>
+                    <tbody id="coursesTableBody"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</section>

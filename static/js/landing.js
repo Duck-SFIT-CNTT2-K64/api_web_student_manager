@@ -1,6 +1,9 @@
 (function () {
     var navToggle = document.getElementById("navToggle");
     var navLinks = document.getElementById("navLinks");
+    var userMenu = document.querySelector("[data-user-menu]");
+    var userMenuTrigger = document.getElementById("userMenuTrigger");
+    var userMenuDropdown = document.getElementById("userMenuDropdown");
     var programSearchInput = document.getElementById("programSearchInput");
     var programSearchForm = document.getElementById("programSearchForm");
     var courseCards = Array.from(document.querySelectorAll(".course-card"));
@@ -12,6 +15,32 @@
         return (value || "").toLowerCase().trim();
     }
 
+    function closeUserMenu() {
+        if (!userMenu || !userMenuTrigger || !userMenuDropdown) {
+            return;
+        }
+
+        userMenu.classList.remove("is-open");
+        userMenuTrigger.setAttribute("aria-expanded", "false");
+        userMenuDropdown.hidden = true;
+    }
+
+    function toggleUserMenu() {
+        if (!userMenu || !userMenuTrigger || !userMenuDropdown) {
+            return;
+        }
+
+        var isOpen = userMenu.classList.contains("is-open");
+        if (isOpen) {
+            closeUserMenu();
+            return;
+        }
+
+        userMenu.classList.add("is-open");
+        userMenuTrigger.setAttribute("aria-expanded", "true");
+        userMenuDropdown.hidden = false;
+    }
+
     if (navToggle && navLinks) {
         navToggle.addEventListener("click", function () {
             navLinks.classList.toggle("open");
@@ -21,6 +50,32 @@
             link.addEventListener("click", function () {
                 navLinks.classList.remove("open");
             });
+        });
+    }
+
+    if (userMenuTrigger && userMenuDropdown) {
+        userMenuTrigger.addEventListener("click", function (event) {
+            event.stopPropagation();
+            toggleUserMenu();
+        });
+
+        userMenuDropdown.addEventListener("click", function (event) {
+            var actionItem = event.target.closest("a, button");
+            if (actionItem) {
+                closeUserMenu();
+            }
+        });
+
+        document.addEventListener("click", function (event) {
+            if (!userMenu.contains(event.target)) {
+                closeUserMenu();
+            }
+        });
+
+        document.addEventListener("keydown", function (event) {
+            if (event.key === "Escape") {
+                closeUserMenu();
+            }
         });
     }
 

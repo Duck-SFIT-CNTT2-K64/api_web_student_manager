@@ -1,0 +1,785 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ page_title or 'Student portal' }} | CLASSES369</title>
+    <link rel="icon" type="image/png" href="{{ url_for('static', filename='image/logo.png') }}">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/landing.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/student_portal.css') }}">
+    <script>
+        (function () {
+            try {
+                var t = localStorage.getItem('classes369_theme');
+                if (!t) t = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+                document.documentElement.setAttribute('data-theme', t);
+                document.documentElement.style.colorScheme = t;
+            } catch (e) { }
+        })();
+    </script>
+</head>
+<body class="portal-body">
+    {% set full_name = (current_user.FullName or current_user.Username or '')|trim %}
+    {% set user_initial = (full_name[:1] if full_name else 'S')|upper %}
+    {% set active = active_section or 'overview' %}
+
+    <header class="site-header">
+        <div class="header-inner">
+            <a class="brand" href="/" aria-label="Home">
+                <img class="brand-logo" src="{{ url_for('static', filename='image/logo.png') }}" alt="CLASSES369">
+            </a>
+
+            <nav class="main-nav portal-top-nav">
+                <a href="/"><i class="fas fa-house"></i> Home</a>
+                <a href="/#programs">Programs</a>
+                <a href="/#schedules">Upcoming classes</a>
+                <a href="/#payment-guide">Payment guide</a>
+                <a href="/#contact">Contact</a>
+            </nav>
+
+            <div class="header-tools">
+                <button type="button" class="theme-toggle" data-theme-toggle
+                        title="Toggle theme" aria-label="Toggle theme" aria-pressed="false">
+                    <i class="fas fa-moon" data-theme-icon></i>
+                </button>
+                <div class="user-menu" data-user-menu>
+                    <button class="user-menu-trigger" id="userMenuTrigger" type="button" aria-haspopup="menu" aria-expanded="false" aria-controls="userMenuDropdown">
+                        <span class="user-menu-avatar" aria-hidden="true">{{ user_initial }}</span>
+                        <span class="user-menu-copy">
+                            <strong>{{ full_name or 'Student' }}</strong>
+                            <small>Student</small>
+                        </span>
+                        <i class="fas fa-chevron-down user-menu-chevron" aria-hidden="true"></i>
+                    </button>
+
+                    <div class="user-menu-dropdown" id="userMenuDropdown" role="menu" hidden>
+                        <div class="user-menu-header">
+                            <span class="user-menu-header-avatar">{{ user_initial }}</span>
+                            <div class="user-menu-header-copy">
+                                <strong>{{ full_name or 'Student' }}</strong>
+                                <small>Student</small>
+                            </div>
+                        </div>
+                        <div class="user-menu-section">
+                            <p class="user-menu-section-title">Account</p>
+                            <a href="/student/home" role="menuitem">
+                                <i class="fas fa-user-circle"></i><span>My profile</span>
+                            </a>
+                            <a href="/settings" role="menuitem">
+                                <i class="fas fa-gear"></i><span>Account settings</span>
+                            </a>
+                        </div>
+                        <div class="user-menu-section user-menu-footer">
+                            <form method="post" action="/logout" class="header-logout-form user-menu-logout">
+                                <button type="submit" role="menuitem">
+                                    <i class="fas fa-right-from-bracket"></i><span>Sign out</span>
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <main class="portal-main">
+        <section class="portal-hero section-shell">
+            <div class="portal-hero-text">
+                <span class="portal-hero-badge">
+                    <i class="fas fa-user-graduate"></i>
+                    Student portal &middot; Personal workspace
+                </span>
+                <h1>Hello, {{ full_name or 'there' }}</h1>
+                <p>Track your transcripts, class schedule, exams, enrollments and tuition &mdash; all in one tidy place.</p>
+                <div class="portal-hero-meta">
+                    {% if home_data and home_data.Profile %}
+                        {% if home_data.Profile.StudentCode %}<span><i class="fas fa-id-badge"></i> Student ID: <strong>{{ home_data.Profile.StudentCode }}</strong></span>{% endif %}
+                        {% if home_data.Profile.StatusName %}<span><i class="fas fa-circle-check"></i> {{ home_data.Profile.StatusName }}</span>{% endif %}
+                    {% endif %}
+                    <span><i class="fas fa-shield-halved"></i> Read-only &amp; personal actions</span>
+                </div>
+            </div>
+            <div class="portal-hero-stats">
+                <article class="stat-card stat-blue">
+                    <i class="fas fa-book-open"></i>
+                    <div>
+                        <p>Enrolled classes</p>
+                        <strong id="enrollmentCountValue">{{ home_data.Totals.TotalEnrollments if home_data and home_data.Totals else 0 }}</strong>
+                    </div>
+                </article>
+                <article class="stat-card stat-orange">
+                    <i class="fas fa-file-invoice-dollar"></i>
+                    <div>
+                        <p>Outstanding balance</p>
+                        <strong id="debtValue">
+                            {% if home_data and home_data.Totals %}
+                                {{ "{:,.0f}".format((home_data.Totals.OutstandingTuition or 0)|float) }}
+                            {% else %}
+                                0
+                            {% endif %}
+                            <span>VND</span>
+                        </strong>
+                    </div>
+                </article>
+            </div>
+        </section>
+
+        {% if home_data and home_data.Profile %}
+        <div id="studentPortalRoot" data-user-id="{{ current_user.UserId }}" hidden></div>
+
+        <section class="portal-layout section-shell">
+            <aside class="portal-sidebar">
+                <p class="portal-sidebar-title">Your tools</p>
+                <nav class="portal-nav" id="portalNav">
+                    <a href="/student/home" data-section="overview" class="{{ 'is-active' if active == 'overview' else '' }}">
+                        <i class="fas fa-id-card"></i><span>Overview</span>
+                    </a>
+                    <a href="/student/scores" data-section="scores" class="{{ 'is-active' if active == 'scores' else '' }}">
+                        <i class="fas fa-magnifying-glass-chart"></i><span>Grades</span>
+                    </a>
+                    <a href="/student/register" data-section="register" class="{{ 'is-active' if active == 'register' else '' }}">
+                        <i class="fas fa-pen-to-square"></i><span>Course registration</span>
+                    </a>
+                    <a href="/student/enrollments" data-section="enrollments" class="{{ 'is-active' if active == 'enrollments' else '' }}">
+                        <i class="fas fa-list-check"></i><span>My enrollments</span>
+                    </a>
+                    <a href="/student/schedule" data-section="schedule" class="{{ 'is-active' if active == 'schedule' else '' }}">
+                        <i class="fas fa-calendar-days"></i><span>Class schedule</span>
+                    </a>
+                    <a href="/student/exams" data-section="exams" class="{{ 'is-active' if active == 'exams' else '' }}">
+                        <i class="fas fa-calendar-check"></i><span>Exam schedule</span>
+                    </a>
+                    <a href="/student/tuition" data-section="tuition" class="{{ 'is-active' if active == 'tuition' else '' }}">
+                        <i class="fas fa-file-invoice-dollar"></i><span>Tuition</span>
+                    </a>
+                    <a href="/student/payment" data-section="payment" class="{{ 'is-active' if active == 'payment' else '' }}">
+                        <i class="fas fa-credit-card"></i><span>Online payment</span>
+                    </a>
+                </nav>
+
+                <div class="portal-sidebar-help">
+                    <i class="fas fa-headset"></i>
+                    <div>
+                        <strong>Need help?</strong>
+                        <p>Hotline <span>0901 234 369</span></p>
+                    </div>
+                </div>
+            </aside>
+
+            <section class="portal-content">
+                {# ═══════════════ OVERVIEW ═══════════════ #}
+                <article class="portal-panel {{ 'is-active' if active == 'overview' else '' }}" data-panel="overview">
+                    <header class="portal-panel-head">
+                        <div>
+                            <p class="eyebrow">Overview</p>
+                            <h2>Profile &amp; learning progress</h2>
+                        </div>
+                    </header>
+
+                    <div class="portal-cards portal-cards-2">
+                        <div class="portal-card">
+                            <div class="portal-card-head">
+                                <h3><i class="fas fa-id-card"></i> Student profile</h3>
+                            </div>
+                            <ul class="info-list">
+                                <li><span>Full name</span><strong>{{ home_data.Profile.FullName }}</strong></li>
+                                <li><span>Student ID</span><strong>{{ home_data.Profile.StudentCode }}</strong></li>
+                                <li><span>Email</span><strong>{{ home_data.Profile.Email or '—' }}</strong></li>
+                                <li><span>Phone number</span><strong>{{ home_data.Profile.PhoneNumber or '—' }}</strong></li>
+                                <li><span>Gender</span><strong>{{ home_data.Profile.Gender or '—' }}</strong></li>
+                                <li><span>Date of birth</span><strong>{{ home_data.Profile.DateOfBirth[:10] if home_data.Profile.DateOfBirth else '—' }}</strong></li>
+                                <li><span>Address</span><strong>{{ home_data.Profile.Address or '—' }}</strong></li>
+                                <li><span>Status</span>
+                                    <strong>
+                                        {% set status_name = home_data.Profile.StatusName or 'N/A' %}
+                                        <span class="portal-chip {{ 'chip-green' if status_name in ['Đang học', 'Active'] else 'chip-yellow' if status_name == 'Bảo lưu' else 'chip-red' if status_name == 'Đã nghỉ học' else '' }}">{{ status_name }}</span>
+                                    </strong>
+                                </li>
+                            </ul>
+                            <div class="portal-card-footer">
+                                <a href="/settings" class="portal-link">
+                                    <i class="fas fa-pen"></i> Update your info in Account settings
+                                </a>
+                            </div>
+                        </div>
+
+                        <div class="portal-card">
+                            <div class="portal-card-head">
+                                <h3><i class="fas fa-bolt"></i> Quick access</h3>
+                            </div>
+                            <div class="portal-grid">
+                                <a href="/student/scores" class="portal-tile tile-blue"><i class="fas fa-magnifying-glass-chart"></i><span>Grades</span></a>
+                                <a href="/student/register" class="portal-tile tile-green"><i class="fas fa-pen-to-square"></i><span>Register</span></a>
+                                <a href="/student/enrollments" class="portal-tile tile-teal"><i class="fas fa-list-check"></i><span>Enrollments</span></a>
+                                <a href="/student/schedule" class="portal-tile tile-indigo"><i class="fas fa-calendar-days"></i><span>Schedule</span></a>
+                                <a href="/student/exams" class="portal-tile tile-purple"><i class="fas fa-calendar-check"></i><span>Exams</span></a>
+                                <a href="/student/tuition" class="portal-tile tile-orange"><i class="fas fa-file-invoice-dollar"></i><span>Tuition</span></a>
+                                <a href="/student/payment" class="portal-tile tile-red"><i class="fas fa-credit-card"></i><span>Pay online</span></a>
+                                <a href="/settings" class="portal-tile tile-gray"><i class="fas fa-gear"></i><span>Settings</span></a>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="overview-kpi-row">
+                        <article class="kpi-card kpi-blue">
+                            <i class="fas fa-book"></i>
+                            <div>
+                                <p>Courses taken</p>
+                                <strong id="kpiTotalCourses">—</strong>
+                            </div>
+                        </article>
+                        <article class="kpi-card kpi-green">
+                            <i class="fas fa-award"></i>
+                            <div>
+                                <p>Accumulated credits</p>
+                                <strong id="kpiTotalCredits">—</strong>
+                            </div>
+                        </article>
+                        <article class="kpi-card kpi-purple">
+                            <i class="fas fa-chart-line"></i>
+                            <div>
+                                <p>Cumulative GPA (4.0)</p>
+                                <strong id="kpiGpa4">—</strong>
+                            </div>
+                        </article>
+                        <article class="kpi-card kpi-orange">
+                            <i class="fas fa-calendar-week"></i>
+                            <div>
+                                <p>Sessions this week</p>
+                                <strong id="kpiWeekSessions">—</strong>
+                            </div>
+                        </article>
+                    </div>
+                </article>
+
+                {# ═══════════════ SCORES ═══════════════ #}
+                <article class="portal-panel {{ 'is-active' if active == 'scores' else '' }}" data-panel="scores">
+                    <header class="portal-panel-head">
+                        <div class="panel-head-row">
+                            <div>
+                                <p class="eyebrow">Grades</p>
+                                <h2>Personal transcript</h2>
+                                <small class="portal-readonly-note"><i class="fas fa-eye"></i> Grades are updated by instructors &mdash; read-only view.</small>
+                            </div>
+                        </div>
+
+                        <nav class="portal-subtabs" id="scoreSubtabs" role="tablist">
+                            <button class="is-active" data-score-tab="transcript"><i class="fas fa-file-lines"></i> Transcript</button>
+                            <button data-score-tab="debt"><i class="fas fa-triangle-exclamation"></i> Failed courses</button>
+                            <button data-score-tab="knowledge"><i class="fas fa-cubes"></i> Knowledge blocks</button>
+                            <button data-score-tab="warning"><i class="fas fa-bell"></i> Academic alerts</button>
+                        </nav>
+                    </header>
+
+                    <div class="score-layout">
+                        <aside class="score-aside">
+                            <div class="portal-card score-profile-card">
+                                <div class="score-profile-head">
+                                    <div class="score-profile-avatar">{{ user_initial }}</div>
+                                    <div>
+                                        <strong>{{ home_data.Profile.FullName }}</strong>
+                                        <small>{{ home_data.Profile.StudentCode }}</small>
+                                    </div>
+                                </div>
+                                <ul class="score-profile-list">
+                                    <li><i class="fas fa-cake-candles"></i> {{ home_data.Profile.DateOfBirth[:10] if home_data.Profile.DateOfBirth else '—' }}</li>
+                                    <li><i class="fas fa-venus-mars"></i> {{ home_data.Profile.Gender or '—' }}</li>
+                                    <li><i class="fas fa-circle-check"></i> {{ home_data.Profile.StatusName or '—' }}</li>
+                                </ul>
+                            </div>
+
+                            <div class="portal-card score-recent-card">
+                                <div class="score-recent-head">
+                                    <i class="fas fa-bolt"></i>
+                                    <span>Recently updated</span>
+                                </div>
+                                <ul class="score-recent-list" id="scoreRecentList">
+                                    <li class="empty">Loading…</li>
+                                </ul>
+                            </div>
+
+                            <div class="portal-card score-total-card">
+                                <div class="score-total-head">
+                                    <i class="fas fa-square-poll-vertical"></i>
+                                    <span>Totals</span>
+                                </div>
+                                <dl class="score-total-list">
+                                    <div><dt>Total credits</dt><dd id="scoreTotalCredits">0</dd></div>
+                                    <div><dt>Accumulated credits</dt><dd id="scoreCumulatedCredits">0</dd></div>
+                                    <div><dt>Average (10)</dt><dd id="scoreAvg10">—</dd></div>
+                                    <div><dt>Average (4.0)</dt><dd id="scoreAvg4">—</dd></div>
+                                    <div><dt>Cumulative (10)</dt><dd id="scoreCumulated10">—</dd></div>
+                                    <div><dt>Cumulative (4.0)</dt><dd id="scoreCumulated4">—</dd></div>
+                                </dl>
+                            </div>
+                        </aside>
+
+                        <div class="score-main">
+                            <div class="score-view" data-score-view="transcript">
+                                <div id="scoreSemesterList">
+                                    <div class="portal-card"><p class="empty">Loading transcript…</p></div>
+                                </div>
+                            </div>
+
+                            <div class="score-view" data-score-view="debt" hidden>
+                                <div class="portal-card">
+                                    <div class="portal-card-head">
+                                        <h3><i class="fas fa-triangle-exclamation"></i> Failed / outstanding courses</h3>
+                                    </div>
+                                    <div class="table-wrap">
+                                        <table class="portal-table">
+                                            <thead>
+                                                <tr>
+                                                    <th>#</th>
+                                                    <th>Code</th>
+                                                    <th>Course name</th>
+                                                    <th>Class</th>
+                                                    <th>Credits</th>
+                                                    <th>Score (10)</th>
+                                                    <th>Result</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody id="scoreDebtBody">
+                                                <tr><td colspan="7" class="empty">No outstanding courses.</td></tr>
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="score-view" data-score-view="knowledge" hidden>
+                                <div class="portal-card">
+                                    <div class="portal-card-head">
+                                        <h3><i class="fas fa-cubes"></i> Grades by knowledge block</h3>
+                                    </div>
+                                    <div id="scoreKnowledgeBody">
+                                        <p class="empty">Summarizing by knowledge block…</p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="score-view" data-score-view="warning" hidden>
+                                <div class="portal-card">
+                                    <div class="portal-card-head">
+                                        <h3><i class="fas fa-bell"></i> Academic alerts</h3>
+                                    </div>
+                                    <div id="scoreWarningBody">
+                                        <p class="empty">Summarizing alerts…</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </article>
+
+                {# ═══════════════ REGISTER ═══════════════ #}
+                <article class="portal-panel {{ 'is-active' if active == 'register' else '' }}" data-panel="register">
+                    <header class="portal-panel-head">
+                        <div>
+                            <p class="eyebrow">Course registration</p>
+                            <h2>Pick an available class to register</h2>
+                            <small class="portal-readonly-note"><i class="fas fa-circle-info"></i> You can only register courses for your own account.</small>
+                        </div>
+                    </header>
+
+                    <div class="register-toolbar portal-card">
+                        <div class="register-toolbar-filters">
+                            <label>
+                                <span>Search by subject / class code</span>
+                                <input type="search" id="registerKeyword" placeholder="e.g. Python, API, SQL…">
+                            </label>
+                            <label>
+                                <span>Course</span>
+                                <select id="registerCourseFilter">
+                                    <option value="">All courses</option>
+                                </select>
+                            </label>
+                        </div>
+                        <div class="register-toolbar-count">
+                            <span>Classes available: <strong id="registerCount">—</strong></span>
+                        </div>
+                    </div>
+
+                    <div class="subject-grid" id="registerSubjectGrid">
+                        <p class="empty">Loading available classes…</p>
+                    </div>
+
+                    <p id="registrationMessage" class="portal-message"></p>
+                </article>
+
+                {# ═══════════════ ENROLLMENTS ═══════════════ #}
+                <article class="portal-panel {{ 'is-active' if active == 'enrollments' else '' }}" data-panel="enrollments">
+                    <header class="portal-panel-head">
+                        <div>
+                            <p class="eyebrow">My enrollments</p>
+                            <h2>Your registration history</h2>
+                            <small class="portal-readonly-note"><i class="fas fa-eye"></i> Only shows classes you have enrolled in.</small>
+                        </div>
+
+                        <nav class="portal-subtabs" id="enrollmentSubtabs" role="tablist">
+                            <button class="is-active" data-enrol-tab="cards"><i class="fas fa-grip"></i> Subject cards</button>
+                            <button data-enrol-tab="list"><i class="fas fa-table-list"></i> Table view</button>
+                        </nav>
+                    </header>
+
+                    <div class="enrol-view" data-enrol-view="cards">
+                        <div class="subject-grid" id="enrollmentSubjectGrid">
+                            <p class="empty">Loading your enrollments…</p>
+                        </div>
+                    </div>
+
+                    <div class="enrol-view" data-enrol-view="list" hidden>
+                        <div class="portal-card">
+                            <div class="portal-card-head">
+                                <h3><i class="fas fa-timeline"></i> Registration history</h3>
+                            </div>
+                            <div class="table-wrap">
+                                <table class="portal-table">
+                                    <thead>
+                                        <tr>
+                                            <th>#</th>
+                                            <th>Class</th>
+                                            <th>Course</th>
+                                            <th>Enrolled on</th>
+                                            <th>Tuition</th>
+                                            <th>Status</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="registrationStatusBody">
+                                        <tr><td colspan="6" class="empty">Loading data…</td></tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </article>
+
+                {# ═══════════════ SCHEDULE ═══════════════ #}
+                <article class="portal-panel {{ 'is-active' if active == 'schedule' else '' }}" data-panel="schedule">
+                    <header class="portal-panel-head">
+                        <div>
+                            <p class="eyebrow">Schedule</p>
+                            <h2>My class schedule</h2>
+                            <small class="portal-readonly-note"><i class="fas fa-eye"></i> Only shows classes you are enrolled in.</small>
+                        </div>
+                    </header>
+
+                    <div class="schedule-layout">
+                        <div class="portal-card schedule-card">
+                            <div class="schedule-toolbar">
+                                <div>
+                                    <h3 id="scheduleWeekTitle">Week …</h3>
+                                    <p id="scheduleWeekRange">—</p>
+                                </div>
+                                <div class="schedule-nav">
+                                    <button type="button" id="scheduleTodayBtn" class="btn btn-outline btn-sm">Today</button>
+                                    <button type="button" id="schedulePrevBtn" class="schedule-nav-arrow" aria-label="Previous week"><i class="fas fa-chevron-left"></i></button>
+                                    <button type="button" id="scheduleNextBtn" class="schedule-nav-arrow" aria-label="Next week"><i class="fas fa-chevron-right"></i></button>
+                                </div>
+                            </div>
+
+                            <div class="schedule-grid" id="scheduleGrid">
+                                <div class="schedule-empty"><i class="fas fa-spinner fa-spin"></i> Loading…</div>
+                            </div>
+                        </div>
+
+                        <aside class="schedule-aside">
+                            <div class="portal-card mini-calendar-card">
+                                <div class="mini-calendar-head">
+                                    <button type="button" id="miniPrev" class="schedule-nav-arrow" aria-label="Previous month"><i class="fas fa-chevron-left"></i></button>
+                                    <strong id="miniTitle">Month …</strong>
+                                    <button type="button" id="miniNext" class="schedule-nav-arrow" aria-label="Next month"><i class="fas fa-chevron-right"></i></button>
+                                </div>
+                                <div class="mini-calendar-grid" id="miniCalendar"></div>
+                            </div>
+
+                            <div class="portal-card schedule-list-card">
+                                <div class="portal-card-head">
+                                    <h3><i class="fas fa-list"></i> Sessions this week</h3>
+                                </div>
+                                <ul class="schedule-list" id="scheduleList">
+                                    <li class="empty">Loading…</li>
+                                </ul>
+                            </div>
+                        </aside>
+                    </div>
+                </article>
+
+                {# ═══════════════ EXAMS ═══════════════ #}
+                <article class="portal-panel {{ 'is-active' if active == 'exams' else '' }}" data-panel="exams">
+                    <header class="portal-panel-head">
+                        <div>
+                            <p class="eyebrow">Schedule</p>
+                            <h2>Exam schedule</h2>
+                            <small class="portal-readonly-note"><i class="fas fa-eye"></i> Exams are published by the center &mdash; read-only.</small>
+                        </div>
+                    </header>
+
+                    <div class="portal-card exam-filter-card">
+                        <div class="register-toolbar-filters">
+                            <label>
+                                <span>Semester</span>
+                                <select id="examSemesterFilter">
+                                    <option value="">All semesters</option>
+                                </select>
+                            </label>
+                            <label>
+                                <span>Course</span>
+                                <select id="examCourseFilter">
+                                    <option value="">All courses</option>
+                                </select>
+                            </label>
+                        </div>
+                        <div>
+                            <button type="button" id="examExportBtn" class="btn btn-outline btn-sm">
+                                <i class="fas fa-download"></i> Export CSV
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="portal-card">
+                        <div class="portal-card-head">
+                            <h3><i class="fas fa-calendar-check"></i> Personal exam schedule</h3>
+                            <span class="portal-card-badge" id="examPersonalCount">0 exams</span>
+                        </div>
+                        <div class="table-wrap">
+                            <table class="portal-table">
+                                <thead>
+                                    <tr>
+                                        <th>#</th>
+                                        <th>Code</th>
+                                        <th>Course name</th>
+                                        <th>Attempt</th>
+                                        <th>Exam date</th>
+                                        <th>Time</th>
+                                        <th>Format</th>
+                                        <th>Room</th>
+                                        <th>Seat</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="examTableBody">
+                                    <tr><td colspan="9" class="empty">Loading data…</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </article>
+
+                {# ═══════════════ TUITION ═══════════════ #}
+                <article class="portal-panel {{ 'is-active' if active == 'tuition' else '' }}" data-panel="tuition">
+                    <header class="portal-panel-head">
+                        <div>
+                            <p class="eyebrow">Finance</p>
+                            <h2>Personal tuition</h2>
+                            <small class="portal-readonly-note"><i class="fas fa-eye"></i> Figures are maintained by the finance office.</small>
+                        </div>
+                    </header>
+
+                    <div class="portal-card tuition-summary-card" id="tuitionSummaryCard">
+                        <div class="tuition-summary-ident">
+                            <strong>{{ home_data.Profile.FullName }}</strong>
+                            <span>ID: {{ home_data.Profile.StudentCode }}{% if home_data.Profile.PhoneNumber %} &middot; Phone: {{ home_data.Profile.PhoneNumber }}{% endif %}</span>
+                        </div>
+                        <div class="tuition-summary-status">
+                            <span id="tuitionStatusBadge" class="portal-chip chip-green">Summarizing…</span>
+                        </div>
+                    </div>
+
+                    <div class="tuition-stat-grid" id="tuitionStatGrid">
+                        <article class="tuition-stat stat-mint" data-stat="phainop">
+                            <div class="tuition-stat-body">
+                                <strong id="tuitionPhaiNop">0</strong>
+                                <p>Amount due</p>
+                            </div>
+                            <i class="fas fa-sack-dollar"></i>
+                        </article>
+                        <article class="tuition-stat stat-ash" data-stat="duocmien">
+                            <div class="tuition-stat-body">
+                                <strong id="tuitionDuocMien">0</strong>
+                                <p>Amount waived</p>
+                            </div>
+                            <i class="fas fa-gift"></i>
+                        </article>
+                        <article class="tuition-stat stat-sky" data-stat="danop">
+                            <div class="tuition-stat-body">
+                                <strong id="tuitionDaNop">0</strong>
+                                <p>Amount paid</p>
+                            </div>
+                            <i class="fas fa-credit-card"></i>
+                        </article>
+                        <article class="tuition-stat stat-rose" data-stat="darut">
+                            <div class="tuition-stat-body">
+                                <strong id="tuitionDaRut">0</strong>
+                                <p>Amount refunded</p>
+                            </div>
+                            <i class="fas fa-money-bill-transfer"></i>
+                        </article>
+                        <article class="tuition-stat stat-peach" data-stat="nocon">
+                            <div class="tuition-stat-body">
+                                <strong id="tuitionNoCon">0</strong>
+                                <p>Remaining balance</p>
+                            </div>
+                            <i class="fas fa-piggy-bank"></i>
+                        </article>
+                        <article class="tuition-stat stat-lime" data-stat="tongdu">
+                            <div class="tuition-stat-body">
+                                <strong id="tuitionTongDu">0</strong>
+                                <p>Total surplus</p>
+                            </div>
+                            <i class="fas fa-calculator"></i>
+                        </article>
+                        <article class="tuition-stat stat-indigo" data-stat="phieuthu">
+                            <div class="tuition-stat-body">
+                                <strong id="tuitionPhieuThu">0</strong>
+                                <p>Receipts issued</p>
+                            </div>
+                            <i class="fas fa-receipt"></i>
+                        </article>
+                        <article class="tuition-stat stat-bordeaux" data-stat="phieurut">
+                            <div class="tuition-stat-body">
+                                <strong id="tuitionPhieuRut">0</strong>
+                                <p>Refund slips</p>
+                            </div>
+                            <i class="fas fa-file-invoice"></i>
+                        </article>
+                        <article class="tuition-stat stat-amber" data-stat="phieuhoadon">
+                            <div class="tuition-stat-body">
+                                <strong id="tuitionPhieuHoaDon">0</strong>
+                                <p>Invoices</p>
+                            </div>
+                            <i class="fas fa-file-lines"></i>
+                        </article>
+                    </div>
+
+                    <div class="portal-card">
+                        <div class="portal-card-head">
+                            <h3><i class="fas fa-table-list"></i> Details by class</h3>
+                            <a href="/student/payment" class="portal-link"><i class="fas fa-credit-card"></i> Go to payment</a>
+                        </div>
+                        <div class="table-wrap">
+                            <table class="portal-table">
+                                <thead>
+                                    <tr>
+                                        <th>Class</th>
+                                        <th>Total fee</th>
+                                        <th>Paid</th>
+                                        <th>Remaining</th>
+                                        <th>Due date</th>
+                                        <th>Status</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="financeTableBody">
+                                    <tr><td colspan="6" class="empty">Loading data…</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </article>
+
+                {# ═══════════════ PAYMENT ═══════════════ #}
+                <article class="portal-panel {{ 'is-active' if active == 'payment' else '' }}" data-panel="payment">
+                    <header class="portal-panel-head">
+                        <div>
+                            <p class="eyebrow">Online payment</p>
+                            <h2>Pay tuition online</h2>
+                            <small class="portal-readonly-note"><i class="fas fa-shield-halved"></i> You can only pay for your own tuition items.</small>
+                        </div>
+                    </header>
+
+                    <div class="portal-cards portal-cards-2">
+                        <div class="portal-card">
+                            <div class="portal-card-head">
+                                <h3><i class="fas fa-credit-card"></i> Payment form</h3>
+                            </div>
+                            <form id="paymentForm" class="portal-form">
+                                <label>
+                                    <span>Tuition item</span>
+                                    <select id="paymentTuitionSelect" required>
+                                        <option value="">Select a tuition item</option>
+                                    </select>
+                                </label>
+                                <label>
+                                    <span>Amount</span>
+                                    <input type="number" id="paymentAmountInput" min="1" step="1000" required placeholder="e.g. 3000000">
+                                </label>
+                                <label>
+                                    <span>Method</span>
+                                    <select id="paymentMethodSelect">
+                                        <option value="bank">Bank transfer</option>
+                                        <option value="momo">MoMo e-wallet</option>
+                                        <option value="zalopay">ZaloPay</option>
+                                        <option value="vnpay">VNPay</option>
+                                        <option value="cash">Cash at counter</option>
+                                    </select>
+                                </label>
+                                <label>
+                                    <span>Note</span>
+                                    <input type="text" id="paymentNoteInput" placeholder="e.g. Vietcombank transfer">
+                                </label>
+                                <button type="submit" class="btn btn-primary">
+                                    <i class="fas fa-money-bill-wave"></i> Submit payment
+                                </button>
+                                <p id="paymentMessage" class="portal-message"></p>
+                            </form>
+                        </div>
+
+                        <div class="portal-card">
+                            <div class="portal-card-head">
+                                <h3><i class="fas fa-building-columns"></i> Supported channels</h3>
+                            </div>
+                            <ul class="portal-hints">
+                                <li><i class="fas fa-mobile-screen"></i> Bank transfer, MoMo, ZaloPay, VNPay.</li>
+                                <li><i class="fas fa-receipt"></i> Include your <strong>student ID</strong> and <strong>class code</strong> in the memo.</li>
+                                <li><i class="fas fa-rotate"></i> After processing, status will be updated on the Tuition page.</li>
+                                <li><i class="fas fa-headset"></i> Reconciliation support: hotline <strong>0901 234 369</strong>.</li>
+                            </ul>
+
+                            <div class="payment-guide-box">
+                                <strong>Example transfer memo:</strong>
+                                <code id="paymentExample">{{ home_data.Profile.StudentCode }} HP [CLASS_CODE]</code>
+                            </div>
+                        </div>
+                    </div>
+                </article>
+            </section>
+        </section>
+
+        {# MODAL: Class detail from calendar click #}
+        <div class="portal-modal" id="scheduleModal" hidden>
+            <div class="portal-modal-backdrop" data-modal-close></div>
+            <div class="portal-modal-dialog" role="dialog" aria-modal="true" aria-labelledby="scheduleModalTitle">
+                <header class="portal-modal-head">
+                    <div>
+                        <p class="eyebrow" id="scheduleModalKicker">Session details</p>
+                        <h3 id="scheduleModalTitle">—</h3>
+                    </div>
+                    <button type="button" class="portal-modal-close" data-modal-close aria-label="Close"><i class="fas fa-xmark"></i></button>
+                </header>
+                <div class="portal-modal-body" id="scheduleModalBody"></div>
+            </div>
+        </div>
+
+        {% else %}
+        <section class="section-shell">
+            <div class="portal-card portal-warning">
+                <i class="fas fa-exclamation-triangle"></i>
+                <h2>No student profile found</h2>
+                <p>The account <strong>{{ current_user.Username }}</strong> signed in successfully, but it isn't linked to a student profile yet. Please contact an administrator to set one up.</p>
+            </div>
+        </section>
+        {% endif %}
+    </main>
+
+    <footer class="site-footer">
+        <p>&copy; 2026 CLASSES369 &mdash; Student portal.</p>
+    </footer>
+
+    <script src="{{ url_for('static', filename='js/theme.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/landing.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/student_portal.js') }}"></script>
+</body>
+</html>

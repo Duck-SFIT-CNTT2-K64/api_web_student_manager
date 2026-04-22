@@ -633,17 +633,28 @@ def get_student_scores_by_user_id(user_id: int) -> List[Dict[str, Any]]:
             SELECT
                 c.ClassCode,
                 c.ClassName,
+                co.CourseCode,
+                co.CourseName,
+                co.Credits,
+                MIN(e.EnrollmentId) AS EnrollmentId,
+                MIN(e.EnrollmentDate) AS EnrollmentDate,
                 MAX(CASE WHEN st.ScoreTypeId = 1 THEN sc.ScoreValue END) AS ChuyenCan,
                 MAX(CASE WHEN st.ScoreTypeId = 2 THEN sc.ScoreValue END) AS GiuaKy,
                 MAX(CASE WHEN st.ScoreTypeId = 3 THEN sc.ScoreValue END) AS CuoiKy
             FROM Enrollments e
             INNER JOIN Students s ON e.StudentId = s.StudentId
             INNER JOIN Classes c ON e.ClassId = c.ClassId
+            INNER JOIN Courses co ON c.CourseId = co.CourseId
             LEFT JOIN Scores sc ON e.EnrollmentId = sc.EnrollmentId
             LEFT JOIN ScoreTypes st ON sc.ScoreTypeId = st.ScoreTypeId
             WHERE s.UserId = ?
-            GROUP BY c.ClassCode, c.ClassName
-            ORDER BY c.ClassCode
+            GROUP BY
+                c.ClassCode,
+                c.ClassName,
+                co.CourseCode,
+                co.CourseName,
+                co.Credits
+            ORDER BY MIN(e.EnrollmentDate) DESC, c.ClassCode
             """,
             int(user_id),
         )

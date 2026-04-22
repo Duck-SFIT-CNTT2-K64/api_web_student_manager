@@ -1,0 +1,63 @@
+{#
+    Academic > Schedules
+    Schedule form + weekly grid 7:00 - 22:00 (dashboard.js → renderClassSchedules).
+    Section ID changed from "class_schedules" → "schedules" for sidebar consistency.
+    Form & internal controls still keep id="class_schedule..." to avoid risk with dashboard.js.
+#}
+<section id="schedules" class="section">
+    <div class="section-heading">
+        <div>
+            <h2>Schedules</h2>
+            <p>Arrange class schedules by day, session and room.</p>
+        </div>
+    </div>
+    <div class="grid form-and-table">
+        <div class="panel">
+            <h3 id="class_scheduleFormTitle">Add schedule</h3>
+            <form id="class_scheduleForm" class="form-grid">
+                <input type="hidden" name="EditId" value="">
+                <label>Class <select name="ClassId" id="class_scheduleClassSelect" required></select></label>
+                <label>Room <select name="RoomId" id="class_scheduleRoomSelect"></select></label>
+                <label>Day <select name="Weekday" required>
+                        <option value="">Select day</option>
+                        <option value="Thứ 2">Monday</option>
+                        <option value="Thứ 3">Tuesday</option>
+                        <option value="Thứ 4">Wednesday</option>
+                        <option value="Thứ 5">Thursday</option>
+                        <option value="Thứ 6">Friday</option>
+                        <option value="Thứ 7">Saturday</option>
+                        <option value="Chủ Nhật">Sunday</option>
+                    </select></label>
+                <label>Start time * <input name="StartTime" type="time" required></label>
+                <label>End time * <input name="EndTime" type="time" required></label>
+                <div style="display:flex;gap:8px">
+                    <button class="btn btn-primary submit-btn" type="submit"><i class="fas fa-save"></i> <span>Save schedule</span></button>
+                    <button class="btn btn-outline cancel-btn" type="button" style="display:none"><i
+                            class="fas fa-times"></i> Cancel</button>
+                </div>
+            </form>
+            <p id="class_scheduleMessage" class="message"></p>
+        </div>
+        <div class="panel calendar-panel" style="min-width: 0;">
+            <div class="table-header">
+                <h3>Weekly schedule (7:00 - 22:00)</h3>
+                <button id="exportScheduleBtn" class="btn btn-success"><i class="fas fa-file-excel"></i> Export Excel</button>
+            </div>
+            <div class="calendar-container">
+                <div class="calendar-header">
+                    <div class="calendar-header-day" style="border-left:none">Time</div>
+                    <div class="calendar-header-day">Mon</div>
+                    <div class="calendar-header-day">Tue</div>
+                    <div class="calendar-header-day">Wed</div>
+                    <div class="calendar-header-day">Thu</div>
+                    <div class="calendar-header-day">Fri</div>
+                    <div class="calendar-header-day">Sat</div>
+                    <div class="calendar-header-day">Sun</div>
+                </div>
+                <div id="class_schedulesCalendarBody" class="calendar-body">
+                    <!-- Rendered by dashboard.js::renderClassSchedules -->
+                </div>
+            </div>
+        </div>
+    </div>
+</section>

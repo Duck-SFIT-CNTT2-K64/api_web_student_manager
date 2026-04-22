@@ -1,0 +1,56 @@
+{#
+    Management > Teachers
+    CRUD form + teachers list table (dashboard.js → renderTeachers).
+#}
+<section id="teachers" class="section">
+    <div class="section-heading">
+        <div>
+            <h2>Teachers</h2>
+            <p>Add new instructor accounts and manage profiles.</p>
+        </div>
+    </div>
+    <div class="grid form-and-table">
+        <div class="panel">
+            <h3 id="teacherFormTitle">Add instructor</h3>
+            <form id="teacherForm" class="form-grid">
+                <input type="hidden" name="EditId" value="">
+                <label>Last name * <input name="LastName" required maxlength="50" placeholder="e.g. Smith"></label>
+                <label>First name * <input name="FirstName" required maxlength="50" placeholder="e.g. John"></label>
+                <label>Email * <input name="Email" type="email" required maxlength="100"></label>
+                <label>Phone number <input name="PhoneNumber" pattern="[0-9]{10,15}" maxlength="20"
+                        title="Digits only"></label>
+                <label>Specialization <input name="Specialization" maxlength="100"
+                        placeholder="e.g. Web Programming"></label>
+                <div style="display:flex;gap:8px">
+                    <button class="btn btn-primary submit-btn" type="submit"><i class="fas fa-save"></i> <span>Save
+                            instructor</span></button>
+                    <button class="btn btn-outline cancel-btn" type="button" style="display:none"><i
+                            class="fas fa-times"></i> Cancel</button>
+                </div>
+            </form>
+            <p id="teacherMessage" class="message"></p>
+        </div>
+        <div class="panel table-panel">
+            <div class="table-header">
+                <h3>Teachers list</h3>
+                <input id="teacherSearch" class="search-input" placeholder="Search ID, name, email...">
+            </div>
+            <div class="table-wrap">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Teacher ID</th>
+                            <th>Full name</th>
+                            <th>Email</th>
+                            <th>Specialization</th>
+                            <th>Classes / Students</th>
+                            <th>Account</th>
+                            <th style="width:60px"></th>
+                        </tr>
+                    </thead>
+                    <tbody id="teachersTableBody"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</section>
