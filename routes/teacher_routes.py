@@ -18,6 +18,16 @@ from models.teacher_model import (
     save_attendance_records,
     get_notifications_by_creator,
     create_notification,
+    update_notification,
+    delete_notification,
+    get_exams_by_teacher,
+    create_exam,
+    delete_exam,
+    enroll_student_to_class,
+    remove_student_from_class,
+    remove_student_from_class_by_code,
+    get_student_by_code,
+    save_student_and_enroll,
 )
 from utils.auth import current_session_user, role_required
 
@@ -210,6 +220,83 @@ def save_score():
         return jsonify({"success": False, "error": "Database error.", "details": str(exc)}), 500
     except Exception as exc:
         return jsonify({"success": False, "error": "Unexpected server error.", "details": str(exc)}), 500
+
+@teacher_bp.post("/enroll")
+@role_required("Teacher", "Admin")
+def enroll_student():
+    payload = request.get_json(silent=True) or {}
+    class_id = payload.get("ClassId")
+    student_code = payload.get("StudentCode")
+    
+    if not class_id or not student_code:
+        return jsonify({"success": False, "error": "ClassId and StudentCode are required."}), 400
+        
+    try:
+        session_user = current_session_user()
+        user_id = session_user.get("UserId")
+        result = enroll_student_to_class(int(class_id), str(student_code), int(user_id))
+        return jsonify(result), (201 if result["success"] else 400)
+    except Exception as exc:
+        return jsonify({"success": False, "error": str(exc)}), 500
+
+@teacher_bp.post("/unenroll")
+@role_required("Teacher", "Admin")
+def unenroll_student_by_code_route():
+    payload = request.get_json(silent=True) or {}
+    class_id = payload.get("ClassId")
+    student_code = payload.get("StudentCode")
+    
+    if not class_id or not student_code:
+        return jsonify({"success": False, "error": "ClassId and StudentCode are required."}), 400
+        
+    try:
+        session_user = current_session_user()
+        user_id = session_user.get("UserId")
+        result = remove_student_from_class_by_code(int(class_id), str(student_code), int(user_id))
+        return jsonify(result), (200 if result["success"] else 400)
+    except Exception as exc:
+        return jsonify({"success": False, "error": str(exc)}), 500
+
+@teacher_bp.get("/student/<string:student_code>")
+@role_required("Teacher", "Admin")
+def get_student_info(student_code: str):
+    try:
+        student = get_student_by_code(student_code)
+        if not student:
+            return jsonify({"success": False, "error": "Không tìm thấy sinh viên."}), 404
+        return jsonify({"success": True, "student": student}), 200
+    except Exception as exc:
+        return jsonify({"success": False, "error": str(exc)}), 500
+
+@teacher_bp.post("/student/save")
+@role_required("Teacher", "Admin")
+def save_student_info_and_enroll():
+    payload = request.get_json(silent=True) or {}
+    class_id = payload.get("ClassId")
+    
+    if not class_id:
+        return jsonify({"success": False, "error": "Vui lòng chọn lớp học."}), 400
+        
+    try:
+        session_user = current_session_user()
+        user_id = session_user.get("UserId")
+        result = save_student_and_enroll(int(class_id), int(user_id), payload)
+        return jsonify(result), (200 if result["success"] else 400)
+    except Exception as exc:
+        return jsonify({"success": False, "error": str(exc)}), 500
+
+@teacher_bp.delete("/enroll/<int:enrollment_id>")
+@role_required("Teacher", "Admin")
+def unenroll_student(enrollment_id: int):
+    try:
+        session_user = current_session_user()
+        user_id = session_user.get("UserId")
+        success = remove_student_from_class(enrollment_id, int(user_id))
+        if not success:
+            return jsonify({"success": False, "error": "Không có quyền xóa sinh viên khỏi lớp này."}), 403
+        return jsonify({"success": True, "message": "Đã xóa sinh viên khỏi lớp."}), 200
+    except Exception as exc:
+        return jsonify({"success": False, "error": str(exc)}), 500
     
 @teacher_bp.get("/attendance/<int:class_id>")
 @role_required("Teacher", "Admin")
@@ -270,6 +357,75 @@ def send_notification():
     except Exception as exc:
         return jsonify({"success": False, "error": str(exc)}), 500
 
+@teacher_bp.put("/notifications/<int:notif_id>")
+@role_required("Teacher", "Admin")
+def edit_notification(notif_id: int):
+    payload = request.get_json(silent=True) or {}
+    title = (payload.get("Title") or "").strip()
+    content = (payload.get("Content") or "").strip()
+
+    if not title or not content:
+        return jsonify({"success": False, "error": "Title và Content là bắt buộc."}), 400
+
+    try:
+        session_user = current_session_user()
+        user_id = session_user.get("UserId")
+        success = update_notification(notif_id, int(user_id), title, content)
+        if not success:
+            return jsonify({"success": False, "error": "Không tìm thấy thông báo hoặc không có quyền."}), 403
+        return jsonify({"success": True, "message": "Đã cập nhật thông báo."}), 200
+    except Exception as exc:
+        return jsonify({"success": False, "error": str(exc)}), 500
+
+@teacher_bp.delete("/notifications/<int:notif_id>")
+@role_required("Teacher", "Admin")
+def remove_notification(notif_id: int):
+    try:
+        session_user = current_session_user()
+        user_id = session_user.get("UserId")
+        success = delete_notification(notif_id, int(user_id))
+        if not success:
+            return jsonify({"success": False, "error": "Không tìm thấy thông báo hoặc không có quyền."}), 403
+        return jsonify({"success": True, "message": "Đã xóa thông báo."}), 200
+    except Exception as exc:
+        return jsonify({"success": False, "error": str(exc)}), 500
+
+@teacher_bp.get("/exams/<int:user_id>")
+@role_required("Teacher", "Admin")
+def get_teacher_exams(user_id: int):
+    denied = _authorize_user_scope(user_id)
+    if denied:
+        return denied
+    try:
+        data = get_exams_by_teacher(user_id)
+        return jsonify({"success": True, "data": data}), 200
+    except Exception as exc:
+        return jsonify({"success": False, "error": str(exc)}), 500
+
+@teacher_bp.post("/exams")
+@role_required("Teacher", "Admin")
+def add_exam():
+    payload = request.get_json(silent=True) or {}
+    try:
+        session_user = current_session_user()
+        user_id = session_user.get("UserId")
+        exam_id = create_exam(int(user_id), payload)
+        return jsonify({"success": True, "message": "Đã tạo bài kiểm tra.", "data": {"ExamId": exam_id}}), 201
+    except Exception as exc:
+        return jsonify({"success": False, "error": str(exc)}), 400
+
+@teacher_bp.delete("/exams/<int:exam_id>")
+@role_required("Teacher", "Admin")
+def remove_exam(exam_id: int):
+    try:
+        session_user = current_session_user()
+        user_id = session_user.get("UserId")
+        success = delete_exam(exam_id, int(user_id))
+        if not success:
+            return jsonify({"success": False, "error": "Không tìm thấy bài kiểm tra hoặc không có quyền."}), 403
+        return jsonify({"success": True, "message": "Đã xóa bài kiểm tra."}), 200
+    except Exception as exc:
+        return jsonify({"success": False, "error": str(exc)}), 500
 
 @teacher_bp.get("/report/<int:user_id>")
 @role_required("Teacher", "Admin")

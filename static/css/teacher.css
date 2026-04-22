@@ -765,3 +765,17 @@
     .calendar-grid { grid-template-columns: repeat(3, 1fr); }
     .t-form-row { grid-template-columns: 1fr; }
 }
+/* -- SPA Sections Visibility ------------------ */
+.section {
+    display: none;
+    animation: fadeIn 0.3s ease-out;
+}
+
+.section.active {
+    display: block;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
