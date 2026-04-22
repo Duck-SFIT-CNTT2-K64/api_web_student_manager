@@ -325,6 +325,20 @@ def delete_student_by_id(student_id: int) -> bool:
             return False
 
         user_id = int(row[0])
+
+        # Kiểm tra nợ học phí trước khi xóa
+        cursor.execute("""
+            SELECT ISNULL(SUM(t.TotalFee - t.AmountPaid), 0)
+            FROM Tuitions t
+            INNER JOIN Enrollments e ON t.EnrollmentId = e.EnrollmentId
+            WHERE e.StudentId = ?
+        """, student_id)
+        row_tuition = cursor.fetchone()
+        unpaid_amount = row_tuition[0] if row_tuition else 0
+        
+        if unpaid_amount > 0:
+            raise ValueError(f"Không thể xóa sinh viên này vì vẫn còn khoản học phí chưa thanh toán ({unpaid_amount:,.0f} VNĐ).")
+
         try:
             cursor.execute("DELETE FROM Students WHERE StudentId = ?", student_id)
             deleted = cursor.rowcount > 0
