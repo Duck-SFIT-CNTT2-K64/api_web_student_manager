@@ -143,6 +143,7 @@ _STUDENT_SECTIONS = {
     "exams": "Exam schedule",
     "tuition": "Tuition",
     "payment": "Online payment",
+    "notifications": "Thông báo",
 }
 
 
@@ -205,6 +206,12 @@ def student_tuition_page():
 @role_required("Student")
 def student_payment_page():
     return _render_student_portal("payment")
+
+
+@page_bp.get("/student/notifications")
+@role_required("Student")
+def student_notifications_page():
+    return _render_student_portal("notifications")
 
 
 @page_bp.get("/dashboard")

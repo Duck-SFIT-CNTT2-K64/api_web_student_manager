@@ -66,16 +66,16 @@ def create_exam(user_id: int, payload: Dict[str, Any]) -> Dict[str, Any]:
     due_date_raw = payload.get("DueDate")
 
     if not class_id:
-        raise ValueError("ClassId là bắt buộc.")
+        raise ValueError("ClassId is required.")
     if not title:
-        raise ValueError("Tiêu đề bài kiểm tra là bắt buộc.")
+        raise ValueError("Exam title is required.")
     if not due_date_raw:
-        raise ValueError("Hạn nộp là bắt buộc.")
+        raise ValueError("Due date is required.")
 
     try:
         due_date = datetime.fromisoformat(str(due_date_raw))
     except ValueError:
-        raise ValueError("Định dạng hạn nộp không hợp lệ: " + str(due_date_raw))
+        raise ValueError("Invalid due date format: " + str(due_date_raw))
 
     with get_db_connection() as connection:
         cursor = connection.cursor()
@@ -102,7 +102,7 @@ def update_exam(exam_id: int, payload: Dict[str, Any]) -> Optional[Dict[str, Any
         try:
             due_date = datetime.fromisoformat(str(due_date_raw))
         except ValueError:
-            raise ValueError("Định dạng hạn nộp không hợp lệ: " + str(due_date_raw))
+            raise ValueError("Invalid due date format: " + str(due_date_raw))
 
     with get_db_connection() as connection:
         cursor = connection.cursor()
@@ -123,7 +123,7 @@ def update_exam(exam_id: int, payload: Dict[str, Any]) -> Optional[Dict[str, Any
 def update_exam_status(exam_id: int, status: str) -> Optional[Dict[str, Any]]:
     normalized_status = (status or "").strip()
     if normalized_status not in ("Active", "Closed"):
-        raise ValueError("Status chỉ chấp nhận Active hoặc Closed.")
+        raise ValueError("Status only accepts Active or Closed.")
 
     with get_db_connection() as connection:
         cursor = connection.cursor()
@@ -203,9 +203,9 @@ def update_submission_grade(
         try:
             normalized_grade = float(grade)
         except (TypeError, ValueError):
-            raise ValueError("Điểm không hợp lệ.")
+            raise ValueError("Invalid grade.")
         if normalized_grade < 0 or normalized_grade > 10:
-            raise ValueError("Điểm phải nằm trong khoảng 0-10.")
+            raise ValueError("Grade must be between 0 and 10.")
 
     normalized_note = None
     if note is not None:

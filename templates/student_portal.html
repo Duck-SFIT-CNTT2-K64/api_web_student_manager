@@ -138,6 +138,12 @@
                     <a href="/student/home" data-section="overview" class="{{ 'is-active' if active == 'overview' else '' }}">
                         <i class="fas fa-id-card"></i><span>Overview</span>
                     </a>
+                    <a href="/student/notifications" data-section="notifications" class="{{ 'is-active' if active == 'notifications' else '' }}">
+                        <i class="fas fa-bell"></i><span>Thông báo</span>
+                        {% if home_data.Totals.UnreadNotifications > 0 %}
+                            <span class="portal-nav-badge">{{ home_data.Totals.UnreadNotifications }}</span>
+                        {% endif %}
+                    </a>
                     <a href="/student/scores" data-section="scores" class="{{ 'is-active' if active == 'scores' else '' }}">
                         <i class="fas fa-magnifying-glass-chart"></i><span>Grades</span>
                     </a>
@@ -253,6 +259,22 @@
                                 <strong id="kpiWeekSessions">—</strong>
                             </div>
                         </article>
+                    </div>
+                </article>
+
+                {# ═══════════════ NOTIFICATIONS ═══════════════ #}
+                <article class="portal-panel {{ 'is-active' if active == 'notifications' else '' }}" data-panel="notifications">
+                    <header class="portal-panel-head">
+                        <div>
+                            <p class="eyebrow">Thông báo</p>
+                            <h2>Thông báo từ trung tâm & giảng viên</h2>
+                        </div>
+                    </header>
+
+                    <div class="portal-cards" id="notificationsList">
+                        <div class="portal-card">
+                            <div class="empty">Đang tải thông báo...</div>
+                        </div>
                     </div>
                 </article>
 
