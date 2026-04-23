@@ -356,20 +356,12 @@
 
   <div class="t-filter-bar">
       <label><i class="fas fa-chalkboard" style="color:#854d0e;"></i> Chọn lớp</label>
-      <select id="attendanceClassSelect">
+      <select id="scoreViewClassSelect">
           <option value="">Chọn lớp...</option>
       </select>
-      <button class="btn btn-primary" type="button" id="attendanceSearchBtn">
-          <i class="fas fa-search"></i> Tải điểm danh
+      <button class="btn btn-primary" type="button" id="scoreViewSearchBtn">
+          <i class="fas fa-search"></i> Xem điểm
       </button>
-      <div style="margin-left:auto;display:flex;align-items:center;gap:8px;">
-          <select id="attendanceDateSelect" disabled style="min-width:180px;">
-              <option value="">-- Chọn buổi học --</option>
-          </select>
-          <button class="btn btn-primary" type="button" id="attendanceAddSessionBtn" disabled>
-              <i class="fas fa-plus"></i> Thêm buổi
-          </button>
-      </div>
   </div>
 
   <!-- Summary badges -->
@@ -701,12 +693,11 @@
     <button class="btn btn-primary" type="button" id="attendanceSearchBtn">
       <i class="fas fa-search"></i> Tải điểm danh
     </button>
-    <!-- Thêm ngày để điểm danh buổi cụ thể -->
+    <!-- Dropdown chọn ngày học hợp lệ -->
     <div style="margin-left:auto;display:flex;align-items:center;gap:8px;">
-      <input type="date" id="attendanceDateInput" placeholder="Chọn ngày để điểm danh buổi mới"/>
-      <button class="btn btn-primary" type="button" id="attendanceAddSessionBtn">
-        <i class="fas fa-plus"></i> Thêm buổi
-      </button>
+      <select id="attendanceDateSelect" disabled style="min-width:180px;">
+        <option value="">-- Chọn buổi học --</option>
+      </select>
     </div>
   </div>
 
