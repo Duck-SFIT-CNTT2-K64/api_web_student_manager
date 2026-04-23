@@ -1,0 +1,194 @@
+.login-notif-modal {
+  position: fixed;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  z-index: 10050;
+}
+
+.login-notif-modal[hidden] { display: none !important; }
+
+.login-notif-backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(7, 13, 24, 0.55);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+
+.login-notif-dialog {
+  position: relative;
+  width: min(720px, calc(100vw - 24px));
+  border-radius: 18px;
+  overflow: hidden;
+  box-shadow: 0 28px 70px rgba(0, 0, 0, 0.45);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background:
+    radial-gradient(circle at 22% 12%, rgba(255, 255, 255, 0.12), transparent 40%),
+    radial-gradient(circle at 85% 120%, rgba(111, 141, 255, 0.26), transparent 40%),
+    linear-gradient(135deg, #101a2b 0%, #0e1625 48%, #0b1220 100%);
+  color: #e6edf8;
+}
+
+html[data-theme="light"] .login-notif-dialog {
+  border: 1px solid rgba(148, 163, 184, 0.4);
+  background:
+    radial-gradient(circle at 22% 12%, rgba(67, 97, 238, 0.14), transparent 40%),
+    radial-gradient(circle at 90% 120%, rgba(245, 158, 11, 0.12), transparent 40%),
+    linear-gradient(135deg, #ffffff 0%, #f8fbff 52%, #eef5ff 100%);
+  color: #0f172a;
+}
+
+.login-notif-head {
+  padding: 16px 18px 14px;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 14px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+html[data-theme="light"] .login-notif-head {
+  border-bottom: 1px solid rgba(148, 163, 184, 0.35);
+}
+
+.login-notif-kicker {
+  margin: 0 0 4px;
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  opacity: 0.85;
+}
+
+.login-notif-title {
+  margin: 0;
+  font-family: "Space Grotesk", "Inter", "Segoe UI", system-ui, -apple-system, sans-serif;
+  font-size: 1.15rem;
+  line-height: 1.2;
+  letter-spacing: -0.01em;
+}
+
+.login-notif-sub {
+  margin: 6px 0 0;
+  font-size: 0.88rem;
+  color: rgba(230, 237, 248, 0.82);
+}
+
+html[data-theme="light"] .login-notif-sub { color: rgba(30, 41, 59, 0.75); }
+
+.login-notif-close {
+  width: 36px;
+  height: 36px;
+  display: inline-grid;
+  place-items: center;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.06);
+  color: inherit;
+  cursor: pointer;
+  transition: transform 0.15s ease, background 0.15s ease, border-color 0.15s ease;
+}
+
+.login-notif-close:hover {
+  transform: translateY(-1px);
+  border-color: rgba(255, 255, 255, 0.22);
+  background: rgba(255, 255, 255, 0.1);
+}
+
+html[data-theme="light"] .login-notif-close {
+  border-color: rgba(148, 163, 184, 0.55);
+  background: rgba(255, 255, 255, 0.65);
+}
+
+.login-notif-body { padding: 16px 18px 18px; }
+
+.login-notif-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 10px;
+  padding: 10px 12px;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  margin-bottom: 12px;
+}
+
+html[data-theme="light"] .login-notif-meta {
+  background: rgba(15, 23, 42, 0.04);
+  border-color: rgba(148, 163, 184, 0.4);
+}
+
+.login-notif-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: rgba(230, 237, 248, 0.9);
+}
+
+html[data-theme="light"] .login-notif-chip { color: rgba(30, 41, 59, 0.82); }
+.login-notif-chip i { opacity: 0.85; }
+
+.login-notif-content {
+  white-space: pre-wrap;
+  line-height: 1.7;
+  font-size: 0.92rem;
+  padding: 14px 14px;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+html[data-theme="light"] .login-notif-content {
+  background: rgba(255, 255, 255, 0.7);
+  border-color: rgba(148, 163, 184, 0.4);
+}
+
+.login-notif-foot {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 14px;
+}
+
+.login-notif-btn {
+  border-radius: 12px;
+  padding: 10px 14px;
+  font-weight: 800;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: rgba(255, 255, 255, 0.08);
+  color: inherit;
+  cursor: pointer;
+  transition: transform 0.15s ease, background 0.15s ease, border-color 0.15s ease;
+}
+
+.login-notif-btn:hover {
+  transform: translateY(-1px);
+  background: rgba(255, 255, 255, 0.12);
+  border-color: rgba(255, 255, 255, 0.24);
+}
+
+html[data-theme="light"] .login-notif-btn {
+  border-color: rgba(148, 163, 184, 0.55);
+  background: rgba(255, 255, 255, 0.8);
+}
+
+.login-notif-btn.primary {
+  background: linear-gradient(135deg, #4361ee 0%, #3a4fdb 100%);
+  border-color: rgba(67, 97, 238, 0.7);
+  color: #fff;
+}
+
+.login-notif-btn.primary:hover {
+  background: linear-gradient(135deg, #3a4fdb 0%, #2f3fc1 100%);
+  border-color: rgba(58, 79, 219, 0.85);
+}
+
+.login-notif-btn[disabled] {
+  opacity: 0.65;
+  cursor: not-allowed;
+  transform: none !important;
+}
+

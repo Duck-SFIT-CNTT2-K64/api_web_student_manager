@@ -55,10 +55,12 @@ def get_notifications_for_user(user_id: int) -> List[Dict[str, Any]]:
             n.Content,
             n.CreatedDate,
             c.FullName AS CreatorName,
+            cr.RoleName AS CreatorRoleName,
             nr.IsRead
         FROM Notifications n
         INNER JOIN NotificationRecipients nr ON n.NotificationId = nr.NotificationId
         LEFT JOIN Users c ON n.CreatorId = c.UserId
+        LEFT JOIN Roles cr ON c.RoleId = cr.RoleId
         WHERE nr.RecipientId = ?
         ORDER BY n.CreatedDate DESC
         """
@@ -93,10 +95,12 @@ def get_unread_notifications_for_user(user_id: int) -> List[Dict[str, Any]]:
             n.Title,
             n.Content,
             n.CreatedDate,
-            c.FullName AS CreatorName
+            c.FullName AS CreatorName,
+            cr.RoleName AS CreatorRoleName
         FROM Notifications n
         INNER JOIN NotificationRecipients nr ON n.NotificationId = nr.NotificationId
         LEFT JOIN Users c ON n.CreatorId = c.UserId
+        LEFT JOIN Roles cr ON c.RoleId = cr.RoleId
         WHERE nr.RecipientId = ? AND nr.IsRead = 0
         ORDER BY n.CreatedDate DESC
         """
@@ -115,10 +119,12 @@ def get_all_notifications_for_user(user_id: int) -> List[Dict[str, Any]]:
             n.Content,
             n.CreatedDate,
             c.FullName AS CreatorName,
+            cr.RoleName AS CreatorRoleName,
             nr.IsRead
         FROM Notifications n
         INNER JOIN NotificationRecipients nr ON n.NotificationId = nr.NotificationId
         LEFT JOIN Users c ON n.CreatorId = c.UserId
+        LEFT JOIN Roles cr ON c.RoleId = cr.RoleId
         WHERE nr.RecipientId = ?
         ORDER BY n.CreatedDate DESC
         """

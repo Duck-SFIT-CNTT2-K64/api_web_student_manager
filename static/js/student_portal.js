@@ -635,25 +635,25 @@
 
         if (!grid) return;
         if (!groupArr.length) {
-            grid.innerHTML = '<p class="empty">Không có lớp phù hợp bộ lọc.</p>';
+            grid.innerHTML = '<p class="empty">No classes match your filters.</p>';
             return;
         }
 
         grid.innerHTML = groupArr.map(function (g, idx) {
             var classesHtml = g.classes.map(function (c) {
-                var seat = c.RemainingSeats == null ? "Không giới hạn" : (c.RemainingSeats + " chỗ còn");
+                var seat = c.RemainingSeats == null ? "Unlimited" : (c.RemainingSeats + " seats left");
                 return '<article class="subject-class">'
                     + '<div class="subject-class-head">'
                     + '<span class="subject-class-code">' + esc(c.ClassCode) + '</span>'
                     + '<span class="subject-class-seats">' + esc(seat) + '</span>'
                     + '</div>'
                     + '<div class="subject-class-meta">'
-                    + '<span><i class="fas fa-users"></i> Sĩ số: ' + (c.EnrollmentCount || 0) + (c.MaxStudents ? "/" + c.MaxStudents : "") + '</span>'
+                    + '<span><i class="fas fa-users"></i> Students: ' + (c.EnrollmentCount || 0) + (c.MaxStudents ? "/" + c.MaxStudents : "") + '</span>'
                     + '<span><i class="fas fa-tag"></i> ' + esc(c.ClassName || "") + '</span>'
                     + '</div>'
                     + '<div style="margin-top:6px;text-align:right">'
                     + '<button type="button" class="btn btn-primary btn-sm" data-register-class="' + c.ClassId + '">'
-                    + '<i class="fas fa-plus"></i> Đăng ký</button>'
+                    + '<i class="fas fa-plus"></i> Register</button>'
                     + '</div>'
                     + '</article>';
             }).join("");
@@ -661,12 +661,12 @@
                 + '  <header class="subject-card-head">'
                 + '    <span class="subject-card-tag"><i class="fas fa-book"></i> ' + esc(g.CourseCode) + '</span>'
                 + '    <h3>' + esc(g.CourseName) + '</h3>'
-                + '    <small>' + g.classes.length + ' lớp đang mở</small>'
+                + '    <small>' + g.classes.length + ' open classes</small>'
                 + '  </header>'
                 + '  <div class="subject-card-body">' + classesHtml + '</div>'
                 + '  <footer class="subject-card-footer">'
                 + '    <span class="fee">' + fmtMoneyVND(g.TuitionFee) + '</span>'
-                + '    <span class="subject-status"><i class="fas fa-circle-dot"></i> Có thể đăng ký</span>'
+                + '    <span class="subject-status"><i class="fas fa-circle-dot"></i> Available</span>'
                 + '  </footer>'
                 + '</article>';
         }).join("");
@@ -681,15 +681,92 @@
 
     function handleRegisterClass(classId) {
         if (!classId) return;
-        setMessage("registrationMessage", "Đang gửi đăng ký lớp…", "");
-        postJson(endpoints.register, { ClassId: classId })
-            .then(function () {
-                setMessage("registrationMessage", "Đăng ký lớp thành công.", "success");
-                return reloadData();
-            })
-            .catch(function (err) {
-                setMessage("registrationMessage", err.message || "Không đăng ký được.", "error");
-            });
+
+        var opt = (state.registrationOptions || []).find(function (x) { return Number(x.ClassId) === Number(classId); }) || null;
+        var courseName = opt ? (opt.CourseName || "") : "";
+        var classCode = opt ? (opt.ClassCode || "") : "";
+        var className = opt ? (opt.ClassName || "") : "";
+        var teacherName = opt ? (opt.TeacherName || opt.FullName || opt.InstructorName || "") : "";
+        var fee = opt ? fmtMoneyVND(opt.TuitionFee) : "—";
+        var seats = opt && opt.RemainingSeats != null ? String(opt.RemainingSeats) : "Unlimited";
+        var enrolled = opt && opt.EnrollmentCount != null ? String(opt.EnrollmentCount) : "0";
+        var max = opt && opt.MaxStudents != null ? String(opt.MaxStudents) : "—";
+
+        openRegisterConfirmModal({
+            Course: courseName || "—",
+            Class: (classCode || "—") + (className ? (" — " + className) : ""),
+            Teacher: teacherName || "TBA",
+            Fee: fee || "—",
+            Seats: seats + " (enrolled " + enrolled + (max !== "—" ? ("/" + max) : "") + ")",
+        }).then(function (ok) {
+            if (!ok) return;
+            setMessage("registrationMessage", "Submitting registration…", "");
+            return postJson(endpoints.register, { ClassId: classId })
+                .then(function () {
+                    setMessage("registrationMessage", "Registration submitted successfully.", "success");
+                    return reloadData();
+                })
+                .catch(function (err) {
+                    setMessage("registrationMessage", err.message || "Could not register for this class.", "error");
+                });
+        });
+    }
+
+    function openRegisterConfirmModal(info) {
+        return new Promise(function (resolve) {
+            var modal = document.getElementById("registerConfirmModal");
+            if (!modal) {
+                resolve(confirm("Confirm registration?"));
+                return;
+            }
+
+            var setText = function (id, value) {
+                var el = document.getElementById(id);
+                if (el) el.textContent = value == null ? "—" : String(value);
+            };
+
+            setText("registerConfirmCourse", info && info.Course);
+            setText("registerConfirmClass", info && info.Class);
+            setText("registerConfirmTeacher", info && info.Teacher);
+            setText("registerConfirmFee", info && info.Fee);
+            setText("registerConfirmSeats", info && info.Seats);
+
+            var okBtn = document.getElementById("registerConfirmOkBtn");
+            var closeEls = modal.querySelectorAll("[data-modal-close]");
+            var previousActive = document.activeElement;
+
+            var done = false;
+            function cleanup(result) {
+                if (done) return;
+                done = true;
+                modal.hidden = true;
+                document.removeEventListener("keydown", onKeyDown);
+                if (okBtn) okBtn.removeEventListener("click", onOk);
+                closeEls.forEach(function (el) { el.removeEventListener("click", onCancel); });
+                if (previousActive && previousActive.focus) {
+                    try { previousActive.focus(); } catch (e) { }
+                }
+                resolve(result);
+            }
+
+            function onOk() { cleanup(true); }
+            function onCancel() { cleanup(false); }
+            function onKeyDown(ev) {
+                if (ev.key === "Escape") {
+                    ev.preventDefault();
+                    cleanup(false);
+                }
+            }
+
+            document.addEventListener("keydown", onKeyDown);
+            if (okBtn) okBtn.addEventListener("click", onOk);
+            closeEls.forEach(function (el) { el.addEventListener("click", onCancel); });
+
+            modal.hidden = false;
+            setTimeout(function () {
+                if (okBtn && okBtn.focus) okBtn.focus();
+            }, 0);
+        });
     }
 
     function renderEnrollments() {
