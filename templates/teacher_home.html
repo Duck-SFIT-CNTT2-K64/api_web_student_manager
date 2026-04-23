@@ -305,6 +305,12 @@
         <span class="tct-icon" style="background:#dcfce7;color:#15803d;"><i class="fas fa-table"></i></span>
         Danh sách sinh viên và điểm
       </div>
+      <div class="search-box" style="position:relative; margin-left:auto; margin-right:8px;">
+        <i class="fas fa-search"
+          style="position:absolute; left:10px; top:50%; transform:translateY(-50%); color:#94a3b8; font-size:0.9rem;"></i>
+        <input type="text" id="scoreEntrySearchInput" placeholder="Tìm mã SV hoặc tên..."
+          style="padding:8px 12px 8px 32px; border:1px solid #e2e8f0; border-radius:8px; font-size:0.9rem; width:230px;">
+      </div>
       <div style="display:flex;gap:8px;">
         <button class="btn btn-ghost" id="downloadTemplateBtn" style="display:none;">
           <i class="fas fa-download"></i> Tải file mẫu
@@ -359,6 +365,8 @@
     <select id="scoreViewClassSelect" style="flex:1;min-width:200px;">
       <option value="">Chọn lớp để xem điểm...</option>
     </select>
+    <input id="scoreViewSearchInput" type="text" placeholder="Tìm mã SV hoặc tên..."
+      style="min-width:220px;padding:8px 12px;border:1px solid #e2e8f0;border-radius:8px;" />
     <button class="btn btn-primary" id="scoreViewLoadBtn">
       <i class="fas fa-search"></i> Xem điểm
     </button>
@@ -499,6 +507,12 @@
               <option value="Khác">Khác</option>
             </select>
           </div>
+          
+          <div class="t-form-group">
+            <label style="font-weight:500; font-size:0.9rem; color:#1e293b; margin-bottom:6px;">Địa chỉ</label>
+            <input type="text" id="actionAddress" placeholder="Nhập địa chỉ"
+              style="width:100%; padding:10px; border:1px solid #e2e8f0; border-radius:8px; font-size:0.9rem;">
+          </div>
 
           <div style="display:flex; flex-direction:column; gap:12px; margin-top:8px;">
             <button type="button" class="btn btn-primary" id="quickAddStudentBtn"
@@ -540,6 +554,7 @@
                 <th>Giới tính</th>
                 <th>SĐT</th>
                 <th>Email</th>
+                <th>Địa chỉ</th>
               </tr>
             </thead>
             <tbody id="classListTableBody">
@@ -839,33 +854,16 @@
     </button>
   </div>
 
-  <!-- KPI Cards -->
-  <div class="grid three" style="margin-bottom:20px;">
-    <div class="stat-card">
-      <div class="stat-icon" style="background:#3730a3;color:#fff;box-shadow:0 4px 10px rgba(55,48,163,0.2);"><i
-          class="fas fa-user-check"></i></div>
-      <div class="stat-details">
-        <span class="stat-label">Tỷ lệ đi học TB</span>
-        <span class="stat-value" id="avgAttendance"
-          style="display:inline-block; padding:4px 12px; border-radius:6px; background:#e0e7ff; color:#3730a3; border:1px solid #c7d2fe; margin-top:4px;">--%</span>
+  <div class="t-card" style="margin-bottom:20px;">
+    <div class="t-card-header">
+      <div class="t-card-title">
+        <span class="tct-icon" style="background:#dbeafe;color:#1d4ed8;"><i class="fas fa-chart-column"></i></span>
+        Biểu đồ trung bình điểm theo lớp
       </div>
     </div>
-    <div class="stat-card">
-      <div class="stat-icon" style="background:#15803d;color:#fff;box-shadow:0 4px 10px rgba(21,128,61,0.2);"><i
-          class="fas fa-graduation-cap"></i></div>
-      <div class="stat-details">
-        <span class="stat-label">Tỷ lệ đạt (≥ 5.0)</span>
-        <span class="stat-value" id="passRate"
-          style="display:inline-block; padding:4px 12px; border-radius:6px; background:#dcfce7; color:#15803d; border:1px solid #bbf7d0; margin-top:4px;">--%</span>
-      </div>
-    </div>
-    <div class="stat-card">
-      <div class="stat-icon" style="background:#b45309;color:#fff;box-shadow:0 4px 10px rgba(180,83,9,0.2);"><i
-          class="fas fa-award"></i></div>
-      <div class="stat-details">
-        <span class="stat-label">SV Xuất sắc (≥ 9.0)</span>
-        <span class="stat-value" id="excellentCount"
-          style="display:inline-block; padding:4px 12px; border-radius:6px; background:#fef3c7; color:#b45309; border:1px solid #fde68a; margin-top:4px;">0</span>
+    <div class="t-card-body">
+      <div id="classAvgChart" style="display:flex;flex-direction:column;gap:10px;">
+        <div style="text-align:center;color:#94a3b8;padding:20px 0;">Đang tải biểu đồ...</div>
       </div>
     </div>
   </div>
@@ -890,11 +888,12 @@
                 <th style="text-align:center;">ĐTB</th>
                 <th style="text-align:center;">Đạt</th>
                 <th style="text-align:center;">XS</th>
+                <th style="text-align:center;">PDF</th>
               </tr>
             </thead>
             <tbody id="reportClassStatsBody">
               <tr>
-                <td colspan="6" style="text-align:center;padding:32px;color:#94a3b8;">Đang tải...</td>
+                <td colspan="7" style="text-align:center;padding:32px;color:#94a3b8;">Đang tải...</td>
               </tr>
             </tbody>
           </table>
@@ -1099,5 +1098,8 @@
 
 {% block extra_js %}
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/jspdf-autotable@3.8.2/dist/jspdf.plugin.autotable.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
 <script src="{{ url_for('static', filename='js/teacher_home.js') }}"></script>
 {% endblock %}

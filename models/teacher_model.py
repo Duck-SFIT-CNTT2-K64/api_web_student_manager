@@ -376,12 +376,19 @@ def get_class_students_with_scores(class_id: int) -> List[Dict[str, Any]]:
         )
         scores = cursor.fetchall()
         
-        # Map điểm vào SV
+        # Map điểm vào SV + bung ra 3 cột điểm để frontend dùng trực tiếp
         for sv in students:
-            sv["Scores"] = [
+            score_rows = [
                 {"ScoreTypeId": row[1], "ScoreValue": float(row[2])}
                 for row in scores if row[0] == sv["EnrollmentId"]
             ]
+            sv["Scores"] = score_rows
+
+            # Frontend hiện tại đọc trực tiếp 3 trường này ở nhiều màn (nhập điểm, xem điểm, xuất file)
+            score_map = {int(s.get("ScoreTypeId")): s.get("ScoreValue") for s in score_rows}
+            sv["ChuyenCan"] = score_map.get(1)
+            sv["GiuaKy"] = score_map.get(2)
+            sv["CuoiKy"] = score_map.get(3)
             
         return students
 

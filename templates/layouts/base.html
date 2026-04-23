@@ -63,6 +63,11 @@
             </div>
             <div class="topbar-right">
                 {% block topbar_actions %}{% endblock %}
+                {% if current_user and current_user.RoleName == 'Teacher' %}
+                <button type="button" class="topbar-reload" id="topbarReloadBtn" title="Reload data" aria-label="Reload data">
+                    <i class="fas fa-sync-alt"></i>
+                </button>
+                {% endif %}
                 {% if current_user and current_user.RoleName in ['Admin', 'Teacher'] %}
                 <a href="{{ '/dashboard#notifications' if current_user.RoleName == 'Admin' else '/teacher/home#notifications' }}"
                    class="notif-bell" id="topbarNotifBell" title="Notifications" aria-label="Notifications">
