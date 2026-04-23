@@ -61,16 +61,27 @@ The group that contains the active item is auto-expanded.
         <a href="/dashboard#rooms" class="nav-item {{ 'active' if active == 'rooms' else '' }}">
             <i class="fas fa-door-open"></i><span>Rooms</span>
         </a>
-        <div class="nav-divider" style="padding-left:14px; opacity:0.6">Accounts</div>
-        <a href="/dashboard#admin_accounts" class="nav-item {{ 'active' if active == 'admin_accounts' else '' }}">
-            <i class="fas fa-user-shield"></i><span>Admin Accounts</span>
-        </a>
-        <a href="/dashboard#teacher_accounts" class="nav-item {{ 'active' if active == 'teacher_accounts' else '' }}">
-            <i class="fas fa-user-tie"></i><span>Teacher Accounts</span>
-        </a>
-        <a href="/dashboard#student_accounts" class="nav-item {{ 'active' if active == 'student_accounts' else '' }}">
-            <i class="fas fa-user-edit"></i><span>Student Accounts</span>
-        </a>
+        {%- set account_items = ['admin_accounts', 'teacher_accounts', 'student_accounts'] -%}
+        <div class="nav-sub-group {{ 'open' if active in account_items else '' }}" data-subgroup="accounts">
+            <button type="button" class="nav-sub-header">
+                <span class="nav-sub-title">
+                    <i class="fas fa-users-cog"></i>
+                    <span>Accounts</span>
+                </span>
+                <i class="fas fa-chevron-right nav-sub-chevron"></i>
+            </button>
+            <div class="nav-sub-items">
+                <a href="/dashboard#admin_accounts" class="nav-item {{ 'active' if active == 'admin_accounts' else '' }}">
+                    <i class="fas fa-user-shield"></i><span>Admin</span>
+                </a>
+                <a href="/dashboard#teacher_accounts" class="nav-item {{ 'active' if active == 'teacher_accounts' else '' }}">
+                    <i class="fas fa-user-tie"></i><span>Teachers</span>
+                </a>
+                <a href="/dashboard#student_accounts" class="nav-item {{ 'active' if active == 'student_accounts' else '' }}">
+                    <i class="fas fa-user-graduate"></i><span>Students</span>
+                </a>
+            </div>
+        </div>
     </div>
 </div>
 

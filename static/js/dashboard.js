@@ -226,7 +226,7 @@ function bindBulkActions() {
 
                         selectAll.checked = false;
                         selectAll.indeterminate = false;
-                        await loadAll();
+                        await loadAll(true);
                     } catch (error) {
                         setMessage(globalMessage, error.message, "error");
                     }
@@ -432,21 +432,48 @@ function renderClasses() {
     tbody.innerHTML =
         state.classes
             .map(function (item, index) {
-                return '<tr data-search="' + escapeHtml((item.ClassCode + " " + item.ClassName + " " + item.CourseName + " " + (item.TeacherName || "")).toLowerCase()) + '">' +
+                // Phân tách ScheduleSummary thành các badge
+                var scheduleHtml = (item.ScheduleSummary || "Chưa có lịch")
+                    .split(", ")
+                    .map(function (s) {
+                        if (s === "Chưa có lịch") return '<span class="text-muted" style="font-size:0.75rem">Chưa có lịch</span>';
+                        return '<span class="schedule-badge"><i class="far fa-calendar-alt"></i> ' + escapeHtml(s) + '</span>';
+                    })
+                    .join("");
+
+                // Tính toán tiến độ ghi danh
+                var percent = 0;
+                if (item.MaxStudents && item.MaxStudents > 0) {
+                    percent = Math.min(100, Math.round((item.EnrollmentCount / item.MaxStudents) * 100));
+                }
+                var progressColor = percent >= 90 ? "var(--danger)" : (percent >= 70 ? "var(--warning)" : "var(--primary)");
+
+                return '<tr data-search="' + escapeHtml((item.ClassCode + " " + item.ClassName + " " + item.CourseName + " " + (item.TeacherName || "") + " " + (item.ScheduleSummary || "")).toLowerCase()) + '">' +
                     "<td>" + (index + 1) + "</td>" +
                     '<td><input type="checkbox" class="row-checkbox" data-id="' + item.ClassId + '"></td>' +
                     "<td><strong>" + escapeHtml(item.ClassCode) + "</strong></td>" +
                     "<td>" + escapeHtml(item.ClassName) + "</td>" +
                     "<td>" + escapeHtml(item.CourseName) + "</td>" +
                     "<td>" + escapeHtml(item.TeacherName || "Chưa phân công") + "</td>" +
-                    "<td>" + escapeHtml(item.EnrollmentCount) + " / " + escapeHtml(item.MaxStudents || "∞") + "</td>" +
+                    "<td>" + scheduleHtml + "</td>" +
+                    "<td>" +
+                    '<div class="enrolled-progress-wrap">' +
+                    '<div style="display:flex; justify-content:space-between; font-size:0.75rem; font-weight:600">' +
+                    '<span>' + item.EnrollmentCount + '/' + (item.MaxStudents || "∞") + '</span>' +
+                    '<span>' + percent + '%</span>' +
+                    '</div>' +
+                    '<div class="enrolled-progress-bar">' +
+                    '<div class="enrolled-progress-fill" style="width:' + percent + '%; background:' + progressColor + '"></div>' +
+                    '</div>' +
+                    '</div>' +
+                    "</td>" +
                     '<td style="white-space:nowrap">' +
                     '<button class="btn-icon" title="Xem danh sách sinh viên" data-view-class-list="' + item.ClassId + '" data-view-class-name="' + escapeHtml(item.ClassName) + '"><i class="fas fa-users"></i></button> ' +
                     '<button class="btn-icon edit" title="Sửa" data-edit-class="' + item.ClassId + '"><i class="fas fa-edit"></i></button> ' +
                     '<button class="btn-icon del" title="Xóa" data-delete-class="' + item.ClassId + '"><i class="fas fa-trash-alt"></i></button>' +
                     '</td></tr>';
             })
-            .join("") || '<tr><td colspan="8" class="empty">Chưa có lớp học.</td></tr>';
+            .join("") || '<tr><td colspan="9" class="empty">Chưa có lớp học.</td></tr>';
 }
 
 function renderRooms() {
@@ -766,8 +793,8 @@ function renderAll() {
     renderOptions();
 }
 
-async function loadAll() {
-    setMessage(globalMessage, "Đang tải dữ liệu...");
+async function loadAll(silent = false) {
+    if (!silent) setMessage(globalMessage, "Đang tải dữ liệu...");
     try {
         await Promise.all(
             Object.entries(endpoints).map(async function (entry) {
@@ -785,9 +812,9 @@ async function loadAll() {
         }
 
         renderAll();
-        setMessage(globalMessage, "Dữ liệu đã được cập nhật.", "success");
+        if (!silent) setMessage(globalMessage, "Dữ liệu đã được cập nhật.", "success");
     } catch (error) {
-        setMessage(globalMessage, error.message, "error");
+        if (!silent) setMessage(globalMessage, error.message, "error");
     }
 }
 
@@ -824,7 +851,7 @@ function bindForms() {
                 }
 
             }
-            await loadAll();
+            await loadAll(true);
         } catch (error) {
             setMessage(document.getElementById("studentMessage"), error.message, "error");
         }
@@ -876,7 +903,7 @@ function bindForms() {
                         createdTeacher._loginPassword || "Teacher@123"
                     );
                 }
-                await loadAll();
+                await loadAll(true);
             } catch (error) {
                 setMessage(document.getElementById("teacherMessage"), error.message, "error");
             }
@@ -907,7 +934,7 @@ function bindForms() {
                 form.reset();
                 setMessage(document.getElementById("courseMessage"), "Đã thêm khóa học.", "success");
             }
-            await loadAll();
+            await loadAll(true);
         } catch (error) {
             setMessage(document.getElementById("courseMessage"), error.message, "error");
         }
@@ -937,7 +964,7 @@ function bindForms() {
                 form.reset();
                 setMessage(document.getElementById("classMessage"), "Đã tạo lớp.", "success");
             }
-            await loadAll();
+            await loadAll(true);
         } catch (error) {
             setMessage(document.getElementById("classMessage"), error.message, "error");
         }
@@ -965,7 +992,7 @@ function bindForms() {
                 form.reset();
                 setMessage(document.getElementById("roomMessage"), "Đã thêm phòng học.", "success");
             }
-            await loadAll();
+            await loadAll(true);
         } catch (error) {
             setMessage(document.getElementById("roomMessage"), error.message, "error");
         }
@@ -985,7 +1012,7 @@ function bindForms() {
             await sendJson("/api/enrollments", "POST", payload);
             form.reset();
             setMessage(document.getElementById("enrollmentMessage"), "Đã ghi danh và tạo học phí.", "success");
-            await loadAll();
+            await loadAll(true);
         } catch (error) {
             setMessage(document.getElementById("enrollmentMessage"), error.message, "error");
         }
@@ -1006,7 +1033,7 @@ function bindForms() {
             form.reset();
             setDefaultPaymentDate();
             setMessage(document.getElementById("paymentMessage"), "Đã ghi nhận thanh toán.", "success");
-            await loadAll();
+            await loadAll(true);
         } catch (error) {
             setMessage(document.getElementById("paymentMessage"), error.message, "error");
         }
@@ -1022,8 +1049,9 @@ function bindForms() {
             delete payload.EditId;
 
             if (editId) {
-                // Update only editable profile fields for admin account.
+                // Update profile fields for admin account.
                 var updatePayload = {
+                    Username: payload.Username,
                     FullName: payload.FullName,
                     Email: payload.Email,
                     PhoneNumber: payload.PhoneNumber,
@@ -1046,7 +1074,7 @@ function bindForms() {
                 form.reset();
                 setMessage(document.getElementById("adminAccountMessage"), "Admin account created.", "success");
             }
-            await loadAll();
+            await loadAll(true);
         } catch (error) {
             setMessage(document.getElementById("adminAccountMessage"), error.message, "error");
         }
@@ -1063,6 +1091,7 @@ function bindForms() {
 
             if (editId) {
                 var updatePayload = {
+                    Username: payload.Username,
                     FullName: payload.FullName,
                     Email: payload.Email,
                     PhoneNumber: payload.PhoneNumber,
@@ -1085,7 +1114,7 @@ function bindForms() {
                 form.reset();
                 setMessage(document.getElementById("teacherAccountMessage"), "Teacher account created.", "success");
             }
-            await loadAll();
+            await loadAll(true);
         } catch (error) {
             setMessage(document.getElementById("teacherAccountMessage"), error.message, "error");
         }
@@ -1102,6 +1131,7 @@ function bindForms() {
 
             if (editId) {
                 var updatePayload = {
+                    Username: payload.Username,
                     FullName: payload.FullName,
                     Email: payload.Email,
                     PhoneNumber: payload.PhoneNumber,
@@ -1124,7 +1154,7 @@ function bindForms() {
                 form.reset();
                 setMessage(document.getElementById("studentAccountMessage"), "Student account created.", "success");
             }
-            await loadAll();
+            await loadAll(true);
         } catch (error) {
             setMessage(document.getElementById("studentAccountMessage"), error.message, "error");
         }
@@ -1158,7 +1188,7 @@ function bindForms() {
                 form.reset();
                 setMessage(document.getElementById("scoreMessage"), "Đã lưu điểm.", "success");
             }
-            await loadAll();
+            await loadAll(true);
         } catch (error) {
             setMessage(document.getElementById("scoreMessage"), error.message, "error");
         }
@@ -1186,7 +1216,7 @@ function bindForms() {
                 form.reset();
                 setMessage(document.getElementById("class_scheduleMessage"), "Đã thêm lịch học.", "success");
             }
-            await loadAll();
+            await loadAll(true);
         } catch (error) {
             setMessage(document.getElementById("class_scheduleMessage"), error.message, "error");
         }
@@ -1215,7 +1245,7 @@ function bindForms() {
                 form.reset();
                 setMessage(document.getElementById("notificationMessage"), "Đã tạo thông báo.", "success");
             }
-            await loadAll();
+            await loadAll(true);
         } catch (error) {
             setMessage(document.getElementById("notificationMessage"), error.message, "error");
         }
@@ -1237,7 +1267,20 @@ function bindDeletes() {
         if (!target) return;
 
         var config;
-        if (studentButton) config = ["/api/students/", studentButton.dataset.deleteStudent, "sinh viên"];
+        var skipConfirm = false;
+
+        if (studentButton) {
+            var studentId = Number(studentButton.dataset.deleteStudent);
+            var student = state.students.find(function (s) { return s.StudentId === studentId; });
+            var statusName = (student && student.StatusName) ? student.StatusName.toLowerCase() : "";
+            var isGraduated = statusName.indexOf("tốt nghiệp") !== -1;
+
+            if (student && !isGraduated) {
+                if (!window.confirm("CẢNH BÁO: Học viên này CHƯA TỐT NGHIỆP!\nBạn có chắc chắn muốn xóa toàn bộ dữ liệu của học viên này không?")) return;
+                skipConfirm = true; // Đã confirm cảnh báo riêng nên bỏ qua confirm chung
+            }
+            config = ["/api/students/", studentId, "sinh viên"];
+        }
         else if (teacherButton) config = ["/api/teachers/", teacherButton.dataset.deleteTeacher, "giảng viên"];
         else if (courseButton) config = ["/api/courses/", courseButton.dataset.deleteCourse, "khóa học"];
         else if (classButton) config = ["/api/classes/", classButton.dataset.deleteClass, "lớp học"];
@@ -1247,12 +1290,14 @@ function bindDeletes() {
         else if (scheduleButton) config = ["/api/schedules/", scheduleButton.dataset.deleteSchedule, "lịch học"];
         else if (enrollmentButton) config = ["/api/enrollments/", enrollmentButton.dataset.deleteEnrollment, "ghi danh"];
 
-        if (!window.confirm("Xóa " + config[2] + " này?")) return;
+        if (!skipConfirm) {
+            if (!window.confirm("Xóa " + config[2] + " này?")) return;
+        }
 
         try {
             await fetch(config[0] + config[1], { method: "DELETE" }).then(parseResponse);
             setMessage(globalMessage, "Đã xóa " + config[2] + ".", "success");
-            await loadAll();
+            await loadAll(true);
         } catch (error) {
             setMessage(globalMessage, error.message, "error");
         }
@@ -1560,6 +1605,12 @@ function bindNavigation() {
 
     function applyDashboardActiveState() {
         var activeHash = normalizeDashboardHash(window.location.hash || DEFAULT_DASHBOARD_HASH);
+        
+        // Xóa mọi thông báo cũ khi chuyển trang
+        if (globalMessage) setMessage(globalMessage, "");
+        document.querySelectorAll(".message").forEach(function(msg) {
+            setMessage(msg, "");
+        });
 
         navItems.forEach(function (item) {
             var href = item.getAttribute("href") || "";
@@ -1575,6 +1626,13 @@ function bindNavigation() {
         document.querySelectorAll(".sidebar-nav .nav-group").forEach(function (group) {
             if (group.querySelector(".nav-item.active")) {
                 group.classList.add("open");
+            }
+        });
+
+        // Tự mở sub-group (Accounts) nếu một item con đang active
+        document.querySelectorAll(".nav-sub-group").forEach(function (sub) {
+            if (sub.querySelector(".nav-item.active")) {
+                sub.classList.add("open");
             }
         });
 
@@ -1803,10 +1861,39 @@ function validateNotificationPayload(payload) {
 
 
 function validateClassSchedulePayload(payload) {
+    // 1. Bắt buộc chọn lớp học
     if (!payload.ClassId) return "Vui lòng chọn lớp học.";
+
+    // 2. Bắt buộc chọn ngày
     if (!payload.Weekday) return "Vui lòng chọn ngày trong tuần.";
-    if (!payload.StartTime || !payload.EndTime) return "Vui lòng nhập đầy đủ giờ bắt đầu và kết thúc.";
-    if (payload.StartTime >= payload.EndTime) return "Giờ bắt đầu phải trước giờ kết thúc.";
+
+    // 3. Bắt buộc nhập giờ
+    if (!payload.StartTime) return "Vui lòng nhập giờ bắt đầu.";
+    if (!payload.EndTime) return "Vui lòng nhập giờ kết thúc.";
+
+    // 4. Giờ bắt đầu phải trước giờ kết thúc
+    if (payload.StartTime >= payload.EndTime) return "Giờ bắt đầu phải nhỏ hơn giờ kết thúc.";
+
+    // 5. Giờ phải trong khung 07:00 - 22:00
+    var timeToMinutes = function (t) {
+        var parts = t.split(":");
+        return parseInt(parts[0]) * 60 + parseInt(parts[1]);
+    };
+    var startMin = timeToMinutes(payload.StartTime);
+    var endMin = timeToMinutes(payload.EndTime);
+    var minStart = 7 * 60;   // 07:00
+    var maxEnd = 22 * 60;  // 22:00
+
+    if (startMin < minStart) return "Giờ bắt đầu không được trước 07:00.";
+    if (endMin > maxEnd) return "Giờ kết thúc không được sau 22:00.";
+
+    // 6. Thời lượng tối thiểu 30 phút
+    if ((endMin - startMin) < 30) return "Thời lượng buổi học phải ít nhất 30 phút.";
+
+    // 7. Giờ phải là bội số của 5 phút (tránh nhập giờ lẻ)
+    if (startMin % 5 !== 0) return "Giờ bắt đầu phải là bội số của 5 phút (VD: 07:00, 07:30).";
+    if (endMin % 5 !== 0) return "Giờ kết thúc phải là bội số của 5 phút (VD: 09:00, 10:30).";
+
     return "";
 }
 
@@ -1933,7 +2020,7 @@ document.addEventListener("DOMContentLoaded", function () {
             roleModalMsg.textContent = "Đã cập nhật vai trò!";
             roleModalMsg.className = "message success";
             setTimeout(closeRoleModal, 1000);
-            await loadAll(); // refresh lại toàn bộ
+            await loadAll(true); // refresh lại toàn bộ
         } catch (err) {
             roleModalMsg.textContent = err.message;
             roleModalMsg.className = "message error";
@@ -1982,7 +2069,7 @@ document.addEventListener("DOMContentLoaded", function () {
                 enrollmentModalMsg.textContent = "Đã cập nhật ghi danh.";
                 enrollmentModalMsg.className = "message success";
                 setTimeout(closeEnrollmentModal, 700);
-                await loadAll();
+                await loadAll(true);
             } catch (error) {
                 enrollmentModalMsg.textContent = error.message;
                 enrollmentModalMsg.className = "message error";
@@ -2079,7 +2166,7 @@ document.addEventListener("DOMContentLoaded", function () {
             try {
                 await sendJson("/api/users/" + uid + "/status", "PUT", { Status: newStatus });
                 setMessage(document.getElementById("userMessage"), "Đã " + label + " tài khoản.", "success");
-                await loadAll();
+                await loadAll(true);
             } catch (err) {
                 setMessage(document.getElementById("userMessage"), err.message, "error");
             }
@@ -2099,7 +2186,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
             try {
                 var result = await sendJson("/api/users/generate/student/" + studentId, "POST");
-                await loadAll();
+                await loadAll(true);
                 if (result.username && result.password) {
                     showCredentialModal(fullName, result.username, result.password);
                 } else if (result.data) {
@@ -2123,7 +2210,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
             try {
                 var result = await sendJson("/api/users/generate/teacher/" + teacherId, "POST");
-                await loadAll();
+                await loadAll(true);
                 if (result.username && result.password) {
                     showCredentialModal(fullName, result.username, result.password);
                 } else if (result.data) {
@@ -2162,8 +2249,11 @@ document.addEventListener("DOMContentLoaded", function () {
         if (calItem && !e.target.closest(".actions")) {
             var classId = calItem.dataset.classId;
             var className = calItem.dataset.className;
+            var timeRange = calItem.dataset.timeRange;
+            var roomName = calItem.dataset.roomName;
+
             if (classId) {
-                openClassListModal(classId, className);
+                openClassListModal(classId, className, timeRange, roomName);
             }
         }
     });
@@ -2177,14 +2267,20 @@ document.addEventListener("DOMContentLoaded", function () {
     loadAll();
 });
 
-async function openClassListModal(classId, className) {
+async function openClassListModal(classId, className, timeRange, roomName) {
     var modal = document.getElementById("classListModal");
     var title = document.getElementById("classListModalTitle");
+    var subtitle = document.getElementById("classListModalSubtitle");
     var tbody = document.getElementById("classListModalBody");
 
     if (!modal || !tbody) return;
 
-    title.textContent = "Danh sách lớp: " + className;
+    title.textContent = className;
+    if (subtitle) {
+        subtitle.innerHTML =
+            "<i class='fas fa-clock'></i> " + (timeRange || "N/A") + " &nbsp;&nbsp; " +
+            "<i class='fas fa-map-marker-alt'></i> " + (roomName || "N/A");
+    }
     tbody.innerHTML = '<tr><td colspan="5" class="empty" style="text-align:center;padding:20px"><i class="fas fa-spinner fa-spin"></i> Đang tải...</td></tr>';
     modal.style.display = "flex";
 
@@ -2272,81 +2368,189 @@ function exportScheduleToExcel() {
  *    Template: templates/admin/sections/academic/schedules.html
  * --------------------------------------------------------------------------- */
 function renderClassSchedules() {
+
     var body = document.getElementById("class_schedulesCalendarBody");
+
     if (!body) return;
+
     body.innerHTML = "";
 
+
+
     // 1. Tạo các nhãn thời gian và đường lưới (7h - 22h)
+
     for (var h = 7; h <= 21; h++) {
+
         var timeLabel = document.createElement("div");
+
         timeLabel.className = "calendar-time-label";
+
         timeLabel.style.gridRowStart = (h - 7) * 4 + 1;
+
         timeLabel.style.gridRowEnd = (h - 7) * 4 + 5;
+
         timeLabel.textContent = h + ":00";
+
         body.appendChild(timeLabel);
 
+
+
         var gridLine = document.createElement("div");
+
         gridLine.className = "calendar-grid-line";
+
         gridLine.style.gridRowStart = (h - 7) * 4 + 1;
+
         body.appendChild(gridLine);
+
     }
 
+
+
     // 2. Map Thứ sang Cột
+
     var dayMap = {
+
         "Thứ 2": 2, "Monday": 2,
+
         "Thứ 3": 3, "Tuesday": 3,
+
         "Thứ 4": 4, "Wednesday": 4,
+
         "Thứ 5": 5, "Thursday": 5,
+
         "Thứ 6": 6, "Friday": 6,
+
         "Thứ 7": 7, "Saturday": 7,
+
         "Chủ Nhật": 8, "Sunday": 8
+
     };
 
-    // 3. Render các mục lịch học
+
+
+    // 3. Render các mục lịch học (Chống đè - Anti-collision)
+    var eventsByCol = {};
+
+    function timeToRow(timeStr) {
+        if (!timeStr) return 1;
+        var parts = timeStr.split(":");
+        var hour = parseInt(parts[0]);
+        var min = parseInt(parts[1]);
+        return ((hour - 7) * 4 + Math.floor(min / 15)) + 1;
+    }
+
     state.class_schedules.forEach(function (s, idx) {
         var col = dayMap[s.Weekday];
         if (!col) return;
-
-        // Tính toán hàng (Mỗi hàng 15ph)
-        function timeToRow(timeStr) {
-            if (!timeStr) return 1;
-            var parts = timeStr.split(":");
-            var hour = parseInt(parts[0]);
-            var min = parseInt(parts[1]);
-            // baseline là 7:00
-            return ((hour - 7) * 4 + Math.floor(min / 15)) + 1;
-        }
-
         var rowStart = timeToRow(s.StartTime);
         var rowEnd = timeToRow(s.EndTime);
-
-        // Giới hạn trong khung 7h-22h (row 1-61)
         if (rowStart < 1) rowStart = 1;
         if (rowEnd > 61) rowEnd = 61;
         if (rowStart >= rowEnd) return;
 
-        var colorIdx = (idx % 7) + 1;
+        if (!eventsByCol[col]) eventsByCol[col] = [];
+        eventsByCol[col].push({
+            data: s, originalIdx: idx, col: col,
+            rowStart: rowStart, rowEnd: rowEnd
+        });
+    });
+
+    var processedEvents = [];
+    for (var colKey in eventsByCol) {
+        var events = eventsByCol[colKey];
+        events.sort(function (a, b) { return a.rowStart - b.rowStart; });
+
+        var groups = [];
+        var currentGroup = [];
+        var currentGroupEnd = 0;
+
+        events.forEach(function (ev) {
+            if (ev.rowStart >= currentGroupEnd && currentGroup.length > 0) {
+                groups.push(currentGroup);
+                currentGroup = [];
+                currentGroupEnd = 0;
+            }
+            currentGroup.push(ev);
+            if (ev.rowEnd > currentGroupEnd) currentGroupEnd = ev.rowEnd;
+        });
+        if (currentGroup.length > 0) groups.push(currentGroup);
+
+        groups.forEach(function (group) {
+            var lanes = [];
+            group.forEach(function (ev) {
+                var placed = false;
+                for (var i = 0; i < lanes.length; i++) {
+                    if (lanes[i] <= ev.rowStart) {
+                        ev.lane = i;
+                        lanes[i] = ev.rowEnd;
+                        placed = true;
+                        break;
+                    }
+                }
+                if (!placed) {
+                    ev.lane = lanes.length;
+                    lanes.push(ev.rowEnd);
+                }
+            });
+            var maxLanes = lanes.length;
+            group.forEach(function (ev) {
+                ev.widthPercent = 100 / maxLanes;
+                ev.leftPercent = ev.lane * ev.widthPercent;
+                ev.maxLanes = maxLanes;
+                processedEvents.push(ev);
+            });
+        });
+    }
+
+    processedEvents.forEach(function (ev) {
+        var s = ev.data;
+        // Use ClassId to guarantee the same class always gets the same color,
+        // and colors don't shift when new schedules are added.
+        var colorIdx = (s.ClassId % 7) + 1;
         var item = document.createElement("div");
+
         item.className = "calendar-item cal-bg-" + colorIdx;
-        item.style.setProperty("--col", col);
-        item.style.setProperty("--row-start", rowStart);
-        item.style.setProperty("--row-end", rowEnd);
+        if (ev.maxLanes > 3) item.classList.add("compact");
+        if (ev.col >= 7) item.classList.add("right-align");
+
+        item.style.setProperty("--col", ev.col);
+        item.style.setProperty("--row-start", ev.rowStart);
+        item.style.setProperty("--row-end", ev.rowEnd);
+
+        // Fix CSS grid blowout: explicitly override all margins
+        item.style.width = "calc(" + ev.widthPercent + "% - 4px)";
+        item.style.marginLeft = "calc(" + ev.leftPercent + "% + 2px)";
+        item.style.marginRight = "0";
+        item.style.marginTop = "2px";
+        item.style.marginBottom = "2px";
+
+        item.style.zIndex = 10 + ev.lane;
         item.style.cursor = "pointer";
         item.dataset.classId = s.ClassId;
         item.dataset.className = s.ClassName;
+        item.dataset.timeRange = s.StartTime + " - " + s.EndTime;
+        item.dataset.roomName = s.RoomName || "N/A";
 
-        item.innerHTML =
-            "<strong>" + escapeHtml(s.ClassName) + "</strong>" +
-            "<span><i class='fas fa-clock'></i> " + escapeHtml(s.StartTime) + " - " + escapeHtml(s.EndTime) + "</span>" +
-            "<span><i class='fas fa-map-marker-alt'></i> " + escapeHtml(s.RoomName || "N/A") + "</span>" +
-            "<span><i class='fas fa-user'></i> " + escapeHtml(s.TeacherName || "N/A") + "</span>" +
-            "<div class='actions'>" +
+        var inner = "<strong>" + escapeHtml(s.ClassName) + "</strong>";
+        inner += "<span><i class='fas fa-clock'></i> " + escapeHtml(s.StartTime) + " - " + escapeHtml(s.EndTime) + "</span>";
+
+        if (ev.maxLanes <= 3) {
+            inner += "<span><i class='fas fa-map-marker-alt'></i> " + escapeHtml(s.RoomName || "N/A") + "</span>";
+            inner += "<span><i class='fas fa-user'></i> " + escapeHtml(s.TeacherName || "N/A") + "</span>";
+        } else {
+            inner += "<span class='room-only'><i class='fas fa-map-marker-alt'></i> " + escapeHtml(s.RoomName || "N/A") + "</span>";
+        }
+
+        inner += "<div class='actions'>" +
             "<button title='Sửa' data-edit-schedule='" + s.ScheduleId + "'><i class='fas fa-pen'></i></button>" +
             "<button title='Xóa' data-delete-schedule='" + s.ScheduleId + "'><i class='fas fa-trash'></i></button>" +
             "</div>";
 
+        item.innerHTML = inner;
         body.appendChild(item);
     });
+
 }
 
 // Quản lý biểu đồ

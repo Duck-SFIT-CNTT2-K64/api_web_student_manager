@@ -340,6 +340,104 @@ textarea {
 }
 /* ================================================== */
 
+/* ======= Sub-group (nested dropdown inside nav-group-items) =======
+   Dùng cho "Accounts" lồng bên trong Management group.
+   .nav-sub-group  → container toàn bộ sub-dropdown
+   .nav-sub-header → nút bấm toggle (giống nav-group-header nhưng nhỏ hơn)
+   .nav-sub-items  → chứa các .nav-item con (ẩn khi chưa open)
+   Class `.open` trên .nav-sub-group = đang xổ.
+================================================================= */
+.nav-sub-group {
+    display: flex;
+    flex-direction: column;
+    margin-top: 2px;
+}
+
+.nav-sub-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    padding: 7px 12px;
+    width: 100%;
+    background: transparent;
+    border: 0;
+    border-radius: var(--radius);
+    color: rgba(255, 255, 255, 0.72);
+    font-family: inherit;
+    font-size: 0.82rem;
+    font-weight: 600;
+    text-align: left;
+    cursor: pointer;
+    transition: background var(--transition), color var(--transition);
+}
+
+.nav-sub-header:hover {
+    background: var(--sidebar-hover);
+    color: #fff;
+}
+
+.nav-sub-title {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.nav-sub-title i {
+    font-size: 13px;
+    width: 18px;
+    text-align: center;
+    flex-shrink: 0;
+    opacity: 0.85;
+}
+
+.nav-sub-chevron {
+    font-size: 0.65rem;
+    color: rgba(255, 255, 255, 0.45);
+    transition: transform var(--transition);
+    flex-shrink: 0;
+}
+
+.nav-sub-group.open .nav-sub-chevron {
+    transform: rotate(90deg);
+    color: #fff;
+}
+
+.nav-sub-group:has(.nav-item.active) .nav-sub-header {
+    color: #fff;
+}
+
+.nav-sub-items {
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+    max-height: 0;
+    overflow: hidden;
+    padding-left: 14px;
+    margin-left: 4px;
+    border-left: 1px dashed rgba(255, 255, 255, 0.1);
+    opacity: 0;
+    transition: max-height .25s ease, opacity .2s ease, margin .2s ease;
+}
+
+.nav-sub-group.open .nav-sub-items {
+    max-height: 200px;
+    opacity: 1;
+    margin-top: 2px;
+    margin-bottom: 2px;
+}
+
+.nav-sub-items .nav-item {
+    padding: 6px 10px;
+    font-size: 0.8rem;
+}
+
+.nav-sub-items .nav-item i {
+    font-size: 12px;
+    width: 16px;
+}
+/* ================================================================= */
+
 .nav-item {
     display: flex;
     align-items: center;
@@ -1426,7 +1524,7 @@ textarea:focus {
 
 .calendar-header {
     display: grid;
-    grid-template-columns: 80px repeat(7, 1fr);
+    grid-template-columns: 80px repeat(7, minmax(0, 1fr));
     background: #f8fafc;
     border-bottom: 2px solid var(--border);
     text-align: center;
@@ -1442,19 +1540,20 @@ textarea:focus {
 
 .calendar-body {
     display: grid;
-    grid-template-columns: 80px repeat(7, 1fr);
-    /* 15 hours (7-22) * 4 (15min slots) = 60 rows */
-    grid-template-rows: repeat(60, 20px);
+    grid-template-columns: 80px repeat(7, minmax(0, 1fr));
+    /* Tăng chiều cao mỗi ô lên 25px để dễ nhìn hơn (15h * 4 * 25px = 1500px) */
+    grid-template-rows: repeat(60, 25px);
     overflow-y: auto;
     position: relative;
-    background: #fff;
+    background: #ffffff;
 }
 
 .calendar-time-label {
     grid-column: 1;
     text-align: right;
-    padding-right: 10px;
-    font-size: 0.75rem;
+    padding-right: 12px;
+    font-size: 0.8rem;
+    font-weight: 600;
     color: var(--text-muted);
     border-bottom: 1px solid var(--border-light);
     display: flex;
@@ -1464,105 +1563,136 @@ textarea:focus {
 
 .calendar-grid-line {
     grid-column: 2 / span 7;
-    border-bottom: 1px solid var(--border-light);
+    border-bottom: 1px solid #f1f5f9;
     pointer-events: none;
 }
 
-/* Các ô lớp học */
+/* Các ô lớp học - PHONG CÁCH PREMIUM */
 .calendar-item {
     grid-column-start: var(--col);
     grid-row-start: var(--row-start);
     grid-row-end: var(--row-end);
-    margin: 2px;
-    padding: 8px;
-    border-radius: 6px;
-    font-size: 0.75rem;
-    line-height: 1.3;
+    margin: 2px 4px;
+    padding: 10px;
+    border-radius: 8px;
+    font-size: 0.8rem;
+    line-height: 1.4;
     color: #fff;
     cursor: pointer;
     overflow: hidden;
-    transition: transform 0.2s;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     display: flex;
     flex-direction: column;
-    gap: 2px;
-    z-index: 5;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    gap: 4px;
+    z-index: 10;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    backdrop-filter: blur(4px);
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
 }
 
 .calendar-item:hover {
-    transform: scale(1.02);
-    z-index: 10;
-    box-shadow: var(--shadow-md);
+    transform: translateY(-2px) scale(1.01);
+    z-index: 100 !important;
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.2), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
 }
 
 .calendar-item strong {
     display: block;
-    font-size: 0.8rem;
+    font-size: 0.875rem;
+    font-weight: 700;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+    margin-bottom: 2px;
 }
 
 .calendar-item span {
+    display: flex;
+    align-items: center;
+    gap: 6px;
     opacity: 0.9;
-    font-size: 0.7rem;
+    font-size: 0.725rem;
+    white-space: nowrap;
+}
+
+.calendar-item i {
+    font-size: 0.8rem;
+    width: 14px;
 }
 
 .calendar-item .actions {
     margin-top: auto;
     display: flex;
-    gap: 4px;
+    gap: 6px;
     opacity: 0;
-    transition: opacity 0.2s;
+    transform: translateY(10px);
+    transition: all 0.3s ease;
 }
 
 .calendar-item:hover .actions {
     opacity: 1;
+    transform: translateY(0);
 }
 
 .calendar-item .actions button {
-    background: rgba(255, 255, 255, 0.2);
-    border: none;
+    background: rgba(255, 255, 255, 0.25);
+    border: 1px solid rgba(255, 255, 255, 0.3);
     color: #fff;
-    width: 24px;
-    height: 24px;
-    border-radius: 4px;
+    width: 28px;
+    height: 28px;
+    border-radius: 6px;
     cursor: pointer;
-    font-size: 10px;
+    font-size: 11px;
+    display: grid;
+    place-items: center;
+    transition: all 0.2s;
 }
 
 .calendar-item .actions button:hover {
     background: rgba(255, 255, 255, 0.4);
+    transform: scale(1.1);
 }
 
-/* Màu sắc ngẫu nhiên cho lớp học */
-.cal-bg-1 {
-    background-color: #6366f1;
+/* Xử lý mật độ cao (Lớp chồng nhau) */
+.calendar-item.compact {
+    padding: 6px 8px;
+    gap: 2px;
 }
 
-.cal-bg-2 {
-    background-color: #f59e0b;
+.calendar-item.compact strong {
+    font-size: 0.8rem;
 }
 
-.cal-bg-3 {
-    background-color: #10b981;
+.calendar-item.compact span:not(.room-only) {
+    display: none;
 }
 
-.cal-bg-4 {
-    background-color: #ef4444;
+.calendar-item.compact:hover {
+    width: 250px !important;
+    min-height: 120px;
+    padding: 12px;
 }
 
-.cal-bg-5 {
-    background-color: #8b5cf6;
+.calendar-item.compact.right-align:hover {
+    transform: translateX(-180px) translateY(-2px) scale(1.01);
 }
 
-.cal-bg-6 {
-    background-color: #ec4899;
+.calendar-item.compact:hover span {
+    display: flex !important;
 }
 
-.cal-bg-7 {
-    background-color: #06b6d4;
+.calendar-item.compact:hover strong {
+    white-space: normal;
 }
+
+/* Gradient Colors - Premium Palette */
+.cal-bg-1 { background: linear-gradient(135deg, #6366f1 0%, #4338ca 100%); border-left: 4px solid #312e81; }
+.cal-bg-2 { background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); border-left: 4px solid #92400e; }
+.cal-bg-3 { background: linear-gradient(135deg, #10b981 0%, #059669 100%); border-left: 4px solid #064e3b; }
+.cal-bg-4 { background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%); border-left: 4px solid #7f1d1d; }
+.cal-bg-5 { background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%); border-left: 4px solid #4c1d95; }
+.cal-bg-6 { background: linear-gradient(135deg, #ec4899 0%, #db2777 100%); border-left: 4px solid #831843; }
+.cal-bg-7 { background: linear-gradient(135deg, #06b6d4 0%, #0891b2 100%); border-left: 4px solid #164e63; }
 
 /* ----- Search and filter user ----- */
 .search-filter-premium {

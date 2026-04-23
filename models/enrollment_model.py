@@ -239,25 +239,31 @@ def delete_enrollment(enrollment_id: int) -> bool:
     with get_db_connection() as connection:
         cursor = connection.cursor()
         try:
-            cursor.execute("SELECT EnrollmentId FROM Enrollments WHERE EnrollmentId = ?", enrollment_id)
-            if not cursor.fetchone():
+            cursor.execute("SELECT EnrollmentId, Status FROM Enrollments WHERE EnrollmentId = ?", enrollment_id)
+            row = cursor.fetchone()
+            if not row:
                 return False
+                
+            status = str(row[1] or "").strip().lower()
+            if status != "dropped":
+                raise ValueError("Chỉ được phép xóa Ghi danh khi trạng thái học tập là 'Dropped' (Đã nghỉ). Vui lòng chuyển trạng thái trước khi xóa.")
 
-            cursor.execute(
-                """
-                SELECT COUNT(*)
-                FROM Receipts r
-                INNER JOIN Tuitions t ON r.TuitionId = t.TuitionId
-                WHERE t.EnrollmentId = ?
-                """,
-                enrollment_id,
-            )
-            receipt_count = int(cursor.fetchone()[0] or 0)
-            if receipt_count > 0:
-                raise ValueError("Không thể xóa ghi danh đã có phiếu thu. Hãy chuyển trạng thái sang Dropped.")
+            # 1. Xóa điểm và điểm danh liên quan đến ghi danh này
+            cursor.execute("DELETE FROM Scores WHERE EnrollmentId = ?", enrollment_id)
+            cursor.execute("DELETE FROM Attendances WHERE EnrollmentId = ?", enrollment_id)
 
+            # 2. Xóa biên lai (Receipts)
+            cursor.execute("""
+                DELETE FROM Receipts 
+                WHERE TuitionId IN (SELECT TuitionId FROM Tuitions WHERE EnrollmentId = ?)
+            """, enrollment_id)
+
+            # 3. Xóa học phí (Tuitions)
             cursor.execute("DELETE FROM Tuitions WHERE EnrollmentId = ?", enrollment_id)
+
+            # 4. Xóa bản ghi ghi danh (Enrollments)
             cursor.execute("DELETE FROM Enrollments WHERE EnrollmentId = ?", enrollment_id)
+            
             deleted = cursor.rowcount > 0
             connection.commit()
             return deleted
