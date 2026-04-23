@@ -35,6 +35,7 @@ teacher_bp = Blueprint("teachers", __name__)
 
 
 @teacher_bp.get("")
+@role_required("Admin")
 def list_teachers():
     try:
         teachers = get_all_teachers()
@@ -46,6 +47,7 @@ def list_teachers():
 
 
 @teacher_bp.get("/<int:teacher_id>")
+@role_required("Admin")
 def get_teacher(teacher_id: int):
     try:
         teacher = get_teacher_by_id(teacher_id)
@@ -59,6 +61,7 @@ def get_teacher(teacher_id: int):
 
 
 @teacher_bp.post("")
+@role_required("Admin")
 def add_teacher():
     try:
         payload = request.get_json(silent=True) or {}
@@ -75,6 +78,7 @@ def add_teacher():
 
 
 @teacher_bp.put("/<int:teacher_id>")
+@role_required("Admin")
 def edit_teacher(teacher_id: int):
     try:
         payload = request.get_json(silent=True) or {}
@@ -93,6 +97,7 @@ def edit_teacher(teacher_id: int):
 
 
 @teacher_bp.delete("/<int:teacher_id>")
+@role_required("Admin")
 def remove_teacher(teacher_id: int):
     try:
         deleted = delete_teacher(teacher_id)
@@ -437,4 +442,4 @@ def get_teacher_report(user_id: int):
         data = get_teacher_report_by_user_id(user_id)
         return jsonify({"success": True, "data": data}), 200
     except Exception as exc:
-        return jsonify({"success": False, "error": str(exc)}), 500
+        return jsonify({"success": False, "error": str(exc)}), 500

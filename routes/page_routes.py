@@ -141,8 +141,11 @@ _STUDENT_SECTIONS = {
     "enrollments": "My enrollments",
     "schedule": "Class schedule",
     "exams": "Exam schedule",
+    "assignments": "Assignments",
+    "attendance": "Attendance",
     "tuition": "Tuition",
     "payment": "Online payment",
+    "notifications": "Notifications",
 }
 
 
@@ -195,6 +198,18 @@ def student_exams_page():
     return _render_student_portal("exams")
 
 
+@page_bp.get("/student/assignments")
+@role_required("Student")
+def student_assignments_page():
+    return _render_student_portal("assignments")
+
+
+@page_bp.get("/student/attendance")
+@role_required("Student")
+def student_attendance_page():
+    return _render_student_portal("attendance")
+
+
 @page_bp.get("/student/tuition")
 @role_required("Student")
 def student_tuition_page():
@@ -205,6 +220,12 @@ def student_tuition_page():
 @role_required("Student")
 def student_payment_page():
     return _render_student_portal("payment")
+
+
+@page_bp.get("/student/notifications")
+@role_required("Student")
+def student_notifications_page():
+    return _render_student_portal("notifications")
 
 
 @page_bp.get("/dashboard")

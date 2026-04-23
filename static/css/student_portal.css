@@ -520,6 +520,7 @@
 .portal-tile.tile-orange i { background: linear-gradient(135deg, #ff9d1d, #ff7a00); }
 .portal-tile.tile-red i { background: linear-gradient(135deg, #f16a6a, #d53a3a); }
 .portal-tile.tile-gray i { background: linear-gradient(135deg, #7c93b1, #4f6a8a); }
+.portal-tile.tile-rose i { background: linear-gradient(135deg, #f43f5e, #be123c); }
 
 .portal-table {
     width: 100%;
@@ -2588,4 +2589,104 @@ html[data-theme="dark"] .score-alert-card h3 { color: var(--dk-text); }
 /* Enrolled badge override when text stays dark */
 html[data-theme="dark"] .subject-status.is-enrolled,
 html[data-theme="dark"] .subject-status.is-enrolled * { color: #6ee7b7 !important; }
+
+/* Notification bell (student header — mirrors app.css) */
+.header-tools .notif-bell {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    border-radius: 10px;
+    border: 1px solid var(--line, #e2e8f0);
+    background: var(--surface, #fff);
+    color: var(--ink, #0f172a);
+    text-decoration: none;
+    transition: color 0.15s, border-color 0.15s, transform 0.12s;
+}
+.header-tools .notif-bell:hover {
+    color: #1d4ed8;
+    border-color: #93c5fd;
+    transform: translateY(-1px);
+}
+.header-tools .notif-bell i { font-size: 15px; }
+.notif-bell-badge {
+    position: absolute;
+    top: 2px;
+    right: 2px;
+    min-width: 18px;
+    height: 18px;
+    padding: 0 4px;
+    border-radius: 999px;
+    background: #dc2626;
+    color: #fff;
+    font-size: 0.65rem;
+    font-weight: 800;
+    line-height: 18px;
+    text-align: center;
+}
+html[data-theme="dark"] .header-tools .notif-bell {
+    background: #121a2a;
+    border-color: #2d3a52;
+    color: #e2e8f0;
+}
+
+/* Notifications inbox (student) */
+.notification-inbox-list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    padding: 0 0 8px 0;
+}
+.notif-inbox-item {
+    text-align: left;
+    border: 1px solid var(--line, #e2e8f0);
+    border-radius: 14px;
+    padding: 14px 16px;
+    background: var(--surface, #fff);
+    cursor: pointer;
+    transition: box-shadow 0.15s, border-color 0.15s;
+}
+.notif-inbox-item:hover {
+    border-color: #93c5fd;
+    box-shadow: 0 6px 20px rgba(15, 23, 42, 0.06);
+}
+.notif-inbox-item.is-read {
+    opacity: 0.9;
+    background: #f8fafc;
+}
+.notif-inbox-meta {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    font-size: 0.75rem;
+    color: #64748b;
+    margin-bottom: 6px;
+}
+.notif-inbox-who { font-weight: 600; color: #475569; }
+.notif-inbox-title {
+    margin: 0 0 8px 0;
+    font-size: 1rem;
+    color: #0f172a;
+    font-weight: 700;
+}
+.notif-inbox-body {
+    margin: 0 0 10px 0;
+    font-size: 0.9rem;
+    line-height: 1.6;
+    color: #334155;
+    white-space: pre-wrap;
+}
+.notif-inbox-state { font-size: 0.7rem; }
+html[data-theme="dark"] .notif-inbox-item {
+    background: var(--surface);
+    border-color: var(--line);
+}
+html[data-theme="dark"] .notif-inbox-item.is-read {
+    background: rgba(15, 23, 42, 0.6);
+}
+html[data-theme="dark"] .notif-inbox-title { color: var(--dk-text); }
+html[data-theme="dark"] .notif-inbox-body { color: var(--dk-text-2); }
 

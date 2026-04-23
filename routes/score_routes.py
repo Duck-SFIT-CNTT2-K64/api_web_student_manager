@@ -2,11 +2,13 @@ import pyodbc
 from flask import Blueprint, jsonify, request
 
 from models.score_model import create_score, get_all_scores, get_score_types
+from utils.auth import role_required
 
 score_bp = Blueprint("scores", __name__)
 
 
 @score_bp.get("")
+@role_required("Admin")
 def list_scores():
     try:
         scores = get_all_scores()
@@ -18,6 +20,7 @@ def list_scores():
 
 
 @score_bp.get("/types")
+@role_required("Admin")
 def list_score_types():
     try:
         score_types = get_score_types()
@@ -51,6 +54,7 @@ def add_score():
 
 
 @score_bp.put("/<int:score_id>")
+@role_required("Admin")
 def edit_score(score_id: int):
     try:
         payload = request.get_json(silent=True) or {}
@@ -70,6 +74,7 @@ def edit_score(score_id: int):
 
 
 @score_bp.delete("/<int:score_id>")
+@role_required("Admin")
 def remove_score(score_id: int):
     try:
         from models.score_model import delete_score

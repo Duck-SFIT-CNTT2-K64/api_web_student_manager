@@ -2,11 +2,13 @@ import pyodbc
 from flask import Blueprint, jsonify
 
 from models.report_model import get_dashboard_summary
+from utils.auth import role_required
 
 report_bp = Blueprint("reports", __name__)
 
 
 @report_bp.get("/summary")
+@role_required("Admin")
 def summary():
     try:
         return jsonify({"success": True, "data": get_dashboard_summary()}), 200

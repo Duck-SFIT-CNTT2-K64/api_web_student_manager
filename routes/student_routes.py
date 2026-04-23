@@ -5,9 +5,12 @@ from models.student_model import (
     create_student_tuition_payment,
     create_student,
     delete_student_by_id,
+    drop_student_enrollment,
     get_registration_options_by_user_id,
     get_student_by_id,
     get_student_exam_schedule_by_user_id,
+    get_student_assignments_by_user_id,
+    get_student_attendance_by_user_id,
     get_student_finance_by_user_id,
     get_student_learning_by_user_id,
     get_student_profile_by_user_id,
@@ -16,6 +19,7 @@ from models.student_model import (
     get_student_scores_by_user_id,
     get_student_statuses,
     search_students,
+    submit_student_exam,
     update_student,
 )
 from utils.auth import current_session_user, role_required
@@ -24,6 +28,7 @@ student_bp = Blueprint("students", __name__)
 
 
 @student_bp.get("")
+@role_required("Admin")
 def list_students():
     try:
         search_query = request.args.get("q", "")
@@ -36,6 +41,7 @@ def list_students():
 
 
 @student_bp.get("/statuses")
+@role_required("Admin")
 def list_student_statuses():
     try:
         statuses = get_student_statuses()
@@ -47,6 +53,7 @@ def list_student_statuses():
 
 
 @student_bp.get("/<int:student_id>")
+@role_required("Admin")
 def get_student(student_id: int):
     try:
         student = get_student_by_id(student_id)
@@ -60,6 +67,7 @@ def get_student(student_id: int):
 
 
 @student_bp.post("")
+@role_required("Admin")
 def add_student():
     try:
         payload = request.get_json(silent=True) or {}
@@ -82,6 +90,7 @@ def add_student():
 
 
 @student_bp.put("/<int:student_id>")
+@role_required("Admin")
 def edit_student(student_id: int):
     try:
         payload = request.get_json(silent=True) or {}
@@ -106,6 +115,7 @@ def edit_student(student_id: int):
 
 
 @student_bp.delete("/<int:student_id>")
+@role_required("Admin")
 def remove_student(student_id: int):
     try:
         deleted = delete_student_by_id(student_id)
@@ -299,6 +309,91 @@ def create_student_payment(user_id: int):
     try:
         receipt = create_student_tuition_payment(user_id, payload)
         return jsonify({"success": True, "message": "Payment recorded.", "data": receipt}), 201
+    except ValueError as exc:
+        return jsonify({"success": False, "error": str(exc)}), 400
+    except pyodbc.Error as exc:
+        return jsonify({"success": False, "error": "Database error.", "details": str(exc)}), 500
+    except Exception as exc:
+        return jsonify({"success": False, "error": "Unexpected server error.", "details": str(exc)}), 500
+
+
+@student_bp.get("/attendance/<int:user_id>")
+@role_required("Student", "Admin")
+def get_student_attendance(user_id: int):
+    denied = _authorize_user_scope(user_id)
+    if denied:
+        return denied
+
+    from_date = request.args.get("from") or None
+    to_date = request.args.get("to") or None
+
+    try:
+        data = get_student_attendance_by_user_id(user_id, from_date=from_date, to_date=to_date)
+        return jsonify({"success": True, "data": data}), 200
+    except pyodbc.Error as exc:
+        return jsonify({"success": False, "error": "Database error.", "details": str(exc)}), 500
+    except Exception as exc:
+        return jsonify({"success": False, "error": "Unexpected server error.", "details": str(exc)}), 500
+
+
+@student_bp.get("/assignments/<int:user_id>")
+@role_required("Student", "Admin")
+def get_student_assignments(user_id: int):
+    denied = _authorize_user_scope(user_id)
+    if denied:
+        return denied
+
+    try:
+        data = get_student_assignments_by_user_id(user_id)
+        return jsonify({"success": True, "data": data}), 200
+    except pyodbc.Error as exc:
+        return jsonify({"success": False, "error": "Database error.", "details": str(exc)}), 500
+    except Exception as exc:
+        return jsonify({"success": False, "error": "Unexpected server error.", "details": str(exc)}), 500
+
+
+@student_bp.post("/assignments/<int:user_id>/submit")
+@role_required("Student", "Admin")
+def submit_assignment(user_id: int):
+    denied = _authorize_user_scope(user_id)
+    if denied:
+        return denied
+
+    payload = request.get_json(silent=True) or {}
+    exam_id = payload.get("ExamId")
+    note = payload.get("Note")
+    file_url = payload.get("FileUrl")
+
+    if not exam_id:
+        return jsonify({"success": False, "error": "ExamId is required."}), 400
+
+    try:
+        submission = submit_student_exam(user_id, int(exam_id), note=note, file_url=file_url)
+        return jsonify({"success": True, "message": "Submission saved.", "data": submission}), 200
+    except ValueError as exc:
+        return jsonify({"success": False, "error": str(exc)}), 400
+    except pyodbc.Error as exc:
+        return jsonify({"success": False, "error": "Database error.", "details": str(exc)}), 500
+    except Exception as exc:
+        return jsonify({"success": False, "error": "Unexpected server error.", "details": str(exc)}), 500
+
+
+@student_bp.post("/enrollments/<int:user_id>/drop")
+@role_required("Student", "Admin")
+def drop_enrollment(user_id: int):
+    denied = _authorize_user_scope(user_id)
+    if denied:
+        return denied
+
+    payload = request.get_json(silent=True) or {}
+    enrollment_id = payload.get("EnrollmentId")
+    reason = payload.get("Reason")
+    if not enrollment_id:
+        return jsonify({"success": False, "error": "EnrollmentId is required."}), 400
+
+    try:
+        result = drop_student_enrollment(user_id, int(enrollment_id), reason=str(reason or "") or None)
+        return jsonify(result), 200
     except ValueError as exc:
         return jsonify({"success": False, "error": str(exc)}), 400
     except pyodbc.Error as exc:

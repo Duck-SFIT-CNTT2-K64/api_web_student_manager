@@ -44,6 +44,46 @@ def delete_notification(notification_id: int) -> bool:
     return True
 
 
+def get_notifications_for_user(user_id: int) -> List[Dict[str, Any]]:
+    """All notifications for a user (inbox), newest first, with per-recipient read flag."""
+    with get_db_connection() as connection:
+        cursor = connection.cursor()
+        query = """
+        SELECT
+            n.NotificationId,
+            n.Title,
+            n.Content,
+            n.CreatedDate,
+            c.FullName AS CreatorName,
+            nr.IsRead
+        FROM Notifications n
+        INNER JOIN NotificationRecipients nr ON n.NotificationId = nr.NotificationId
+        LEFT JOIN Users c ON n.CreatorId = c.UserId
+        WHERE nr.RecipientId = ?
+        ORDER BY n.CreatedDate DESC
+        """
+        cursor.execute(query, user_id)
+        rows = cursor.fetchall()
+        return rows_to_list(cursor, rows)
+
+
+def user_can_view_notification(user_id: int, role_name: str, notification_id: int) -> bool:
+    r = (role_name or "").strip().lower()
+    if r == "admin":
+        return True
+    with get_db_connection() as connection:
+        cursor = connection.cursor()
+        cursor.execute(
+            """
+            SELECT 1
+            FROM NotificationRecipients
+            WHERE NotificationId = ? AND RecipientId = ?
+            """,
+            (notification_id, user_id),
+        )
+        return cursor.fetchone() is not None
+
+
 def get_unread_notifications_for_user(user_id: int) -> List[Dict[str, Any]]:
     with get_db_connection() as connection:
         cursor = connection.cursor()

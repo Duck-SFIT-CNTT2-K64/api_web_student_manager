@@ -2,11 +2,13 @@ import pyodbc
 from flask import Blueprint, jsonify, request
 
 from models.enrollment_model import create_enrollment, get_enrollments_with_details
+from utils.auth import role_required
 
 enrollment_bp = Blueprint("enrollments", __name__)
 
 
 @enrollment_bp.get("")
+@role_required("Admin")
 def list_enrollments():
     try:
         enrollments = get_enrollments_with_details()
@@ -18,6 +20,7 @@ def list_enrollments():
 
 
 @enrollment_bp.post("")
+@role_required("Admin")
 def add_enrollment():
     try:
         payload = request.get_json(silent=True) or {}

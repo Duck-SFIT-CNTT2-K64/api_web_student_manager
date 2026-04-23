@@ -35,6 +35,8 @@
         registrationOptions: [],
         schedule: [],
         exams: [],
+        assignments: [],
+        attendance: [],
         scores: [],
         finance: [],
     };
@@ -47,9 +49,15 @@
         register: "/api/students/registration/" + userId,
         schedule: "/api/students/schedule/" + userId,
         exams: "/api/students/exams/" + userId,
+        assignments: "/api/students/assignments/" + userId,
+        submitAssignment: "/api/students/assignments/" + userId + "/submit",
+        attendance: "/api/students/attendance/" + userId,
+        dropEnrollment: "/api/students/enrollments/" + userId + "/drop",
         scores: "/api/students/scores/" + userId,
         finance: "/api/students/finance/" + userId,
         payment: "/api/students/finance/" + userId + "/payments",
+        notificationsAll: "/api/notifications/my",
+        notificationsUnread: "/api/notifications/my/unread",
     };
 
     var activePanelEl = document.querySelector(".portal-panel.is-active");
@@ -116,7 +124,125 @@
     }
 
     function getJson(url) {
-        return fetch(url).then(parseResponse);
+        return fetch(url, { credentials: "same-origin" }).then(parseResponse);
+    }
+
+    function putJsonSimple(url) {
+        return fetch(url, { method: "PUT", credentials: "same-origin" }).then(function (response) {
+            return response.json().then(function (json) {
+                if (!response.ok || json.success === false) {
+                    throw new Error(json.error || json.details || "Request failed.");
+                }
+                return json;
+            });
+        });
+    }
+
+    function isReadFlag(row) {
+        var v = row && row.IsRead;
+        if (v === true || v === 1) return true;
+        if (v === false || v === 0) return false;
+        return false;
+    }
+
+    function refreshNotifBadge() {
+        return fetch(endpoints.notificationsUnread, { credentials: "same-origin" })
+            .then(function (res) { return res.json(); })
+            .then(function (json) {
+                if (!json.success || !Array.isArray(json.data)) {
+                    return;
+                }
+                var n = json.data.length;
+                var badge = document.getElementById("studentNotifBellBadge");
+                if (badge) {
+                    if (n > 0) {
+                        badge.textContent = n > 99 ? "99+" : String(n);
+                        badge.hidden = false;
+                    } else {
+                        badge.textContent = "0";
+                        badge.hidden = true;
+                    }
+                }
+            })
+            .catch(function () { /* ignore */ });
+    }
+
+    function renderNotificationInbox(items) {
+        var container = document.getElementById("studentNotificationList");
+        var pill = document.getElementById("studentNotifUnreadPill");
+        if (!container) return;
+        if (!items || !items.length) {
+            container.innerHTML = "<p class=\"empty\">No notifications yet.</p>";
+            if (pill) {
+                pill.textContent = "0 unread";
+            }
+            return;
+        }
+        var unread = items.filter(function (r) { return !isReadFlag(r); }).length;
+        if (pill) {
+            pill.textContent = unread + " unread";
+        }
+        container.innerHTML = items
+            .map(function (it) {
+                var id = it.NotificationId;
+                var read = isReadFlag(it);
+                var title = esc(it.Title || "Notification");
+                var date = esc(String(it.CreatedDate || "").slice(0, 16).replace("T", " "));
+                var body = esc(it.Content || "");
+                var who = esc(it.CreatorName || "Center");
+                return (
+                    "<article class=\"notif-inbox-item" + (read ? " is-read" : "") + "\" data-notif-id=\"" + id + "\" role=\"button\" tabindex=\"0\">" +
+                    "<div class=\"notif-inbox-meta\"><span class=\"notif-inbox-who\">" + who + "</span><time>" + date + "</time></div>" +
+                    "<h4 class=\"notif-inbox-title\">" + title + "</h4>" +
+                    "<p class=\"notif-inbox-body\">" + body + "</p>" +
+                    (read
+                        ? "<span class=\"portal-chip chip-green notif-inbox-state\">Read</span>"
+                        : "<span class=\"portal-chip chip-yellow notif-inbox-state\">Unread — click to mark read</span>") +
+                    "</article>"
+                );
+            })
+            .join("");
+
+        container.querySelectorAll(".notif-inbox-item").forEach(function (el) {
+            var nid = el.getAttribute("data-notif-id");
+            function onActivate() {
+                if (el.classList.contains("is-read") || !nid) return;
+                putJsonSimple("/api/notifications/" + nid + "/read")
+                    .then(function () {
+                        return getJson(endpoints.notificationsAll);
+                    })
+                    .then(function (data) {
+                        renderNotificationInbox(data || []);
+                    })
+                    .then(function () {
+                        return refreshNotifBadge();
+                    })
+                    .catch(function () { });
+            }
+            el.addEventListener("click", onActivate);
+            el.addEventListener("keydown", function (e) {
+                if (e.key === "Enter" || e.key === " ") {
+                    e.preventDefault();
+                    onActivate();
+                }
+            });
+        });
+    }
+
+    function loadNotificationInbox() {
+        if (!document.getElementById("studentNotificationList")) {
+            return Promise.resolve();
+        }
+        return getJson(endpoints.notificationsAll)
+            .then(function (data) {
+                renderNotificationInbox(data || []);
+            })
+            .catch(function (err) {
+                var c = document.getElementById("studentNotificationList");
+                if (c) {
+                    c.innerHTML = "<p class=\"empty\">" + esc(err.message || "Could not load notifications.") + "</p>";
+                }
+            });
     }
 
     function postJson(url, payload) {
@@ -124,6 +250,7 @@
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify(payload),
+            credentials: "same-origin",
         }).then(parseResponse);
     }
 
@@ -589,6 +716,11 @@
         if (tbody) {
             tbody.innerHTML = regs.length
                 ? regs.map(function (r, i) {
+                    var canDrop = String(r.RegistrationStatus || "").toLowerCase() === "enrolled";
+                    var actionHtml = canDrop
+                        ? '<button type="button" class="btn btn-outline btn-sm drop-enroll-btn" data-enrollment-id="' + esc(r.EnrollmentId) + '">'
+                            + '<i class="fas fa-ban"></i> Drop</button>'
+                        : '<span style="color:var(--dk-text-3,#64748b);font-size:.85rem">—</span>';
                     return '<tr>'
                         + '<td>' + (i + 1) + '</td>'
                         + '<td><strong>' + esc(r.ClassCode) + '</strong><br><small>' + esc(r.ClassName || "") + '</small></td>'
@@ -596,9 +728,32 @@
                         + '<td>' + fmtDateVi(r.EnrollmentDate) + '</td>'
                         + '<td>' + fmtMoneyVND(r.TuitionFee) + '</td>'
                         + '<td>' + statusBadgeHtml(r.RegistrationStatus) + '</td>'
+                        + '<td>' + actionHtml + '</td>'
                         + '</tr>';
                 }).join("")
-                : '<tr><td colspan="6" class="empty">Chưa có đăng ký.</td></tr>';
+                : '<tr><td colspan="7" class="empty">Chưa có đăng ký.</td></tr>';
+
+            tbody.querySelectorAll(".drop-enroll-btn").forEach(function (btn) {
+                btn.addEventListener("click", function () {
+                    var eid = Number(btn.dataset.enrollmentId || 0);
+                    if (!eid) return;
+                    if (!confirm("Bạn chắc chắn muốn huỷ ghi danh lớp này? (Chỉ được huỷ khi chưa phát sinh thanh toán)")) {
+                        return;
+                    }
+                    btn.disabled = true;
+                    postJson(endpoints.dropEnrollment, { EnrollmentId: eid })
+                        .then(function (res) {
+                            alert(res.message || "Đã huỷ ghi danh.");
+                            return reloadData();
+                        })
+                        .catch(function (err) {
+                            alert(err.message || "Không huỷ được ghi danh.");
+                        })
+                        .finally(function () {
+                            btn.disabled = false;
+                        });
+                });
+            });
         }
     }
 
@@ -1009,6 +1164,146 @@
         }
     }
 
+    // ───────────────────────── ASSIGNMENTS ─────────────────────────
+    function assignmentStatusChip(status) {
+        var s = String(status || "").toLowerCase();
+        if (s === "submitted") return '<span class="portal-chip chip-green">Submitted</span>';
+        if (s === "graded") return '<span class="portal-chip chip-green">Graded</span>';
+        if (s === "pending") return '<span class="portal-chip chip-yellow">Pending</span>';
+        if (!s) return '<span class="portal-chip chip-yellow">Pending</span>';
+        return '<span class="portal-chip chip-yellow">' + esc(status) + '</span>';
+    }
+
+    function renderAssignments() {
+        var wrap = document.getElementById("assignmentList");
+        var pill = document.getElementById("assignmentCountPill");
+        if (!wrap) return;
+
+        var rows = state.assignments || [];
+        if (pill) pill.textContent = rows.length + " items";
+        if (!rows.length) {
+            wrap.innerHTML = '<p class="empty">No assignments yet.</p>';
+            return;
+        }
+
+        wrap.innerHTML = rows.map(function (a) {
+            var due = fmtDateVi(a.DueDate);
+            var created = fmtDateVi(a.CreatedDate);
+            var title = esc(a.Title || "Assignment");
+            var desc = esc(a.Description || "");
+            var classLine = esc(a.ClassCode || "") + " · " + esc(a.ClassName || "");
+            var courseLine = esc(a.CourseCode || "") + " · " + esc(a.CourseName || "");
+            var subStatus = a.SubmissionStatus || (a.SubmittedAt ? "Submitted" : "Pending");
+            var grade = a.Grade == null ? "—" : String(a.Grade);
+
+            var canSubmit = true;
+            // Server side will re-check due date + membership; UI just offers form.
+
+            var submitBlock = canSubmit
+                ? (
+                    '<div class="portal-form" style="margin-top:10px;display:grid;gap:10px;">'
+                    + '<label><span>Submission link (optional)</span>'
+                    + '<input type="url" class="assign-fileurl" placeholder="https://drive.google.com/... or github..." value="' + esc(a.FileUrl || "") + '"></label>'
+                    + '<label><span>Note (optional)</span>'
+                    + '<textarea class="assign-note" rows="3" placeholder="Anything you want to tell your instructor...">' + esc(a.Note || "") + '</textarea></label>'
+                    + '<div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">'
+                    + '<button type="button" class="btn btn-primary assign-submit-btn" data-exam-id="' + esc(a.ExamId) + '">'
+                    + '<i class="fas fa-paper-plane"></i> Submit</button>'
+                    + '<span class="portal-readonly-note" style="margin:0"><i class="fas fa-clock"></i> Due: <strong>' + due + '</strong></span>'
+                    + '</div>'
+                    + '<p class="portal-message assign-msg" style="margin:0"></p>'
+                    + '</div>'
+                )
+                : '';
+
+            return (
+                '<article class="portal-card" style="margin-bottom:12px;">'
+                + '<div class="portal-card-head" style="align-items:flex-start;gap:12px;">'
+                + '<div style="flex:1;min-width:0">'
+                + '<h3 style="margin:0 0 4px 0;"><i class="fas fa-file-circle-check"></i> ' + title + '</h3>'
+                + '<p style="margin:0;color:var(--text-muted);font-size:.85rem">' + classLine + '<br>' + courseLine + '</p>'
+                + '</div>'
+                + '<div style="display:flex;flex-direction:column;gap:8px;align-items:flex-end">'
+                + assignmentStatusChip(subStatus)
+                + '<span class="portal-chip chip-yellow">Grade: <strong>' + esc(grade) + '</strong></span>'
+                + '</div>'
+                + '</div>'
+                + (desc ? '<p style="margin:0 0 10px 0;color:var(--text);white-space:pre-wrap;line-height:1.6">' + desc + '</p>' : '')
+                + '<p style="margin:0 0 10px 0;color:var(--text-muted);font-size:.85rem">Created: ' + created + '</p>'
+                + submitBlock
+                + '</article>'
+            );
+        }).join("");
+
+        wrap.querySelectorAll(".assign-submit-btn").forEach(function (btn) {
+            btn.addEventListener("click", function () {
+                var examId = Number(btn.dataset.examId || 0);
+                if (!examId) return;
+                var card = btn.closest(".portal-card");
+                var fileUrl = card ? (card.querySelector(".assign-fileurl") || {}).value : "";
+                var note = card ? (card.querySelector(".assign-note") || {}).value : "";
+                var msg = card ? card.querySelector(".assign-msg") : null;
+                if (msg) msg.textContent = "Submitting…";
+                btn.disabled = true;
+                postJson(endpoints.submitAssignment, { ExamId: examId, FileUrl: fileUrl || null, Note: note || null })
+                    .then(function (res) {
+                        if (msg) msg.textContent = res.message || "Submitted.";
+                        return reloadData();
+                    })
+                    .catch(function (err) {
+                        if (msg) msg.textContent = err.message || "Submit failed.";
+                    })
+                    .finally(function () {
+                        btn.disabled = false;
+                    });
+            });
+        });
+    }
+
+    // ───────────────────────── ATTENDANCE ─────────────────────────
+    function attendanceChip(status) {
+        var s = String(status || "").toLowerCase();
+        if (s === "present") return '<span class="portal-chip chip-green">Present</span>';
+        if (s === "absent") return '<span class="portal-chip chip-red">Absent</span>';
+        if (s === "late") return '<span class="portal-chip chip-yellow">Late</span>';
+        if (!s) return '<span class="portal-chip chip-yellow">—</span>';
+        return '<span class="portal-chip chip-yellow">' + esc(status) + '</span>';
+    }
+
+    function renderAttendance() {
+        var tbody = document.getElementById("attendanceTableBody");
+        var pill = document.getElementById("attendanceSummaryPill");
+        if (!tbody) return;
+
+        var rows = (state.attendance || []).filter(function (r) { return r.SessionDate; });
+        var present = 0, absent = 0, late = 0;
+        rows.forEach(function (r) {
+            var s = String(r.AttendanceStatus || "").toLowerCase();
+            if (s === "present") present += 1;
+            else if (s === "absent") absent += 1;
+            else if (s === "late") late += 1;
+        });
+        if (pill) {
+            pill.textContent = "Present " + present + " · Absent " + absent + " · Late " + late;
+        }
+
+        if (!rows.length) {
+            tbody.innerHTML = '<tr><td colspan="4" class="empty">No attendance data yet.</td></tr>';
+            return;
+        }
+
+        tbody.innerHTML = rows.map(function (r) {
+            return (
+                "<tr>"
+                + "<td>" + fmtDateVi(r.SessionDate) + "</td>"
+                + "<td><strong>" + esc(r.ClassCode || "") + "</strong><br><small>" + esc(r.ClassName || "") + "</small></td>"
+                + "<td>" + esc(r.CourseCode || "") + " – " + esc(r.CourseName || "") + "</td>"
+                + "<td>" + attendanceChip(r.AttendanceStatus) + "</td>"
+                + "</tr>"
+            );
+        }).join("");
+    }
+
     // ───────────────────────── REGISTER / PAYMENT FORMS ─────────────────────────
     function bindForms() {
         var keywordInput = document.getElementById("registerKeyword");
@@ -1120,6 +1415,8 @@
             getJson(endpoints.registrationOptions).catch(function () { return []; }),
             getJson(endpoints.schedule).catch(function () { return []; }),
             getJson(endpoints.exams).catch(function () { return []; }),
+            getJson(endpoints.assignments).catch(function () { return []; }),
+            getJson(endpoints.attendance).catch(function () { return []; }),
             getJson(endpoints.scores).catch(function () { return []; }),
             getJson(endpoints.finance).catch(function () { return []; }),
         ]).then(function (results) {
@@ -1129,8 +1426,10 @@
             state.registrationOptions = results[3] || [];
             state.schedule = results[4] || [];
             state.exams = results[5] || [];
-            state.scores = results[6] || [];
-            state.finance = results[7] || [];
+            state.assignments = results[6] || [];
+            state.attendance = results[7] || [];
+            state.scores = results[8] || [];
+            state.finance = results[9] || [];
 
             renderScores();
             renderRegistration();
@@ -1139,6 +1438,8 @@
             renderMiniCalendar();
             renderExams();
             renderTuition();
+            renderAssignments();
+            renderAttendance();
 
             // Overview counts
             var enrollCount = (state.learning.Enrollments || []).length;
@@ -1153,4 +1454,8 @@
         setMessage("registrationMessage", err.message, "error");
         setMessage("paymentMessage", err.message, "error");
     });
+    refreshNotifBadge();
+    if (activePanel === "notifications") {
+        loadNotificationInbox();
+    }
 })();
