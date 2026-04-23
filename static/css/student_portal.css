@@ -520,6 +520,7 @@
 .portal-tile.tile-orange i { background: linear-gradient(135deg, #ff9d1d, #ff7a00); }
 .portal-tile.tile-red i { background: linear-gradient(135deg, #f16a6a, #d53a3a); }
 .portal-tile.tile-gray i { background: linear-gradient(135deg, #7c93b1, #4f6a8a); }
+.portal-tile.tile-rose i { background: linear-gradient(135deg, #f43f5e, #be123c); }
 
 .portal-table {
     width: 100%;
@@ -609,6 +610,12 @@
 .portal-form .btn {
     align-self: flex-start;
     gap: 8px;
+}
+
+/* Ensure buttons always show hand cursor (incl. icon/text). */
+.btn,
+.btn * {
+    cursor: pointer;
 }
 
 .portal-message {
@@ -1907,6 +1914,82 @@
     font-size: 0.92rem;
 }
 
+.portal-modal-sub {
+    margin: 6px 0 0;
+    color: rgba(234, 246, 255, 0.88);
+    font-size: 0.88rem;
+    font-weight: 600;
+}
+
+.portal-modal-foot {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 10px;
+    padding: 14px 16px;
+    border-top: 1px solid #dee8f6;
+    background: #ffffff;
+}
+
+/* Confirm modal (register) */
+.portal-modal-confirm {
+    width: min(640px, 100%);
+}
+
+.confirm-card {
+    border-radius: 16px;
+    border: 1px solid #d7e5f5;
+    background: linear-gradient(180deg, #ffffff 0%, #f7fbff 100%);
+    padding: 14px 14px;
+    box-shadow: 0 14px 30px rgba(8, 45, 87, 0.10);
+}
+
+.confirm-grid {
+    display: grid;
+    gap: 8px;
+}
+
+.confirm-row {
+    display: grid;
+    grid-template-columns: 140px 1fr;
+    gap: 12px;
+    padding: 10px 12px;
+    border-radius: 12px;
+    background: #ffffff;
+    border: 1px solid #e1ecf9;
+}
+
+.confirm-row span {
+    color: #5f7ea6;
+    font-size: 0.86rem;
+    font-weight: 700;
+}
+
+.confirm-row strong {
+    color: #14406f;
+    font-weight: 800;
+    font-family: "Space Grotesk", "Inter", "Segoe UI", sans-serif;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.confirm-note {
+    margin: 12px 2px 0;
+    display: flex;
+    gap: 10px;
+    align-items: flex-start;
+    color: #4e6f96;
+    font-size: 0.88rem;
+    line-height: 1.5;
+}
+
+.confirm-note i {
+    color: #2f72b8;
+    margin-top: 2px;
+}
+
 .modal-info-grid {
     display: grid;
     grid-template-columns: 130px 1fr;
@@ -1988,6 +2071,10 @@
     .schedule-slot[data-day-idx="6"] {
         display: none;
     }
+
+    .confirm-row { grid-template-columns: 1fr; gap: 4px; }
+    .portal-modal-foot { flex-direction: column; align-items: stretch; }
+    .portal-modal-foot .btn { width: 100%; justify-content: center; }
 }
 
 /* =====================================================================
@@ -2437,6 +2524,27 @@ html[data-theme="dark"] .portal-modal-body { color: var(--dk-text-2); }
 html[data-theme="dark"] .modal-info-grid dt { color: var(--dk-text-3); }
 html[data-theme="dark"] .modal-info-grid dd { color: var(--dk-text); }
 
+html[data-theme="dark"] .portal-modal-foot {
+    background: var(--surface);
+    border-top-color: var(--line);
+}
+
+html[data-theme="dark"] .confirm-card {
+    background: linear-gradient(180deg, var(--surface) 0%, rgba(15, 24, 41, 0.92) 100%);
+    border-color: var(--line);
+    box-shadow: 0 18px 40px rgba(0, 0, 0, 0.55);
+}
+
+html[data-theme="dark"] .confirm-row {
+    background: var(--dk-surface-3);
+    border-color: var(--line);
+}
+
+html[data-theme="dark"] .confirm-row span { color: var(--dk-text-3); }
+html[data-theme="dark"] .confirm-row strong { color: var(--dk-text); }
+html[data-theme="dark"] .confirm-note { color: var(--dk-text-3); }
+html[data-theme="dark"] .confirm-note i { color: var(--dk-accent-2); }
+
 /* ---------- Warning block ---------- */
 html[data-theme="dark"] .portal-warning {
     background: linear-gradient(135deg, rgba(255, 157, 29, 0.18), rgba(255, 122, 0, 0.1));
@@ -2588,4 +2696,115 @@ html[data-theme="dark"] .score-alert-card h3 { color: var(--dk-text); }
 /* Enrolled badge override when text stays dark */
 html[data-theme="dark"] .subject-status.is-enrolled,
 html[data-theme="dark"] .subject-status.is-enrolled * { color: #6ee7b7 !important; }
+
+/* Notification bell (student header — mirrors app.css) */
+.header-tools .notif-bell {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    border-radius: 10px;
+    border: 1px solid var(--line, #e2e8f0);
+    background: var(--surface, #fff);
+    color: var(--ink, #0f172a);
+    text-decoration: none;
+    transition: color 0.15s, border-color 0.15s, transform 0.12s;
+}
+.header-tools .notif-bell:hover {
+    color: #1d4ed8;
+    border-color: #93c5fd;
+    transform: translateY(-1px);
+}
+.header-tools .notif-bell i { font-size: 15px; }
+.notif-bell-badge {
+    position: absolute;
+    top: 2px;
+    right: 2px;
+    min-width: 18px;
+    height: 18px;
+    padding: 0 4px;
+    border-radius: 999px;
+    background: #dc2626;
+    color: #fff;
+    font-size: 0.65rem;
+    font-weight: 800;
+    line-height: 18px;
+    text-align: center;
+}
+html[data-theme="dark"] .header-tools .notif-bell {
+    background: #121a2a;
+    border-color: #2d3a52;
+    color: #e2e8f0;
+}
+
+/* Notifications inbox (student) */
+.notification-inbox-list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    padding: 0 0 8px 0;
+}
+.notif-inbox-item {
+    text-align: left;
+    border: 1px solid var(--line, #e2e8f0);
+    border-radius: 14px;
+    padding: 14px 16px;
+    background: var(--surface, #fff);
+    cursor: pointer;
+    transition: box-shadow 0.15s, border-color 0.15s;
+}
+.notif-inbox-item:hover {
+    border-color: #93c5fd;
+    box-shadow: 0 6px 20px rgba(15, 23, 42, 0.06);
+}
+.notif-inbox-item.is-read {
+    opacity: 0.9;
+    background: #f8fafc;
+}
+.notif-inbox-meta {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    font-size: 0.75rem;
+    color: #64748b;
+    margin-bottom: 6px;
+}
+.notif-inbox-who { font-weight: 600; color: #475569; }
+.notif-inbox-title {
+    margin: 0 0 8px 0;
+    font-size: 1rem;
+    color: #0f172a;
+    font-weight: 700;
+}
+.notif-inbox-body {
+    margin: 0 0 10px 0;
+    font-size: 0.9rem;
+    line-height: 1.6;
+    color: #334155;
+    white-space: pre-wrap;
+}
+.notif-inbox-state { font-size: 0.7rem; }
+html[data-theme="dark"] .notif-inbox-item {
+    background: var(--surface);
+    border-color: var(--line);
+}
+html[data-theme="dark"] .notif-inbox-item.is-read {
+    background: rgba(15, 23, 42, 0.6);
+}
+html[data-theme="dark"] .notif-inbox-title { color: var(--dk-text); }
+html[data-theme="dark"] .notif-inbox-body { color: var(--dk-text-2); }
+
+/* Small button helper (used in some legacy panels) */
+.btn-small {
+    padding: 6px 12px;
+    font-size: 0.75rem;
+    height: auto;
+}
+
+.portal-card-body p {
+    line-height: 1.5;
+}
 

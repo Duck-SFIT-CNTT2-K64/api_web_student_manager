@@ -13,6 +13,7 @@ enrollment_bp = Blueprint("enrollments", __name__)
 
 
 @enrollment_bp.get("")
+@role_required("Admin")
 def list_enrollments():
     try:
         enrollments = get_enrollments_with_details()

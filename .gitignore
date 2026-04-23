@@ -41,3 +41,6 @@ Thumbs.db
 
 # Docker local artifacts
 docker/.mssql/
+
+# User uploaded files
+static/uploads/

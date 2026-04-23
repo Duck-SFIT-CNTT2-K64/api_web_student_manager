@@ -12,6 +12,8 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/landing.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/login_notification_modal.css') }}">
+    {# Student assistant widget CSS comes from partial include below #}
     <script>
         (function () {
             try {
@@ -183,6 +185,10 @@
                                     <a href="/student/exams" role="menuitem" class="user-menu-tile tile-purple">
                                         <i class="fas fa-calendar-check"></i>
                                         <span>Exam schedule</span>
+                                    </a>
+                                    <a href="/student/notifications" role="menuitem" class="user-menu-tile tile-rose">
+                                        <i class="fas fa-bell"></i>
+                                        <span>Notifications</span>
                                     </a>
                                 </div>
                             </div>
@@ -655,7 +661,46 @@
         <p>&copy; 2026 {{ landing_data.Center.Name }} - Hands-on IT training center.</p>
     </footer>
 
+    {% if current_user %}
+    <div class="login-notif-modal" id="loginNotifModal" hidden>
+        <div class="login-notif-backdrop" data-login-notif-close></div>
+        <div class="login-notif-dialog" role="dialog" aria-modal="true" aria-labelledby="loginNotifTitle" aria-describedby="loginNotifContent">
+            <header class="login-notif-head">
+                <div>
+                    <p class="login-notif-kicker" id="loginNotifKicker">Notification</p>
+                    <h3 class="login-notif-title" id="loginNotifTitle">—</h3>
+                    <p class="login-notif-sub" id="loginNotifSub">You have an unread announcement. Admin notifications are shown first.</p>
+                </div>
+                <button type="button" class="login-notif-close" data-login-notif-close aria-label="Close">
+                    <i class="fas fa-xmark"></i>
+                </button>
+            </header>
+            <div class="login-notif-body">
+                <div class="login-notif-meta">
+                    <span class="login-notif-chip"><i class="fas fa-user"></i> <span id="loginNotifCreator">—</span></span>
+                    <span class="login-notif-chip"><i class="fas fa-user-shield"></i> <span id="loginNotifCreatorRole">—</span></span>
+                    <span class="login-notif-chip"><i class="fas fa-clock"></i> <span id="loginNotifDate">—</span></span>
+                </div>
+                <div class="login-notif-content" id="loginNotifContent">—</div>
+                <footer class="login-notif-foot">
+                    <button type="button" class="login-notif-btn" data-login-notif-close>Đóng</button>
+                    <button type="button" class="login-notif-btn primary" id="loginNotifReadBtn">
+                        <i class="fas fa-check"></i> Đã đọc
+                    </button>
+                </footer>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    {% if current_user and role_name == 'student' %}
+        {% include 'partials/_student_assistant_widget.html' %}
+    {% endif %}
+
     <script src="{{ url_for('static', filename='js/theme.js') }}"></script>
     <script src="{{ url_for('static', filename='js/landing.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/login_notification_modal.js') }}"></script>
+    {# student assistant widget JS comes from partial include above #}
+
 </body>
 </html>

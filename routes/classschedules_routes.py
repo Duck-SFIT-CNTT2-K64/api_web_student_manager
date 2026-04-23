@@ -7,6 +7,7 @@ from utils.auth import role_required
 class_schedule_bp = Blueprint("class_schedules", __name__)
 
 @class_schedule_bp.get("")
+@role_required("Admin")
 def list_class_schedules():
     try:
         with get_db_connection() as conn:
@@ -37,6 +38,7 @@ def list_class_schedules():
         return jsonify({"success": False, "error": str(e)}), 500
 
 @class_schedule_bp.get("/<int:schedule_id>")
+@role_required("Admin")
 def get_schedule(schedule_id: int):
     try:
         with get_db_connection() as conn:

@@ -7,6 +7,7 @@
     <title>{% block title %}CLASSES369{% endblock %}</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/app.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/login_notification_modal.css') }}">
     <script>
         (function () {
             try {
@@ -62,6 +63,13 @@
             </div>
             <div class="topbar-right">
                 {% block topbar_actions %}{% endblock %}
+                {% if current_user and current_user.RoleName in ['Admin', 'Teacher'] %}
+                <a href="{{ '/dashboard#notifications' if current_user.RoleName == 'Admin' else '/teacher/home#notifications' }}"
+                   class="notif-bell" id="topbarNotifBell" title="Notifications" aria-label="Notifications">
+                    <i class="fas fa-bell"></i>
+                    <span class="notif-bell-badge" id="topbarNotifBellBadge" hidden>0</span>
+                </a>
+                {% endif %}
                 <button type="button" class="theme-toggle" data-theme-toggle
                         title="Toggle theme" aria-label="Toggle theme" aria-pressed="false">
                     <i class="fas fa-moon" data-theme-icon></i>
@@ -87,68 +95,42 @@
         </footer>
     </div>
 
+    {% if current_user and current_user.RoleName == 'Teacher' %}
+    <div class="login-notif-modal" id="loginNotifModal" hidden>
+        <div class="login-notif-backdrop" data-login-notif-close></div>
+        <div class="login-notif-dialog" role="dialog" aria-modal="true" aria-labelledby="loginNotifTitle" aria-describedby="loginNotifContent">
+            <header class="login-notif-head">
+                <div>
+                    <p class="login-notif-kicker" id="loginNotifKicker">Notification</p>
+                    <h3 class="login-notif-title" id="loginNotifTitle">—</h3>
+                    <p class="login-notif-sub" id="loginNotifSub">You have an unread announcement. Admin notifications are shown first.</p>
+                </div>
+                <button type="button" class="login-notif-close" data-login-notif-close aria-label="Close">
+                    <i class="fas fa-xmark"></i>
+                </button>
+            </header>
+            <div class="login-notif-body">
+                <div class="login-notif-meta">
+                    <span class="login-notif-chip"><i class="fas fa-user"></i> <span id="loginNotifCreator">—</span></span>
+                    <span class="login-notif-chip"><i class="fas fa-user-shield"></i> <span id="loginNotifCreatorRole">—</span></span>
+                    <span class="login-notif-chip"><i class="fas fa-clock"></i> <span id="loginNotifDate">—</span></span>
+                </div>
+                <div class="login-notif-content" id="loginNotifContent">—</div>
+                <footer class="login-notif-foot">
+                    <button type="button" class="login-notif-btn" data-login-notif-close>Đóng</button>
+                    <button type="button" class="login-notif-btn primary" id="loginNotifReadBtn">
+                        <i class="fas fa-check"></i> Đã đọc
+                    </button>
+                </footer>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
     <script src="{{ url_for('static', filename='js/theme.js') }}"></script>
     <script src="{{ url_for('static', filename='js/shell.js') }}"></script>
-    <script>
-        document.addEventListener("DOMContentLoaded", async function () {
-            var roleName = "{{ current_user.RoleName if current_user else '' }}";
-
-            if (!roleName || roleName === "Admin") return;
-
-            try {
-                const response = await fetch("/api/notifications/my/unread");
-                if (response.ok) {
-                    const res = await response.json();
-                    if (res.success && res.data && res.data.length > 0) {
-                        showUnreadNotificationBanner(res.data[0]);
-                    }
-                }
-            } catch (e) {
-                console.error("Failed to load notifications:", e);
-            }
-        });
-
-        function showUnreadNotificationBanner(notif) {
-            const banner = document.createElement("div");
-            banner.id = "unread-notif-banner";
-            banner.style.cssText = `
-                position: fixed; top: 15px; left: 50%; transform: translateX(-50%);
-                z-index: 10000; background: #2563eb; color: white; padding: 12px 20px;
-                border-radius: 12px; box-shadow: 0 10px 25px rgba(0,0,0,0.2);
-                display: flex; align-items: center; gap: 15px; width: 90%; max-width: 500px;
-                animation: slideDownNotif 0.5s ease;
-            `;
-
-            if (!document.getElementById("notif-style")) {
-                const s = document.createElement("style");
-                s.id = "notif-style";
-                s.textContent = `
-                    @keyframes slideDownNotif { from { top: -100px; opacity: 0; } to { top: 15px; opacity: 1; } }
-                    @keyframes slideUpNotif { from { top: 15px; opacity: 1; } to { top: -100px; opacity: 0; } }
-                `;
-                document.head.appendChild(s);
-            }
-
-            banner.innerHTML = `
-                <div style="font-size: 20px;"><i class="fas fa-bell"></i></div>
-                <div style="flex: 1">
-                    <div style="font-weight: 600; font-size: 15px; margin-bottom: 2px;">${notif.Title || 'New notification'}</div>
-                    <div style="font-size: 13px; opacity: 0.9; line-height: 1.4;">${notif.Content || ''}</div>
-                </div>
-                <button style="background: rgba(255,255,255,0.2); border: none; color: white; padding: 5px 12px; border-radius: 6px; cursor: pointer; font-size: 12px; font-weight: 600;">Got it</button>
-            `;
-
-            banner.querySelector("button").onclick = async function () {
-                banner.style.animation = "slideUpNotif 0.4s ease forwards";
-                setTimeout(() => banner.remove(), 400);
-                try {
-                    await fetch(`/api/notifications/${notif.NotificationId}/read`, { method: 'PUT' });
-                } catch (err) { }
-            };
-
-            document.body.appendChild(banner);
-        }
-    </script>
+    <script src="{{ url_for('static', filename='js/notification_bell.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/login_notification_modal.js') }}"></script>
     {% block extra_js %}{% endblock %}
 </body>
 

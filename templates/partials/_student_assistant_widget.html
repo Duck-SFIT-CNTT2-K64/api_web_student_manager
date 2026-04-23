@@ -1,0 +1,38 @@
+{# Student Assistant widget (role=student). Keep it lightweight and safe to include on any student page. #}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/student_assistant_widget.css') }}">
+
+<button type="button" class="sa-trigger" id="saTrigger" aria-label="Need help?">
+  <span class="sa-trigger-dot" aria-hidden="true"></span>
+  <span>Need help?</span>
+</button>
+
+<div class="sa-backdrop" id="saBackdrop" hidden></div>
+
+<aside class="sa-widget" id="saWidget" aria-hidden="true" role="dialog" aria-modal="true" aria-label="Student assistant">
+  <header class="sa-header">
+    <div style="min-width:0;">
+      <div style="display:flex;align-items:center;gap:10px;">
+        <h3 class="sa-title" style="margin-right:6px;">Trợ lý sinh viên</h3>
+        <span class="sa-pill ok" id="saStatus">Online</span>
+      </div>
+      <p class="sa-sub">Hỏi lịch học · học phí · điểm · hồ sơ</p>
+    </div>
+    <button type="button" class="sa-icon-btn" id="saClose" aria-label="Close">✕</button>
+  </header>
+  <div class="sa-quick" id="saQuickWrap" aria-label="Quick questions">
+    <button type="button" class="sa-quick-btn" data-quick="Hồ sơ của tôi">Hồ sơ của tôi</button>
+    <button type="button" class="sa-quick-btn" data-quick="Lịch học hôm nay">Lịch học hôm nay</button>
+    <button type="button" class="sa-quick-btn" data-quick="Công nợ học phí của tôi">Công nợ học phí</button>
+    <button type="button" class="sa-quick-btn" data-quick="Điểm của tôi (nhập mã môn nếu cần)">Tra cứu điểm</button>
+  </div>
+  <section class="sa-body" id="saBody"></section>
+  <footer class="sa-footer">
+    <div class="sa-input-wrap">
+      <textarea class="sa-input" id="saInput" placeholder="Nhập câu hỏi… (Enter để gửi, Shift+Enter xuống dòng)" rows="1"></textarea>
+      <button type="button" class="sa-send" id="saSend" aria-label="Send message">Send</button>
+    </div>
+  </footer>
+</aside>
+
+<script src="{{ url_for('static', filename='js/student_assistant_widget.js') }}"></script>
+

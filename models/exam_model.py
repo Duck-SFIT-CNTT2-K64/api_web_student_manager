@@ -69,13 +69,14 @@ def create_exam(user_id: int, payload: Dict[str, Any]) -> Dict[str, Any]:
         raise ValueError("ClassId là bắt buộc.")
     if not title:
         raise ValueError("Tiêu đề bài kiểm tra là bắt buộc.")
-    if not due_date_raw:
-        raise ValueError("Hạn nộp là bắt buộc.")
 
-    try:
-        due_date = datetime.fromisoformat(str(due_date_raw))
-    except ValueError:
-        raise ValueError("Định dạng hạn nộp không hợp lệ: " + str(due_date_raw))
+    # DueDate là optional
+    due_date = None
+    if due_date_raw and str(due_date_raw).strip():
+        try:
+            due_date = datetime.fromisoformat(str(due_date_raw))
+        except ValueError:
+            raise ValueError("Định dạng hạn nộp không hợp lệ: " + str(due_date_raw))
 
     with get_db_connection() as connection:
         cursor = connection.cursor()
@@ -91,11 +92,39 @@ def create_exam(user_id: int, payload: Dict[str, Any]) -> Dict[str, Any]:
 
 
 def update_exam(exam_id: int, payload: Dict[str, Any]) -> Optional[Dict[str, Any]]:
-    title       = (payload.get("Title") or "").strip() or None
-    exam_type   = (payload.get("ExamType") or "").strip() or None
-    description = (payload.get("Description") or "").strip() or None
-    due_date    = payload.get("DueDate") or None
-    status      = (payload.get("Status") or "").strip() or None
+    title        = (payload.get("Title") or "").strip() or None
+    exam_type    = (payload.get("ExamType") or "").strip() or None
+    description  = (payload.get("Description") or "").strip() or None
+    due_date_raw = payload.get("DueDate")
+    status       = (payload.get("Status") or "").strip() or None
+
+    due_date = None
+    if due_date_raw is not None and str(due_date_raw).strip():
+        try:
+            due_date = datetime.fromisoformat(str(due_date_raw))
+        except ValueError:
+            raise ValueError("Định dạng hạn nộp không hợp lệ: " + str(due_date_raw))
+
+    # Nếu đang mở lại (Active) → kiểm tra due date
+    if status == "Active":
+        existing = get_exam_by_id(exam_id)
+        if existing:
+            existing_due = existing.get("DueDate")
+            # Nếu không truyền due_date mới mà due date cũ đã qua → báo lỗi
+            if not due_date and existing_due:
+                try:
+                    existing_due_dt = datetime.fromisoformat(
+                        str(existing_due).replace("Z", "").split(".")[0]
+                    )
+                    if existing_due_dt < datetime.now():
+                        raise ValueError(
+                            "Bài kiểm tra đã quá hạn. "
+                            "Vui lòng chọn hạn nộp mới trước khi mở lại."
+                        )
+                except ValueError as e:
+                    if "quá hạn" in str(e):
+                        raise
+                    # Lỗi parse → bỏ qua, cho phép cập nhật
 
     with get_db_connection() as connection:
         cursor = connection.cursor()
@@ -104,10 +133,29 @@ def update_exam(exam_id: int, payload: Dict[str, Any]) -> Optional[Dict[str, Any
             SET Title       = ISNULL(?, Title),
                 ExamType    = ISNULL(?, ExamType),
                 Description = ISNULL(?, Description),
-                DueDate     = ISNULL(?, DueDate),
+                DueDate     = CASE WHEN ? IS NOT NULL THEN ? ELSE DueDate END,
                 Status      = ISNULL(?, Status)
             WHERE ExamId = ?
-        """, title, exam_type, description, due_date, status, int(exam_id))
+        """, title, exam_type, description, due_date, due_date, status, int(exam_id))
+        connection.commit()
+
+    return get_exam_by_id(exam_id)
+
+
+def update_exam_status(exam_id: int, status: str) -> Optional[Dict[str, Any]]:
+    normalized_status = (status or "").strip()
+    if normalized_status not in ("Active", "Closed"):
+        raise ValueError("Status chỉ chấp nhận Active hoặc Closed.")
+
+    with get_db_connection() as connection:
+        cursor = connection.cursor()
+        cursor.execute("""
+            UPDATE Exams
+            SET Status = ?
+            WHERE ExamId = ?
+        """, normalized_status, int(exam_id))
+        if cursor.rowcount <= 0:
+            return None
         connection.commit()
 
     return get_exam_by_id(exam_id)
@@ -116,7 +164,6 @@ def update_exam(exam_id: int, payload: Dict[str, Any]) -> Optional[Dict[str, Any
 def delete_exam(exam_id: int) -> bool:
     with get_db_connection() as connection:
         cursor = connection.cursor()
-        # Xóa submissions trước
         cursor.execute("DELETE FROM ExamSubmissions WHERE ExamId = ?", int(exam_id))
         cursor.execute("DELETE FROM Exams WHERE ExamId = ?", int(exam_id))
         affected = cursor.rowcount
@@ -143,6 +190,7 @@ def get_submissions_by_exam(exam_id: int) -> List[Dict[str, Any]]:
                 es.ExamId,
                 es.EnrollmentId,
                 es.SubmittedAt,
+                es.FileUrl,
                 es.Note,
                 es.Grade,
                 es.Status,
@@ -156,3 +204,80 @@ def get_submissions_by_exam(exam_id: int) -> List[Dict[str, Any]]:
         """, int(exam_id))
         rows = cursor.fetchall()
         return rows_to_list(cursor, rows)
+
+
+def update_submission_grade(
+    exam_id: int,
+    submission_id: int,
+    payload: Dict[str, Any],
+) -> Optional[Dict[str, Any]]:
+    grade  = payload.get("Grade")
+    note   = payload.get("Note")
+    status = payload.get("Status")
+
+    normalized_grade = None
+    if grade is not None and str(grade).strip():
+        try:
+            normalized_grade = float(grade)
+        except (TypeError, ValueError):
+            raise ValueError("Điểm không hợp lệ.")
+        if normalized_grade < 0 or normalized_grade > 10:
+            raise ValueError("Điểm phải nằm trong khoảng 0-10.")
+
+    normalized_note   = str(note).strip() or None if note is not None else None
+    normalized_status = str(status).strip() or None if status is not None else None
+
+    with get_db_connection() as connection:
+        cursor = connection.cursor()
+        cursor.execute("""
+            UPDATE ExamSubmissions
+            SET Grade  = CASE WHEN ? IS NULL THEN Grade  ELSE ? END,
+                Note   = CASE WHEN ? IS NULL THEN Note   ELSE ? END,
+                Status = CASE WHEN ? IS NULL THEN Status ELSE ? END
+            WHERE SubmissionId = ? AND ExamId = ?
+        """,
+            normalized_grade, normalized_grade,
+            normalized_note,  normalized_note,
+            normalized_status, normalized_status,
+            int(submission_id), int(exam_id),
+        )
+        if cursor.rowcount <= 0:
+            return None
+        connection.commit()
+
+        cursor.execute("""
+            SELECT
+                es.SubmissionId,
+                es.ExamId,
+                es.EnrollmentId,
+                es.SubmittedAt,
+                es.FileUrl,
+                es.Note,
+                es.Grade,
+                es.Status,
+                s.StudentCode,
+                s.FullName
+            FROM ExamSubmissions es
+            INNER JOIN Enrollments e ON es.EnrollmentId = e.EnrollmentId
+            INNER JOIN Students s ON e.StudentId = s.StudentId
+            WHERE es.SubmissionId = ? AND es.ExamId = ?
+        """, int(submission_id), int(exam_id))
+        row = cursor.fetchone()
+        return row_to_dict(cursor, row) if row else None
+
+
+def auto_close_overdue_exams(user_id: int) -> int:
+    """Tự động đóng các bài kiểm tra quá hạn. Trả về số bài đã đóng."""
+    with get_db_connection() as connection:
+        cursor = connection.cursor()
+        cursor.execute("""
+            UPDATE Exams
+            SET Status = 'Closed'
+            WHERE UserId = ?
+              AND Status = 'Active'
+              AND DueDate IS NOT NULL
+              AND DueDate < GETDATE()
+        """, int(user_id))
+        affected = cursor.rowcount
+        connection.commit()
+    return affected

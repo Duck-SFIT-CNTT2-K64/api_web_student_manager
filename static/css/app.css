@@ -572,6 +572,52 @@ textarea {
     gap: 12px;
 }
 
+/* Notification bell (Admin / Teacher — layouts/base.html) */
+.notif-bell {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    border-radius: 10px;
+    border: 1px solid var(--border);
+    background: var(--surface, #fff);
+    color: var(--text);
+    text-decoration: none;
+    transition: color 0.15s, border-color 0.15s, background 0.15s, transform 0.12s;
+}
+.notif-bell:hover {
+    color: var(--primary);
+    border-color: var(--primary);
+    transform: translateY(-1px);
+}
+.notif-bell i { font-size: 15px; }
+.notif-bell-badge {
+    position: absolute;
+    top: 2px;
+    right: 2px;
+    min-width: 18px;
+    height: 18px;
+    padding: 0 4px;
+    border-radius: 999px;
+    background: #dc2626;
+    color: #fff;
+    font-size: 0.65rem;
+    font-weight: 800;
+    line-height: 18px;
+    text-align: center;
+}
+html[data-theme="dark"] .notif-bell {
+    background: #121a2a;
+    border-color: #2d3a52;
+    color: #e2e8f0;
+}
+html[data-theme="dark"] .notif-bell:hover {
+    color: #fde68a;
+    border-color: #fbbf24;
+}
+
 .topbar-user {
     display: flex;
     align-items: center;

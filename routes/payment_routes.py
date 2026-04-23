@@ -31,6 +31,7 @@ def add_payment():
 
 
 @payment_bp.get("/receipts")
+@role_required("Admin")
 def list_receipts():
     try:
         tuition_id = request.args.get("tuitionId", type=int)

@@ -8,6 +8,7 @@ course_bp = Blueprint("courses", __name__)
 
 
 @course_bp.get("")
+@role_required("Admin", "Teacher", "Student")
 def list_courses():
     try:
         courses = get_all_courses()
@@ -19,6 +20,7 @@ def list_courses():
 
 
 @course_bp.get("/<int:course_id>")
+@role_required("Admin", "Teacher", "Student")
 def get_course(course_id: int):
     try:
         course = get_course_by_id(course_id)

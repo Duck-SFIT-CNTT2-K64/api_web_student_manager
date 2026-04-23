@@ -8,6 +8,7 @@ score_bp = Blueprint("scores", __name__)
 
 
 @score_bp.get("")
+@role_required("Admin")
 def list_scores():
     try:
         scores = get_all_scores()
@@ -19,6 +20,7 @@ def list_scores():
 
 
 @score_bp.get("/types")
+@role_required("Admin")
 def list_score_types():
     try:
         score_types = get_score_types()

@@ -748,3 +748,267 @@ def create_student_tuition_payment(user_id: int, payload: Dict[str, Any]) -> Dic
     if not payment_payload.get("CashierId"):
         payment_payload["CashierId"] = int(user_id)
     return record_tuition_payment(payment_payload)
+
+
+def get_student_attendance_by_user_id(
+    user_id: int,
+    from_date: Optional[str] = None,
+    to_date: Optional[str] = None,
+) -> List[Dict[str, Any]]:
+    """
+    Personal attendance across all enrollments of the student user.
+    Returns one row per (EnrollmentId, SessionDate) with class & course info.
+    """
+    with get_db_connection() as connection:
+        cursor = connection.cursor()
+
+        query = """
+        SELECT
+            e.EnrollmentId,
+            e.Status AS EnrollmentStatus,
+            c.ClassId,
+            c.ClassCode,
+            c.ClassName,
+            co.CourseCode,
+            co.CourseName,
+            a.SessionDate,
+            a.Status AS AttendanceStatus
+        FROM Enrollments e
+        INNER JOIN Students s ON e.StudentId = s.StudentId
+        INNER JOIN Classes c ON e.ClassId = c.ClassId
+        INNER JOIN Courses co ON c.CourseId = co.CourseId
+        LEFT JOIN Attendances a ON a.EnrollmentId = e.EnrollmentId
+        WHERE s.UserId = ?
+        """
+        params: list[Any] = [int(user_id)]
+
+        if from_date:
+            query += " AND (a.SessionDate IS NULL OR a.SessionDate >= ?)"
+            params.append(from_date)
+        if to_date:
+            query += " AND (a.SessionDate IS NULL OR a.SessionDate <= ?)"
+            params.append(to_date)
+
+        query += """
+        ORDER BY
+            CASE WHEN a.SessionDate IS NULL THEN 1 ELSE 0 END,
+            a.SessionDate DESC,
+            c.ClassCode ASC
+        """
+
+        cursor.execute(query, *params)
+        rows = cursor.fetchall()
+        return rows_to_list(cursor, rows)
+
+
+def get_student_assignments_by_user_id(user_id: int) -> List[Dict[str, Any]]:
+    """
+    Exams/assignments created by teachers for the student's enrolled classes,
+    joined with the student's own submission (if any).
+    """
+    with get_db_connection() as connection:
+        cursor = connection.cursor()
+        cursor.execute(
+            """
+            SELECT
+                e.ExamId,
+                e.Title,
+                e.ExamType,
+                e.Description,
+                e.DueDate,
+                e.CreatedDate,
+                e.Status AS ExamStatus,
+                c.ClassId,
+                c.ClassCode,
+                c.ClassName,
+                co.CourseCode,
+                co.CourseName,
+                enr.EnrollmentId,
+                es.SubmissionId,
+                es.SubmittedAt,
+                es.FileUrl,
+                es.Note,
+                es.Grade,
+                es.Status AS SubmissionStatus
+            FROM Exams e
+            INNER JOIN Classes c ON e.ClassId = c.ClassId
+            INNER JOIN Courses co ON c.CourseId = co.CourseId
+            INNER JOIN Enrollments enr ON enr.ClassId = c.ClassId
+            INNER JOIN Students s ON enr.StudentId = s.StudentId
+            LEFT JOIN ExamSubmissions es
+                ON es.ExamId = e.ExamId
+               AND es.EnrollmentId = enr.EnrollmentId
+            WHERE s.UserId = ?
+              AND enr.Status = N'Enrolled'
+            ORDER BY e.DueDate ASC, e.ExamId DESC
+            """,
+            int(user_id),
+        )
+        rows = cursor.fetchall()
+        return rows_to_list(cursor, rows)
+
+
+def submit_student_exam(
+    user_id: int,
+    exam_id: int,
+    note: Optional[str] = None,
+    file_url: Optional[str] = None,
+) -> Dict[str, Any]:
+    """
+    Upsert ExamSubmissions for the student's enrollment that matches the exam's class.
+    """
+    note_clean = (note or "").strip() or None
+    file_clean = (file_url or "").strip() or None
+
+    with get_db_connection() as connection:
+        cursor = connection.cursor()
+
+        cursor.execute(
+            """
+            SELECT
+                e.ExamId,
+                e.ClassId,
+                e.DueDate,
+                e.Status
+            FROM Exams e
+            WHERE e.ExamId = ?
+            """,
+            int(exam_id),
+        )
+        exam = cursor.fetchone()
+        if not exam:
+            raise ValueError("Bài kiểm tra không tồn tại.")
+
+        exam_class_id = int(exam[1])
+        due_date = exam[2]
+        exam_status = str(exam[3] or "")
+
+        if exam_status.lower() not in {"active", "open", ""}:
+            raise ValueError("Bài kiểm tra đang không mở để nộp.")
+
+        cursor.execute("SELECT GETDATE()")
+        now = cursor.fetchone()[0]
+        if due_date and now > due_date:
+            raise ValueError("Đã quá hạn nộp bài.")
+
+        cursor.execute(
+            """
+            SELECT TOP 1 enr.EnrollmentId
+            FROM Enrollments enr
+            INNER JOIN Students s ON enr.StudentId = s.StudentId
+            WHERE s.UserId = ?
+              AND enr.ClassId = ?
+              AND enr.Status = N'Enrolled'
+            """,
+            int(user_id),
+            exam_class_id,
+        )
+        row = cursor.fetchone()
+        if not row:
+            raise ValueError("Bạn không thuộc lớp của bài kiểm tra này.")
+        enrollment_id = int(row[0])
+
+        cursor.execute(
+            """
+            MERGE ExamSubmissions AS target
+            USING (SELECT ? AS ExamId, ? AS EnrollmentId) AS source
+            ON target.ExamId = source.ExamId AND target.EnrollmentId = source.EnrollmentId
+            WHEN MATCHED THEN
+                UPDATE SET
+                    SubmittedAt = GETDATE(),
+                    FileUrl = ?,
+                    Note = ?,
+                    Status = N'Submitted'
+            WHEN NOT MATCHED THEN
+                INSERT (ExamId, EnrollmentId, SubmittedAt, FileUrl, Note, Status)
+                VALUES (?, ?, GETDATE(), ?, ?, N'Submitted');
+            """,
+            int(exam_id),
+            enrollment_id,
+            file_clean,
+            note_clean,
+            int(exam_id),
+            enrollment_id,
+            file_clean,
+            note_clean,
+        )
+        connection.commit()
+
+        cursor.execute(
+            """
+            SELECT
+                es.SubmissionId,
+                es.ExamId,
+                es.EnrollmentId,
+                es.SubmittedAt,
+                es.FileUrl,
+                es.Note,
+                es.Grade,
+                es.Status
+            FROM ExamSubmissions es
+            WHERE es.ExamId = ? AND es.EnrollmentId = ?
+            """,
+            int(exam_id),
+            enrollment_id,
+        )
+        submission = cursor.fetchone()
+        return row_to_dict(cursor, submission) if submission else {}
+
+
+def drop_student_enrollment(user_id: int, enrollment_id: int, reason: Optional[str] = None) -> Dict[str, Any]:
+    """
+    Drop (soft-cancel) an enrollment owned by the student.
+    Rules:
+      - must belong to the student
+      - cannot drop if any amount has been paid
+      - will mark Enrollment.Status = Dropped, and Tuition.Status = Cancelled (if exists & unpaid)
+    """
+    _ = (reason or "").strip() or None
+
+    with get_db_connection() as connection:
+        cursor = connection.cursor()
+
+        cursor.execute(
+            """
+            SELECT
+                e.EnrollmentId,
+                e.Status,
+                t.TuitionId,
+                ISNULL(t.AmountPaid, 0) AS AmountPaid
+            FROM Enrollments e
+            INNER JOIN Students s ON e.StudentId = s.StudentId
+            LEFT JOIN Tuitions t ON t.EnrollmentId = e.EnrollmentId
+            WHERE e.EnrollmentId = ? AND s.UserId = ?
+            """,
+            int(enrollment_id),
+            int(user_id),
+        )
+        row = cursor.fetchone()
+        if not row:
+            raise ValueError("Ghi danh không tồn tại hoặc không thuộc tài khoản của bạn.")
+
+        current_status = str(row[1] or "")
+        tuition_id = row[2]
+        amount_paid = float(row[3] or 0)
+
+        if current_status.lower() == "dropped":
+            return {"success": True, "message": "Ghi danh đã ở trạng thái Dropped."}
+
+        if amount_paid > 0:
+            raise ValueError("Không thể huỷ ghi danh vì đã phát sinh thanh toán học phí.")
+
+        cursor.execute(
+            "UPDATE Enrollments SET Status = N'Dropped' WHERE EnrollmentId = ?",
+            int(enrollment_id),
+        )
+        if tuition_id:
+            cursor.execute(
+                """
+                UPDATE Tuitions
+                SET Status = N'Cancelled'
+                WHERE EnrollmentId = ? AND ISNULL(AmountPaid, 0) = 0
+                """,
+                int(enrollment_id),
+            )
+        connection.commit()
+        return {"success": True, "message": "Đã huỷ ghi danh (Dropped)."}

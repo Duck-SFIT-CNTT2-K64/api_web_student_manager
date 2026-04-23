@@ -1,4 +1,4 @@
-﻿--CREATE DATABASE QLSV_TrungTamTinHoc
+--CREATE DATABASE QLSV_TrungTamTinHoc
 --GO
 
 IF DB_ID(N'QLSV_TrungTamTinHoc') IS NULL
@@ -75,33 +75,7 @@ CREATE TABLE ActionLogs (
         ON DELETE NO ACTION ON UPDATE NO ACTION -- ĐÃ SỬA TỪ CASCADE
 );
 GO
--- Bảng Notifications (Thông báo)
-CREATE TABLE Notifications (
-    NotificationId INT IDENTITY(1,1) PRIMARY KEY,
-    CreatorId INT NOT NULL,
-    Title NVARCHAR(200) NOT NULL,
-    Content NVARCHAR(MAX),
-    CreatedDate DATETIME2 NOT NULL DEFAULT GETDATE(),
-    CONSTRAINT FK_Notifications_Users FOREIGN KEY (CreatorId)
-        REFERENCES Users(UserId)
-        ON DELETE NO ACTION ON UPDATE NO ACTION
-);
-GO
-
--- Bảng NotificationRecipients (Bảng nối người nhận thông báo)
-CREATE TABLE NotificationRecipients (
-    NotificationId INT NOT NULL,
-    RecipientId INT NOT NULL,
-    IsRead BIT NOT NULL DEFAULT 0,
-    PRIMARY KEY (NotificationId, RecipientId),
-    CONSTRAINT FK_NotificationRecipients_Notifications FOREIGN KEY (NotificationId)
-        REFERENCES Notifications(NotificationId)
-        ON DELETE CASCADE ON UPDATE NO ACTION,
-    CONSTRAINT FK_NotificationRecipients_Users FOREIGN KEY (RecipientId)
-        REFERENCES Users(UserId)
-        ON DELETE NO ACTION ON UPDATE NO ACTION
-);
-GO
+-- [Notifications moved below Classes to support FK]
 
 -- Bảng StudentStatuses (Trạng thái sinh viên: Đang học, Bảo lưu...)
 CREATE TABLE StudentStatuses (
@@ -174,12 +148,46 @@ CREATE TABLE Classes (
     TeacherId INT,
     ClassCode NVARCHAR(20) NOT NULL UNIQUE,
     ClassName NVARCHAR(100) NOT NULL,
+    Semester NVARCHAR(50) NULL,
     MaxStudents INT,
     CONSTRAINT FK_Classes_Courses FOREIGN KEY (CourseId)
         REFERENCES Courses(CourseId)
         ON DELETE NO ACTION ON UPDATE NO ACTION,
     CONSTRAINT FK_Classes_Teachers FOREIGN KEY (TeacherId)
         REFERENCES Teachers(TeacherId)
+        ON DELETE NO ACTION ON UPDATE NO ACTION
+);
+GO
+
+-- Bảng Notifications (Thông báo)
+CREATE TABLE Notifications (
+    NotificationId INT IDENTITY(1,1) PRIMARY KEY,
+    CreatorId INT NOT NULL,
+    ClassId INT NULL, -- Gửi cho cả lớp (NULL nếu gửi cá nhân hoặc toàn trung tâm)
+    Title NVARCHAR(200) NOT NULL,
+    Content NVARCHAR(MAX),
+    AttachmentUrl NVARCHAR(500) NULL,
+    CreatedDate DATETIME2 NOT NULL DEFAULT GETDATE(),
+    CONSTRAINT FK_Notifications_Users FOREIGN KEY (CreatorId)
+        REFERENCES Users(UserId)
+        ON DELETE NO ACTION ON UPDATE NO ACTION,
+    CONSTRAINT FK_Notifications_Classes FOREIGN KEY (ClassId)
+        REFERENCES Classes(ClassId)
+        ON DELETE SET NULL ON UPDATE NO ACTION
+);
+GO
+
+-- Bảng NotificationRecipients (Bảng nối người nhận thông báo)
+CREATE TABLE NotificationRecipients (
+    NotificationId INT NOT NULL,
+    RecipientId INT NOT NULL,
+    IsRead BIT NOT NULL DEFAULT 0,
+    PRIMARY KEY (NotificationId, RecipientId),
+    CONSTRAINT FK_NotificationRecipients_Notifications FOREIGN KEY (NotificationId)
+        REFERENCES Notifications(NotificationId)
+        ON DELETE CASCADE ON UPDATE NO ACTION,
+    CONSTRAINT FK_NotificationRecipients_Users FOREIGN KEY (RecipientId)
+        REFERENCES Users(UserId)
         ON DELETE NO ACTION ON UPDATE NO ACTION
 );
 GO
@@ -379,7 +387,9 @@ INSERT INTO Courses (CourseId, CourseCode, CourseName, Description, Duration, Tu
 (2, N'WEB-API', N'Xây dựng Web API với .NET', N'Phát triển RESTful API chuyên nghiệp.', N'2 tháng', 4000000, 4),
 (3, N'PYTHON-AI', N'Lập trình Python và AI', N'Nhập môn AI và Machine Learning.', N'4 tháng', 6000000, 4),
 (4, N'SQL-ADV', N'Quản trị CSDL SQL Server', N'Nâng cao kỹ năng T-SQL và quản trị.', N'2 tháng', 3000000, 2),
-(5, N'FE-REACT', N'Thiết kế Web Frontend React', N'Xây dựng giao diện web hiện đại.', N'3 tháng', 4500000, 3);
+(5, N'FE-REACT', N'Thiết kế Web Frontend React', N'Xây dựng giao diện web hiện đại.', N'3 tháng', 4500000, 3),
+(6, N'OOAD', N'Phân tích thiết kế hướng đối tượng', N'Nguyên lý và mô hình hóa hệ thống OO.', N'3 tháng', 4000000, 3),
+(7, N'TTHCM', N'Tư tưởng Hồ Chí Minh', N'Môn học đại cương về tư tưởng Hồ Chí Minh.', N'2 tháng', 2000000, 2);
 SET IDENTITY_INSERT Courses OFF;
 GO
 
@@ -463,11 +473,13 @@ GO
 -- 12. Bảng Classes (Lớp học)
 SET IDENTITY_INSERT Classes ON;
 INSERT INTO Classes (ClassId, CourseId, TeacherId, ClassCode, ClassName, MaxStudents) VALUES
-(1, 1, 1, N'CSHARP.K25.T24', N'C# WinForms Tối 2-4 K25', 30),
-(2, 2, 1, N'API.K10.T35', N'Web API .NET Tối 3-5 K10', 30),
-(3, 3, 2, N'PYTHON.K15.T24', N'Python AI Tối 2-4 K15', 30),
-(4, 4, 2, N'SQL.K20.T7', N'SQL Server Sáng T7 K20', 40),
-(5, 5, 1, N'REACT.K5.CN', N'ReactJS Chiều CN K5', 30);
+(1, 1, 3, N'CSHARP.K25.T24', N'C# WinForms Tối 2-4 K25', 30),
+(2, 2, 3, N'API.K10.T35', N'Web API .NET Tối 3-5 K10', 30),
+(3, 3, 3, N'PYTHON.K15.T24', N'Python AI Tối 2-4 K15', 30),
+(4, 4, 3, N'SQL.K20.T7', N'SQL Server Sáng T7 K20', 40),
+(5, 5, 3, N'REACT.K5.CN', N'ReactJS Chiều CN K5', 30),
+(6, 6, 3, N'OOAD.K20.T24', N'Phân tích thiết kế hướng đối tượng Tối 2-4', 40),
+(7, 7, 3, N'TTHCM.K15.T35', N'Tư tưởng Hồ Chí Minh Tối 3-5', 50);
 SET IDENTITY_INSERT Classes OFF;
 GO
 
@@ -561,9 +573,9 @@ GO
 
 -- 19. Bảng Notifications (Tạo thông báo)
 SET IDENTITY_INSERT Notifications ON;
-INSERT INTO Notifications (NotificationId, CreatorId, Title, Content, CreatedDate) VALUES
-(1, 1, N'Chào mừng thành viên mới!', N'Chào mừng các bạn đến với Trung tâm Tin học!', '2025-09-01 08:00:00'),
-(2, 2, N'Lịch nghỉ lễ Quốc Khánh', N'Trung tâm thông báo nghỉ lễ 2/9. Lịch học bù sẽ được thông báo sau.', '2025-08-30 10:00:00');
+INSERT INTO Notifications (NotificationId, CreatorId, ClassId, Title, Content, CreatedDate) VALUES
+(1, 1, NULL, N'Chào mừng thành viên mới!', N'Chào mừng các bạn đến với Trung tâm Tin học!', '2025-09-01 08:00:00'),
+(2, 2, NULL, N'Lịch nghỉ lễ Quốc Khánh', N'Trung tâm thông báo nghỉ lễ 2/9. Lịch học bù sẽ được thông báo sau.', '2025-08-30 10:00:00');
 SET IDENTITY_INSERT Notifications OFF;
 GO
 

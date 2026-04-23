@@ -10,6 +10,7 @@ from models.class_model import (
     get_rooms,
     update_class,
 )
+from utils.auth import role_required
 
 from utils.auth import current_session_user, role_required
 
@@ -17,6 +18,7 @@ class_bp = Blueprint("classes", __name__)
 
 
 @class_bp.get("")
+@role_required("Admin", "Teacher", "Student")
 def list_classes():
     try:
         classes = get_all_classes_with_details()
@@ -28,6 +30,7 @@ def list_classes():
 
 
 @class_bp.get("/rooms")
+@role_required("Admin", "Teacher", "Student")
 def list_rooms():
     try:
         return jsonify({"success": True, "data": get_rooms()}), 200
@@ -38,6 +41,7 @@ def list_rooms():
 
 
 @class_bp.get("/schedules")
+@role_required("Admin", "Teacher", "Student")
 def list_schedules():
     try:
         class_id = request.args.get("classId", type=int)
@@ -49,6 +53,7 @@ def list_schedules():
 
 
 @class_bp.get("/<int:class_id>")
+@role_required("Admin", "Teacher", "Student")
 def get_class(class_id: int):
     try:
         class_item = get_class_by_id(class_id)
