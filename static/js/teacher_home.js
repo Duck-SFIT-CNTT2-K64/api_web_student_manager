@@ -238,11 +238,11 @@
                 + "<td>" + escapeHtml(item.ClassName) + "</td>"
                 + "<td>" + escapeHtml(item.CourseName) + "</td>"
                 + "<td><span class=\"badge info\">" + Number(item.StudentCount || 0) + "</span></td>"
-                + "<td style=\"display:flex;gap:8px;flex-wrap:wrap;\">"
-                + "<button class=\"btn\" style=\"background:#dcfce7;color:#15803d;padding:6px 12px;font-size:0.85rem;border-radius:6px;border:none;cursor:pointer;\" type=\"button\" data-open-score-class=\"" + classId + "\"><i class=\"fas fa-pen\"></i> Nhập điểm</button>"
-                + "<button class=\"btn\" style=\"background:#e0e7ff;color:#3730a3;padding:6px 12px;font-size:0.85rem;border-radius:6px;border:none;cursor:pointer;\" type=\"button\" data-open-class-list=\"" + classId + "\"><i class=\"fas fa-users\"></i> Danh sách</button>"
-                + "<button class=\"btn\" style=\"background:#fef3c7;color:#b45309;padding:6px 12px;font-size:0.85rem;border-radius:6px;border:none;cursor:pointer;\" type=\"button\" data-open-exam-class=\"" + classId + "\"><i class=\"fas fa-file-alt\"></i> Bài tập</button>"
-                + "<button class=\"btn\" style=\"background:#fef9c3;color:#854d0e;padding:6px 12px;font-size:0.85rem;border-radius:6px;border:none;cursor:pointer;\" type=\"button\" data-open-attendance-class=\"" + classId + "\"><i class=\"fas fa-clipboard-check\"></i> Điểm danh</button>"
+                + "<td>"
+                + "<button class=\"btn\" style=\"background:#e0e7ff;color:#3730a3;padding:6px 14px;font-size:0.85rem;border-radius:6px;border:none;cursor:pointer;\""
+                + " type=\"button\" data-cal-detail=\"" + classId + "\" data-cal-weekday=\"\">"
+                + "<i class=\"fas fa-eye\"></i> Xem chi tiết"
+                + "</button>"
                 + "</td>"
                 + "</tr>";
         }).join("") || '<tr><td colspan="5" class="empty">Chưa có lớp được phân công.</td></tr>';
@@ -327,6 +327,10 @@
                 + "<button class='btn-cal' data-cal-detail='" + Number(item.ClassId) + "'"
                 + " data-cal-weekday='" + escapeHtml(weekdayVi) + "'>"
                 + "<i class='fas fa-eye'></i> Xem chi tiết"
+                + "</button>"
+                + "<button class='btn-cal' style='background:#fef3c7;color:#b45309;border:1px solid #fde68a;margin-top:4px;'"
+                + " data-cal-exam='" + Number(item.ClassId) + "'>"
+                + "<i class='fas fa-file-alt'></i> Bài tập"
                 + "</button>"
                 + "</div>"
                 + "</div>"
@@ -1045,55 +1049,13 @@
         }
 
         document.addEventListener("click", function (event) {
-            // 1. Mở form nhập điểm từ bảng lớp học
-            var openBtn = event.target.closest("[data-open-score-class]");
-            if (openBtn) {
-                var classId = Number(openBtn.getAttribute("data-open-score-class"));
-                window.location.hash = "#score-entry";
-                loadClassStudents(classId).catch(function (error) {
-                    setMessage(error.message, "error");
-                });
-                return;
-            }
-
-            // 1.2. Mở danh sách lớp
-            var openListBtn = event.target.closest("[data-open-class-list]");
-            if (openListBtn) {
-                var classId = Number(openListBtn.getAttribute("data-open-class-list"));
-                window.location.hash = "#class-list";
-                var select = document.getElementById("classListSelect");
-                if (select) {
-                    select.value = String(classId);
-                    var btn = document.getElementById("classListBtn");
-                    if (btn) btn.click();
-                }
-                return;
-            }
-
-            // 1.3. Mở tạo bài kiểm tra
-            var openExamBtn = event.target.closest("[data-open-exam-class]");
-            if (openExamBtn) {
-                var classId = Number(openExamBtn.getAttribute("data-open-exam-class"));
+            // Bài tập từ calendar
+            var calExamBtn = event.target.closest("[data-cal-exam]");
+            if (calExamBtn) {
+                var classId = Number(calExamBtn.getAttribute("data-cal-exam"));
+                var sel = document.getElementById("examClassSelect");
+                if (sel) sel.value = String(classId);
                 window.location.hash = "#exams";
-                var select = document.getElementById("examClassSelect");
-                if (select) select.value = String(classId);
-                return;
-            }
-
-            // 1.4. Mở điểm danh
-            var openAttBtn = event.target.closest("[data-open-attendance-class]");
-            if (openAttBtn) {
-                var classId = Number(openAttBtn.getAttribute("data-open-attendance-class"));
-                window.location.hash = "#attendance";
-                var select = document.getElementById("attendanceClassSelect");
-                if (select) select.value = String(classId);
-
-                var dateInput = document.getElementById("attendanceDateInput");
-                if (dateInput && !dateInput.value) {
-                    dateInput.value = new Date().toISOString().slice(0, 10);
-                }
-                var btn = document.getElementById("attendanceSearchBtn");
-                if (btn) btn.click();
                 return;
             }
 
@@ -1182,6 +1144,17 @@
                         window.location.hash = "#attendance";
                         var searchBtn = document.getElementById("attendanceSearchBtn");
                         if (searchBtn) searchBtn.click();
+                    };
+                }
+
+                // Gán onclick cho button Bài tập
+                var goExamBtn = document.getElementById("calDetailGoExam");
+                if (goExamBtn) {
+                    goExamBtn.onclick = function () {
+                        modal.style.display = "none";
+                        var sel = document.getElementById("examClassSelect");
+                        if (sel) sel.value = String(classId);
+                        window.location.hash = "#exams";
                     };
                 }
 
