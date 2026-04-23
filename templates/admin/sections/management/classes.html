@@ -32,18 +32,25 @@
         <div class="panel table-panel">
             <div class="table-header">
                 <h3>Classes list</h3>
-                <input id="classSearch" class="search-input" placeholder="Search code, name, instructor...">
+                <div style="display:flex;gap:8px">
+                    <button id="btnBulkDeleteClasses" class="btn btn-outline" style="color:var(--danger);display:none">
+                        <i class="fas fa-trash-alt"></i> Delete Selected
+                    </button>
+                    <input id="classSearch" class="search-input" placeholder="Search code, name, instructor...">
+                </div>
             </div>
             <div class="table-wrap">
                 <table>
                     <thead>
                         <tr>
+                            <th style="width:50px">STT</th>
+                            <th style="width:40px"><input type="checkbox" id="selectAllClasses"></th>
                             <th>Class code</th>
                             <th>Class name</th>
                             <th>Course</th>
                             <th>Instructor</th>
                             <th>Enrolled</th>
-                            <th style="width:60px"></th>
+                            <th style="width:120px">Actions</th>
                         </tr>
                     </thead>
                     <tbody id="classesTableBody"></tbody>

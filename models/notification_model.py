@@ -12,7 +12,7 @@ SELECT
     n.Content,
     n.CreatedDate,
     COUNT(DISTINCT nr.RecipientId) AS RecipientCount,
-    SUM(CASE WHEN nr.IsRead = 1 THEN 1 ELSE 0 END) AS ReadCount
+    COALESCE(CAST(SUM(CASE WHEN nr.IsRead = 1 THEN 1 ELSE 0 END) AS INT), 0) AS ReadCount
 FROM Notifications n
 LEFT JOIN Users creator ON n.CreatorId = creator.UserId
 LEFT JOIN NotificationRecipients nr ON n.NotificationId = nr.NotificationId

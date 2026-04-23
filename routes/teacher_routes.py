@@ -61,6 +61,7 @@ def get_teacher(teacher_id: int):
 
 
 @teacher_bp.post("")
+@role_required("Admin")
 def add_teacher():
     try:
         payload = request.get_json(silent=True) or {}
@@ -462,4 +463,4 @@ def get_teacher_report(user_id: int):
         data = get_teacher_report_by_user_id(user_id)
         return jsonify({"success": True, "data": data}), 200
     except Exception as exc:
-        return jsonify({"success": False, "error": str(exc)}), 500
+        return jsonify({"success": False, "error": str(exc)}), 500

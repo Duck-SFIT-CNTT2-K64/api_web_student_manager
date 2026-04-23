@@ -72,19 +72,9 @@ def _get_role_id(cursor, role_name: str) -> int:
 
 
 def _generate_teacher_code(cursor) -> str:
-    """Sinh TeacherCode theo format GV{seq:03d}, VD: GV001, GV002..."""
-    prefix = "GV"
-    cursor.execute(
-        "SELECT MAX(TeacherCode) FROM Teachers WHERE TeacherCode LIKE ?",
-        (prefix + "%",),
-    )
-    row = cursor.fetchone()
-    last_code = row[0] if row and row[0] else None
-    if last_code and last_code[len(prefix):].isdigit():
-        next_seq = int(last_code[len(prefix):]) + 1
-    else:
-        next_seq = 1
-    return f"{prefix}{next_seq:03d}"
+    cursor.execute("SELECT ISNULL(MAX(TeacherId), 0) + 1 FROM Teachers")
+    next_seq = int(cursor.fetchone()[0])
+    return f"GV{next_seq:03d}"
 
 
 def create_teacher(payload: Dict[str, Any]) -> Dict[str, Any]:
@@ -93,8 +83,9 @@ def create_teacher(payload: Dict[str, Any]) -> Dict[str, Any]:
     email = (payload.get("Email") or "").strip()
     phone = (payload.get("PhoneNumber") or "").strip() or None
     specialization = (payload.get("Specialization") or "").strip() or None
-    password_raw = (payload.get("Password") or "123456").strip()
     username = (payload.get("Username") or "").strip().lower()
+    password_raw = (payload.get("Password") or "123456").strip()
+
 
     if not first_name:
         raise ValueError("First name is required.")

@@ -199,16 +199,88 @@ def _get_all_users():
         return rows_to_list(cursor, rows)
 
 
-@user_bp.get("")
+@user_bp.route("", methods=["GET", "POST"])
 @role_required("Admin")
-def list_users():
+def handle_users():
+    if request.method == "GET":
+        try:
+            users = _get_all_users()
+            return jsonify({"success": True, "data": users}), 200
+        except Exception as exc:
+            return jsonify({"success": False, "error": str(exc)}), 500
+            
+    # POST: Add new user
     try:
-        users = _get_all_users()
-        return jsonify({"success": True, "data": users}), 200
-    except pyodbc.Error as exc:
-        return jsonify({"success": False, "error": "Database error.", "details": str(exc)}), 500
+        payload = request.get_json(silent=True) or {}
+        username = (payload.get("Username") or "").strip()
+        fullname = (payload.get("FullName") or "").strip()
+        email = (payload.get("Email") or "").strip()
+        phone = (payload.get("PhoneNumber") or "").strip()
+        password = (payload.get("Password") or "").strip()
+        role_id = int(payload.get("RoleId") or 1) # Default Admin
+
+        if not username or not fullname or not email or not password:
+            return jsonify({"success": False, "error": "Vui lòng nhập đầy đủ thông tin bắt buộc."}), 400
+
+        hashed = bcrypt.hashpw(password.encode("utf-8"), bcrypt.gensalt()).decode("utf-8")
+
+        with get_db_connection() as conn:
+            cursor = conn.cursor()
+            # Check exist
+            cursor.execute("SELECT UserId FROM Users WHERE Username = ? OR Email = ?", (username, email))
+            if cursor.fetchone():
+                return jsonify({"success": False, "error": "Username hoặc Email đã tồn tại."}), 400
+
+            cursor.execute(
+                "INSERT INTO Users (Username, PasswordHash, FullName, Email, PhoneNumber, Status, RoleId) VALUES (?, ?, ?, ?, ?, 'Active', ?)",
+                (username, hashed, fullname, email, phone or None, role_id)
+            )
+            conn.commit()
+
+        return jsonify({"success": True, "message": "Đã tạo tài khoản thành công."}), 201
     except Exception as exc:
-        return jsonify({"success": False, "error": "Unexpected error.", "details": str(exc)}), 500
+        return jsonify({"success": False, "error": str(exc)}), 500
+
+
+@user_bp.route("/<int:user_id>", methods=["PUT", "DELETE"])
+@role_required("Admin")
+def handle_user_by_id(user_id: int):
+    if request.method == "DELETE":
+        try:
+            with get_db_connection() as conn:
+                cursor = conn.cursor()
+                cursor.execute("DELETE FROM Users WHERE UserId = ?", user_id)
+                conn.commit()
+            return jsonify({"success": True, "message": "User deleted."}), 200
+        except Exception as exc:
+            return jsonify({"success": False, "error": str(exc)}), 500
+
+    # PUT: Update user profile
+    try:
+        payload = request.get_json(silent=True) or {}
+        fullname = (payload.get("FullName") or "").strip()
+        email = (payload.get("Email") or "").strip()
+        phone = (payload.get("PhoneNumber") or "").strip()
+
+        if not fullname or not email:
+            return jsonify({"success": False, "error": "Full Name and Email are required."}), 400
+
+        with get_db_connection() as conn:
+            cursor = conn.cursor()
+            # Check email duplicate
+            cursor.execute("SELECT UserId FROM Users WHERE Email = ? AND UserId <> ?", (email, user_id))
+            if cursor.fetchone():
+                return jsonify({"success": False, "error": "Email already in use."}), 400
+
+            cursor.execute(
+                "UPDATE Users SET FullName = ?, Email = ?, PhoneNumber = ? WHERE UserId = ?",
+                (fullname, email, phone or None, user_id)
+            )
+            conn.commit()
+
+        return jsonify({"success": True, "message": "User updated."}), 200
+    except Exception as exc:
+        return jsonify({"success": False, "error": str(exc)}), 500
 
 
 @user_bp.put("/<int:user_id>/status")
