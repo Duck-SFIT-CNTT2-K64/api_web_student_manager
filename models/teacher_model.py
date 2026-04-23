@@ -378,10 +378,18 @@ def get_class_students_with_scores(class_id: int) -> List[Dict[str, Any]]:
         
         # Map điểm vào SV
         for sv in students:
-            sv["Scores"] = [
-                {"ScoreTypeId": row[1], "ScoreValue": float(row[2])}
-                for row in scores if row[0] == sv["EnrollmentId"]
-            ]
+            sv["Scores"] = []
+            sv["ChuyenCan"] = None
+            sv["GiuaKy"] = None
+            sv["CuoiKy"] = None
+            for row in scores:
+                if row[0] == sv["EnrollmentId"]:
+                    stype = row[1]
+                    sval = float(row[2])
+                    sv["Scores"].append({"ScoreTypeId": stype, "ScoreValue": sval})
+                    if stype == 1: sv["ChuyenCan"] = sval
+                    elif stype == 2: sv["GiuaKy"] = sval
+                    elif stype == 3: sv["CuoiKy"] = sval
             
         return students
 
@@ -421,14 +429,17 @@ def save_score_entry(enrollment_id: int, score_type_id: int, score_value: Any, c
             score_id = cursor.fetchone()[0]
             action = "INSERT"
 
-        # 3. Ghi log audit
-        cursor.execute(
-            """
-            INSERT INTO ScoreAuditLogs (ScoreId, EnrollmentId, ScoreTypeId, OldValue, NewValue, ChangedBy, Action)
-            VALUES (?, ?, ?, ?, ?, ?, ?)
-            """,
-            (score_id, int(enrollment_id), int(score_type_id), old_value, value, int(changed_by), action)
-        )
+        # 3. Ghi log audit (bỏ qua nếu bảng chưa tồn tại)
+        try:
+            cursor.execute(
+                """
+                INSERT INTO ScoreAuditLogs (ScoreId, EnrollmentId, ScoreTypeId, OldValue, NewValue, ChangedBy, Action)
+                VALUES (?, ?, ?, ?, ?, ?, ?)
+                """,
+                (score_id, int(enrollment_id), int(score_type_id), old_value, value, int(changed_by), action)
+            )
+        except Exception:
+            pass  # Bảng ScoreAuditLogs chưa tồn tại — bỏ qua
         
         connection.commit()
         return True

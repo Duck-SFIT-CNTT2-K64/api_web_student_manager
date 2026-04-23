@@ -216,7 +216,7 @@ def save_score():
             if not user_id or not is_enrollment_owned_by_teacher(int(user_id), int(enrollment_id)):
                 return jsonify({"success": False, "error": "Forbidden."}), 403
 
-        save_score_entry(int(enrollment_id), int(score_type_id), float(score_value))
+        save_score_entry(int(enrollment_id), int(score_type_id), float(score_value), int(user_id))
         return jsonify({"success": True, "message": "Score saved."}), 200
     except ValueError as exc:
         return jsonify({"success": False, "error": str(exc)}), 400
