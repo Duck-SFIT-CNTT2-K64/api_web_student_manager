@@ -25,6 +25,7 @@ const state = {
     rooms: [],
     enrollments: [],
     tuitions: [],
+    receipts: [],
     scores: [],
     scoreTypes: [],
     notifications: [],
@@ -151,6 +152,90 @@ async function sendJson(url, method, payload) {
     return parseResponse(response);
 }
 
+function bindBulkActions() {
+    const tables = [
+        { id: 'selectAllAdminAccounts', bodyId: 'adminAccountsTableBody', btnId: 'btnBulkDeleteAdminAccounts', api: '/api/users' },
+        { id: 'selectAllTeacherAccounts', bodyId: 'teacherAccountsTableBody', btnId: 'btnBulkDeleteTeacherAccounts', api: '/api/users' },
+        { id: 'selectAllStudentAccounts', bodyId: 'studentAccountsTableBody', btnId: 'btnBulkDeleteStudentAccounts', api: '/api/users' },
+        { id: 'selectAllStudents', bodyId: 'studentsTableBody', btnId: 'btnBulkDeleteStudents', api: '/api/students' },
+        { id: 'selectAllTeachers', bodyId: 'teachersTableBody', btnId: 'btnBulkDeleteTeachers', api: '/api/teachers' },
+        { id: 'selectAllClasses', bodyId: 'classesTableBody', btnId: 'btnBulkDeleteClasses', api: '/api/classes' },
+        { id: 'selectAllRooms', bodyId: 'roomsTableBody', btnId: 'btnBulkDeleteRooms', api: '/api/rooms' }
+    ];
+
+    tables.forEach(table => {
+        const selectAll = document.getElementById(table.id);
+        const bulkBtn = document.getElementById(table.btnId);
+        const tbody = document.getElementById(table.bodyId);
+
+        if (selectAll && tbody) {
+            const updateBtnVisibility = () => {
+                const checked = tbody.querySelectorAll('.row-checkbox:checked').length;
+                if (bulkBtn) bulkBtn.style.display = checked > 0 ? 'inline-flex' : 'none';
+            };
+
+            selectAll.addEventListener('change', function () {
+                const checkboxes = tbody.querySelectorAll('.row-checkbox');
+                checkboxes.forEach(cb => cb.checked = selectAll.checked);
+                updateBtnVisibility();
+            });
+
+            tbody.addEventListener('change', function (e) {
+                if (e.target.classList.contains('row-checkbox')) {
+                    updateBtnVisibility();
+                    const allCount = tbody.querySelectorAll('.row-checkbox').length;
+                    const checkedCount = tbody.querySelectorAll('.row-checkbox:checked').length;
+                    selectAll.checked = allCount > 0 && allCount === checkedCount;
+                    selectAll.indeterminate = checkedCount > 0 && checkedCount < allCount;
+                }
+            });
+
+            if (bulkBtn) {
+                bulkBtn.addEventListener('click', async function () {
+                    const checkedIds = Array.from(tbody.querySelectorAll('.row-checkbox:checked'))
+                        .map(cb => cb.dataset.id);
+
+                    if (checkedIds.length === 0) return;
+                    if (!confirm("Are you sure you want to delete " + checkedIds.length + " selected items?")) return;
+
+                    try {
+                        setMessage(globalMessage, "Processing bulk delete...");
+                        let successCount = 0;
+                        let lastError = null;
+
+                        for (const id of checkedIds) {
+                            try {
+                                const resp = await fetch(table.api + "/" + id, { method: 'DELETE' });
+                                const result = await resp.json();
+                                if (resp.ok) {
+                                    successCount++;
+                                } else {
+                                    lastError = result.error || "Unknown error";
+                                }
+                            } catch (e) {
+                                lastError = "Connection error";
+                                console.error("Delete error ID " + id, e);
+                            }
+                        }
+
+                        if (successCount === checkedIds.length) {
+                            setMessage(globalMessage, "Successfully deleted " + successCount + "/" + checkedIds.length + " items.", "success");
+                        } else {
+                            setMessage(globalMessage, "Deleted " + successCount + "/" + checkedIds.length + ". Last error: " + lastError, "error");
+                        }
+
+                        selectAll.checked = false;
+                        selectAll.indeterminate = false;
+                        await loadAll();
+                    } catch (error) {
+                        setMessage(globalMessage, error.message, "error");
+                    }
+                });
+            }
+        }
+    });
+}
+
 function readForm(form) {
     var data = {};
     new FormData(form).forEach(function (value, key) {
@@ -170,25 +255,51 @@ function setNumeric(payload, keys) {
 }
 
 function badge(status) {
-    var normalized = String(status || "").toLowerCase();
+    if (!status) return '<span class="badge neutral">—</span>';
+    var original = String(status);
+    var normalized = original.toLowerCase();
+
+    // Translation mapping
+    var translations = {
+        "đang học": "Studying",
+        "bảo lưu": "Deferred",
+        "đã tốt nghiệp": "Graduated",
+        "đã nghỉ học": "Dropped",
+        "active": "Active",
+        "inactive": "Inactive",
+        "pending": "Pending",
+        "paid": "Paid",
+        "overdue": "Overdue",
+        "enrolled": "Enrolled",
+        "completed": "Completed",
+        "dropped": "Dropped",
+        "present": "Present",
+        "absent": "Absent",
+        "late": "Late"
+    };
+
+    var displayStatus = translations[normalized] || original;
     var tone = "neutral";
-    if (["paid", "active", "đang học", "enrolled", "present"].includes(normalized)) {
-        tone = "good";
-    } else if (["pending", "late", "bảo lưu"].includes(normalized)) {
-        tone = "warn";
-    } else if (["overdue", "inactive", "dropped", "absent", "đã nghỉ học"].includes(normalized)) {
-        tone = "bad";
-    }
-    return '<span class="badge ' + tone + '">' + escapeHtml(status || "—") + "</span>";
+
+    var good = ["paid", "active", "studying", "enrolled", "present", "completed", "graduated", "đang học", "đã tốt nghiệp"];
+    var warn = ["pending", "late", "deferred", "bảo lưu"];
+    var bad = ["overdue", "inactive", "dropped", "absent", "đã nghỉ học"];
+
+    var check = displayStatus.toLowerCase();
+    if (good.includes(check)) tone = "good";
+    else if (warn.includes(check)) tone = "warn";
+    else if (bad.includes(check)) tone = "bad";
+
+    return '<span class="badge ' + tone + '">' + escapeHtml(displayStatus) + "</span>";
 }
 
-function fillSelect(select, items, valueKey, labelBuilder, includeEmpty) {
+function fillSelect(select, items, valueKey, labelBuilder, includeEmpty, emptyLabel) {
     if (!select) return;
     select.innerHTML = "";
     if (includeEmpty) {
         var option = document.createElement("option");
         option.value = "";
-        option.textContent = "Không chọn";
+        option.textContent = emptyLabel || "Không chọn";
         select.appendChild(option);
     }
     items.forEach(function (item) {
@@ -229,12 +340,12 @@ function renderStats() {
     if (!statsGrid) return;
     var s = state.summary || {};
     var cards = [
-        ["Sinh viên", s.TotalStudents, "fa-user-graduate", "gc-blue"],
-        ["Giảng viên", s.TotalTeachers, "fa-user-tie", "gc-green"],
-        ["Lớp học", s.TotalClasses, "fa-chalkboard", "gc-amber"],
-        ["Doanh thu", formatMoney(s.TotalRevenue), "fa-coins", "gc-teal"],
-        ["Công nợ", formatMoney(s.OutstandingTuition), "fa-hourglass-half", "gc-red"],
-        ["Thông báo", s.TotalNotifications, "fa-bell", "gc-violet"],
+        ["Students", s.TotalStudents, "fa-user-graduate", "gc-blue"],
+        ["Teachers", s.TotalTeachers, "fa-user-tie", "gc-green"],
+        ["Classes", s.TotalClasses, "fa-chalkboard", "gc-amber"],
+        ["Revenue", formatMoney(s.TotalRevenue), "fa-coins", "gc-teal"],
+        ["Debt", formatMoney(s.OutstandingTuition), "fa-hourglass-half", "gc-red"],
+        ["Notices", s.TotalNotifications, "fa-bell", "gc-violet"],
     ];
     statsGrid.innerHTML = cards
         .map(function (c) {
@@ -250,18 +361,18 @@ function renderStats() {
             .map(function (item, index) {
                 return '<div class="rank-item"><span>' + (index + 1) + "</span>" +
                     "<div><strong>" + escapeHtml(item.CourseName) + "</strong>" +
-                    "<small>" + escapeHtml(item.EnrollmentCount) + " lượt ghi danh</small></div></div>";
+                    "<small>" + escapeHtml(item.EnrollmentCount) + " enrollments</small></div></div>";
             })
-            .join("") || '<p class="empty">Chưa có dữ liệu ghi danh.</p>';
+            .join("") || '<p class="empty">No enrollment data available.</p>';
 
     document.getElementById("recentNotificationsList").innerHTML =
         (s.RecentNotifications || [])
             .map(function (item) {
                 return '<div class="rank-item"><span><i class="fas fa-bullhorn"></i></span>' +
                     "<div><strong>" + escapeHtml(item.Title) + "</strong>" +
-                    "<small>" + formatDate(item.CreatedDate) + " · " + escapeHtml(item.RecipientCount) + " người nhận</small></div></div>";
+                    "<small>" + formatDate(item.CreatedDate) + " · " + escapeHtml(item.RecipientCount) + " recipients</small></div></div>";
             })
-            .join("") || '<p class="empty">Chưa có thông báo.</p>';
+            .join("") || '<p class="empty">No notifications available.</p>';
 
     // Vẽ biểu đồ
     renderCharts();
@@ -275,12 +386,14 @@ function renderStudents() {
     var tbody = document.getElementById("studentsTableBody");
     tbody.innerHTML =
         state.students
-            .map(function (student) {
-                //kiem tra xem sinh vien da co UserId chua
+            .map(function (student, index) {
+                // Check if the student has a UserId
                 var btnGenerateAccount = !student.UserId
-                    ? '<button class="btn-icon" style="color:var(--primary)" title="Cấp tài khoản tự động" data-generate-account="' + student.StudentId + '"><i class="fas fa-user-plus"></i></button> '
-                    : '<span title="Đã có tài khoản" style="color:var(--success);display:inline-block;padding:6px;font-size:.9rem"><i class="fas fa-check-circle"></i></span> ';
+                    ? '<button class="btn-icon" style="color:var(--primary)" title="Auto-generate account" data-generate-account="' + student.StudentId + '"><i class="fas fa-user-plus"></i></button> '
+                    : '<span title="Account exists" style="color:var(--success);display:inline-block;padding:6px;font-size:.9rem"><i class="fas fa-check-circle"></i></span> ';
                 return '<tr data-search="' + escapeHtml((student.StudentCode + " " + student.FullName + " " + student.Email).toLowerCase()) + '">' +
+                    "<td>" + (index + 1) + "</td>" +
+                    '<td><input type="checkbox" class="row-checkbox" data-id="' + student.StudentId + '"></td>' +
                     "<td><strong>" + escapeHtml(student.StudentCode) + "</strong></td>" +
                     "<td>" + escapeHtml(student.FullName) + "</td>" +
                     "<td>" + escapeHtml(student.Email) + "</td>" +
@@ -288,11 +401,11 @@ function renderStudents() {
                     "<td>" + badge(student.StatusName || student.AccountStatus) + "</td>" +
                     "<td>" + btnGenerateAccount + "</td>" +
                     '<td style="white-space:nowrap">' +
-                    '<button class="btn-icon edit" title="Sửa" data-edit-student="' + student.StudentId + '"><i class="fas fa-edit"></i></button> ' +
-                    '<button class="btn-icon del" title="Xóa" data-delete-student="' + student.StudentId + '"><i class="fas fa-trash-alt"></i></button>' +
+                    '<button class="btn-icon edit" title="Edit" data-edit-student="' + student.StudentId + '"><i class="fas fa-edit"></i></button> ' +
+                    '<button class="btn-icon del" title="Delete" data-delete-student="' + student.StudentId + '"><i class="fas fa-trash-alt"></i></button>' +
                     '</td></tr>';
             })
-            .join("") || '<tr><td colspan="6" class="empty">Chưa có sinh viên.</td></tr>';
+            .join("") || '<tr><td colspan="9" class="empty">No students available.</td></tr>';
 }
 
 function renderCourses() {
@@ -307,8 +420,8 @@ function renderCourses() {
                     "<td>" + formatMoney(course.TuitionFee) + "</td>" +
                     "<td>" + escapeHtml(course.ClassCount) + " lớp / " + escapeHtml(course.EnrollmentCount) + " HV</td>" +
                     '<td style="white-space:nowrap">' +
-                    '<button class="btn-icon edit" title="Sửa" data-edit-course="' + course.CourseId + '"><i class="fas fa-edit"></i></button> ' +
-                    '<button class="btn-icon del" title="Xóa" data-delete-course="' + course.CourseId + '"><i class="fas fa-trash-alt"></i></button>' +
+                    '<button class="btn-icon edit" title="Edit" data-edit-course="' + course.CourseId + '"><i class="fas fa-edit"></i></button> ' +
+                    '<button class="btn-icon del" title="Delete" data-delete-course="' + course.CourseId + '"><i class="fas fa-trash-alt"></i></button>' +
                     '</td></tr>';
             })
             .join("") || '<tr><td colspan="6" class="empty">Chưa có khóa học.</td></tr>';
@@ -318,19 +431,22 @@ function renderClasses() {
     var tbody = document.getElementById("classesTableBody");
     tbody.innerHTML =
         state.classes
-            .map(function (item) {
+            .map(function (item, index) {
                 return '<tr data-search="' + escapeHtml((item.ClassCode + " " + item.ClassName + " " + item.CourseName + " " + (item.TeacherName || "")).toLowerCase()) + '">' +
+                    "<td>" + (index + 1) + "</td>" +
+                    '<td><input type="checkbox" class="row-checkbox" data-id="' + item.ClassId + '"></td>' +
                     "<td><strong>" + escapeHtml(item.ClassCode) + "</strong></td>" +
                     "<td>" + escapeHtml(item.ClassName) + "</td>" +
                     "<td>" + escapeHtml(item.CourseName) + "</td>" +
                     "<td>" + escapeHtml(item.TeacherName || "Chưa phân công") + "</td>" +
                     "<td>" + escapeHtml(item.EnrollmentCount) + " / " + escapeHtml(item.MaxStudents || "∞") + "</td>" +
                     '<td style="white-space:nowrap">' +
+                    '<button class="btn-icon" title="Xem danh sách sinh viên" data-view-class-list="' + item.ClassId + '" data-view-class-name="' + escapeHtml(item.ClassName) + '"><i class="fas fa-users"></i></button> ' +
                     '<button class="btn-icon edit" title="Sửa" data-edit-class="' + item.ClassId + '"><i class="fas fa-edit"></i></button> ' +
                     '<button class="btn-icon del" title="Xóa" data-delete-class="' + item.ClassId + '"><i class="fas fa-trash-alt"></i></button>' +
                     '</td></tr>';
             })
-            .join("") || '<tr><td colspan="6" class="empty">Chưa có lớp học.</td></tr>';
+            .join("") || '<tr><td colspan="8" class="empty">Chưa có lớp học.</td></tr>';
 }
 
 function renderRooms() {
@@ -338,8 +454,10 @@ function renderRooms() {
     if (!tbody) return;
     tbody.innerHTML =
         state.rooms
-            .map(function (r) {
+            .map(function (r, index) {
                 return '<tr data-search="' + escapeHtml(r.RoomName).toLowerCase() + '">' +
+                    "<td>" + (index + 1) + "</td>" +
+                    '<td><input type="checkbox" class="row-checkbox" data-id="' + r.RoomId + '"></td>' +
                     "<td><strong>" + escapeHtml(r.RoomName) + "</strong></td>" +
                     "<td>" + (r.Capacity || 0) + " chỗ</td>" +
                     '<td style="white-space:nowrap">' +
@@ -347,7 +465,7 @@ function renderRooms() {
                     '<button class="btn-icon del" title="Xóa" data-delete-room="' + r.RoomId + '"><i class="fas fa-trash-alt"></i></button>' +
                     '</td></tr>';
             })
-            .join("") || '<tr><td colspan="3" class="empty">Chưa có phòng học.</td></tr>';
+            .join("") || '<tr><td colspan="5" class="empty">Chưa có phòng học.</td></tr>';
 }
 
 /* ════════════════════════════════════════════════════════════════════════════
@@ -357,17 +475,33 @@ function renderRooms() {
  * ════════════════════════════════════════════════════════════════════════════ */
 function renderEnrollments() {
     var tbody = document.getElementById("enrollmentsTableBody");
+    if (!tbody) return;
+
+    var filterClassId = document.getElementById("filterEnrollmentClass")?.value;
+    var data = state.enrollments;
+
+    if (filterClassId) {
+        data = data.filter(function (item) {
+            return String(item.ClassId) === String(filterClassId);
+        });
+    }
+
     tbody.innerHTML =
-        state.enrollments
+        data
             .map(function (item) {
                 return "<tr>" +
                     "<td><strong>" + escapeHtml(item.StudentCode) + "</strong><br><small>" + escapeHtml(item.StudentName) + "</small></td>" +
                     "<td>" + escapeHtml(item.ClassName) + "</td>" +
                     "<td>" + escapeHtml(item.CourseName) + "</td>" +
                     "<td>" + formatDate(item.EnrollmentDate) + "</td>" +
-                    "<td>" + badge(item.TuitionStatus || "Pending") + "</td></tr>";
+                    "<td>" + badge(item.Status || "Enrolled") + "</td>" +
+                    "<td>" + badge(item.TuitionStatus || "Pending") + "</td>" +
+                    "<td style='white-space:nowrap'>" +
+                    "<button class='btn-icon edit' title='Cập nhật ghi danh' data-edit-enrollment='" + item.EnrollmentId + "'><i class='fas fa-pen'></i></button> " +
+                    "<button class='btn-icon del' title='Hủy ghi danh' data-delete-enrollment='" + item.EnrollmentId + "'><i class='fas fa-user-minus'></i></button>" +
+                    "</td></tr>";
             })
-            .join("") || '<tr><td colspan="5" class="empty">Chưa có ghi danh.</td></tr>';
+            .join("") || '<tr><td colspan="7" class="empty">Chưa có ghi danh.</td></tr>';
 }
 
 /* ════════════════════════════════════════════════════════════════════════════
@@ -388,6 +522,23 @@ function renderTuitions() {
                     "<td>" + badge(item.Status) + "</td></tr>";
             })
             .join("") || '<tr><td colspan="6" class="empty">Chưa có khoản học phí.</td></tr>';
+
+    var receiptsBody = document.getElementById("receiptsTableBody");
+    if (!receiptsBody) return;
+
+    receiptsBody.innerHTML =
+        state.receipts
+            .map(function (receipt) {
+                return "<tr>" +
+                    "<td><strong>" + escapeHtml(receipt.ReceiptCode || "—") + "</strong></td>" +
+                    "<td>" + escapeHtml(receipt.TuitionId) + "</td>" +
+                    "<td>" + formatMoney(receipt.Amount) + "</td>" +
+                    "<td>" + formatDate(receipt.PaymentDate) + "</td>" +
+                    "<td>" + escapeHtml(receipt.CashierName || "—") + "</td>" +
+                    "<td>" + escapeHtml(receipt.Note || "—") + "</td>" +
+                    "</tr>";
+            })
+            .join("") || '<tr><td colspan="6" class="empty">Chưa có phiếu thu.</td></tr>';
 }
 
 function renderScores() {
@@ -402,8 +553,8 @@ function renderScores() {
                     "<td>" + escapeHtml(item.ScoreTypeName) + "</td>" +
                     "<td><strong>" + escapeHtml(item.ScoreValue) + "</strong></td>" +
                     '<td style="white-space:nowrap">' +
-                    '<button class="btn-icon edit" title="Sửa" data-edit-score="' + item.ScoreId + '"><i class="fas fa-edit"></i></button> ' +
-                    '<button class="btn-icon del" title="Xóa" data-delete-score="' + item.ScoreId + '"><i class="fas fa-trash-alt"></i></button>' +
+                    '<button class="btn-icon edit" title="Edit" data-edit-score="' + item.ScoreId + '"><i class="fas fa-edit"></i></button> ' +
+                    '<button class="btn-icon del" title="Delete" data-delete-score="' + item.ScoreId + '"><i class="fas fa-trash-alt"></i></button>' +
                     '</td></tr>';
             })
             .join("") || '<tr><td colspan="6" class="empty">Chưa có điểm.</td></tr>';
@@ -414,13 +565,15 @@ function renderTeachers() {
     if (!tbody) return;
     tbody.innerHTML =
         state.teachers
-            .map(function (t) {
+            .map(function (t, index) {
                 var searchText = escapeHtml((t.TeacherCode + " " + t.FullName + " " + t.Email + " " + (t.Specialization || "")).toLowerCase());
                 var btnGenerateAccount = !t.UserId
                     ? '<button class="btn-icon" style="color:var(--primary)" title="Cấp tài khoản tự động" data-generate-teacher-account="' + t.TeacherId + '"><i class="fas fa-user-plus"></i></button> '
                     : '<span title="Đã có tài khoản" style="color:var(--success);display:inline-block;padding:6px;font-size:.9rem"><i class="fas fa-check-circle"></i></span> ';
 
                 return '<tr data-search="' + searchText + '">' +
+                    "<td>" + (index + 1) + "</td>" +
+                    '<td><input type="checkbox" class="row-checkbox" data-id="' + t.TeacherId + '"></td>' +
                     "<td><strong>" + escapeHtml(t.TeacherCode) + "</strong></td>" +
                     "<td>" + escapeHtml(t.FullName) + "</td>" +
                     "<td>" + escapeHtml(t.Email) + "</td>" +
@@ -429,11 +582,11 @@ function renderTeachers() {
                     "<td>" + badge(t.AccountStatus) + "</td>" +
                     "<td>" + btnGenerateAccount + "</td>" +
                     '<td style="white-space:nowrap">' +
-                    '<button class="btn-icon edit" title="Sửa" data-edit-teacher="' + t.TeacherId + '"><i class="fas fa-edit"></i></button> ' +
-                    '<button class="btn-icon del" title="Xóa" data-delete-teacher="' + t.TeacherId + '"><i class="fas fa-trash-alt"></i></button>' +
+                    '<button class="btn-icon edit" title="Edit" data-edit-teacher="' + t.TeacherId + '"><i class="fas fa-edit"></i></button> ' +
+                    '<button class="btn-icon del" title="Delete" data-delete-teacher="' + t.TeacherId + '"><i class="fas fa-trash-alt"></i></button>' +
                     '</td></tr>';
             })
-            .join("") || '<tr><td colspan="7" class="empty">Chưa có giảng viên.</td></tr>';
+            .join("") || '<tr><td colspan="10" class="empty">Chưa có giảng viên.</td></tr>';
 }
 
 /* ════════════════════════════════════════════════════════════════════════════
@@ -445,53 +598,82 @@ function renderNotifications() {
     list.innerHTML =
         state.notifications
             .map(function (item) {
-                var read = Number(item.ReadCount || 0);
-                var total = Number(item.RecipientCount || 0);
+                var read = Number(item.ReadCount || item.readcount || 0);
+                var total = Number(item.RecipientCount || item.recipientcount || 0);
                 var percent = total > 0 ? Math.round((read * 100) / total) : 0;
-                return '<article class="notice-card" style="position:relative"><div>' +
-                    "<strong>" + escapeHtml(item.Title) + "</strong>" +
-                    "<small>" + formatDate(item.CreatedDate) + " · " + escapeHtml(item.CreatorName || "Hệ thống") + "</small></div>" +
-                    "<p>" + escapeHtml(item.Content || "") + "</p>" +
-                    "<span>" + read + "/" + total + " đã đọc · " + percent + "%</span>" +
-                    '<div style="position:absolute;top:10px;right:10px;display:flex;gap:5px">' +
-                    '<button class="btn-icon edit" title="Sửa" data-edit-notification="' + item.NotificationId + '"><i class="fas fa-edit"></i></button>' +
-                    '<button class="btn-icon del" title="Xóa" data-delete-notification="' + item.NotificationId + '"><i class="fas fa-trash-alt"></i></button>' +
-                    '</div></article>';
+
+                return '<article class="notice-card" style="position:relative">' +
+                    '<div style="margin-bottom:10px">' +
+                    '<strong style="display:block;font-size:1.1rem;margin-bottom:2px">' + escapeHtml(item.Title) + '</strong>' +
+                    '<small style="color:var(--text-muted)">' + formatDate(item.CreatedDate) + ' · ' + escapeHtml(item.CreatorName || "Hệ thống") + '</small>' +
+                    '</div>' +
+                    '<p style="margin-bottom:15px;color:var(--text-secondary)">' + escapeHtml(item.Content || "") + '</p>' +
+                    '<div class="read-stat" style="margin-top:auto">' +
+                    '<div style="display:flex;justify-content:space-between;font-size:0.8rem;margin-bottom:5px;font-weight:600;color:var(--primary)">' +
+                    '<span>Đã đọc: ' + read + '/' + total + '</span>' +
+                    '<span>' + percent + '%</span>' +
+                    '</div>' +
+                    '<div style="height:6px;background:var(--border-light);border-radius:3px;overflow:hidden">' +
+                    '<div style="height:100%;background:var(--primary);width:' + percent + '%;transition:width 0.5s ease"></div>' +
+                    '</div>' +
+                    '</div>' +
+                    '<div style="position:absolute;top:14px;right:14px;display:flex;gap:5px">' +
+                    '<button class="btn-icon edit" title="Edit" data-edit-notification="' + item.NotificationId + '"><i class="fas fa-edit"></i></button>' +
+                    '<button class="btn-icon del" title="Delete" data-delete-notification="' + item.NotificationId + '"><i class="fas fa-trash-alt"></i></button>' +
+                    '</div>' +
+                    '</article>';
             })
             .join("") || '<p class="empty">Chưa có thông báo.</p>';
 }
 
 function renderUsers() {
-    var tbody = document.getElementById("usersTableBody");
+    renderUserTable("adminAccountsTableBody", "Admin");
+    renderUserTable("teacherAccountsTableBody", "Teacher");
+    renderUserTable("studentAccountsTableBody", "Student");
+}
+
+function renderUserTable(tbodyId, roleFilter) {
+    var tbody = document.getElementById(tbodyId);
     if (!tbody) return;
+
     var roleColors = { "Admin": "#6366f1", "Teacher": "#22c55e", "Student": "#38bdf8" };
-    tbody.innerHTML = state.users.map(function (u) {
+    var roleIdByName = { "Admin": 1, "Teacher": 2, "Student": 3 };
+    var filteredUsers = state.users.filter(function (u) {
+        var normalizedRoleName = String(u.RoleName || "").trim().toLowerCase();
+        var targetRoleName = roleFilter.toLowerCase();
+        var roleId = Number(u.RoleId || 0);
+
+        // Fallback by RoleId to avoid hard dependency on RoleName text/casing from DB.
+        return normalizedRoleName === targetRoleName || roleId === roleIdByName[roleFilter];
+    });
+
+    tbody.innerHTML = filteredUsers.map(function (u, index) {
         var isActive = String(u.Status || "").toLowerCase() === "active";
         var roleColor = roleColors[u.RoleName] || "#94a3b8";
-        var toggleLabel = isActive ? "Khóa" : "Mở";
+        var toggleLabel = isActive ? "Lock" : "Unlock";
         var toggleIcon = isActive ? "fa-lock" : "fa-lock-open";
         var toggleClass = isActive ? "btn-icon del" : "btn-icon edit";
 
-        // Chỉ hiện nút sửa vai trò nếu user đó KHÔNG PHẢI là tài khoản đang đăng nhập
         var currentMeId = state.me ? String(state.me.UserId || state.me.userid || "") : "";
         var rowUserId = String(u.UserId || "");
         var isSelf = currentMeId !== "" && currentMeId === rowUserId;
 
-        if (isSelf) console.log("Detected self: ", u.Username, "ID:", rowUserId);
+        var roleEditBtn = isSelf ? "" : (" <button class='btn-icon edit-role' title='Change role' data-user-role='" + u.UserId + "' data-current-role='" + u.RoleId + "'><i class='fas fa-pen'></i></button>");
 
-        var roleEditBtn = isSelf ? "" : (" <button class='btn-icon edit-role' title='Sửa vai trò' data-user-role='" + u.UserId + "' data-current-role='" + u.RoleId + "'><i class='fas fa-pen'></i></button>");
-
-        return "<tr data-search='" + escapeHtml((u.Username + " " + (u.FullName || "") + " " + (u.Email || "")).toLowerCase()) + "' data-role='" + escapeHtml(u.RoleName || "") + "'>" +
+        return "<tr data-search='" + escapeHtml((u.Username + " " + (u.FullName || "") + " " + (u.Email || "")).toLowerCase()) + "'>" +
+            "<td>" + (index + 1) + "</td>" +
+            '<td><input type="checkbox" class="row-checkbox" data-id="' + u.UserId + '"></td>' +
             "<td><strong>" + escapeHtml(u.Username) + "</strong></td>" +
             "<td>" + escapeHtml(u.FullName || "—") + "<br>" + escapeHtml(u.PhoneNumber || "—") + "<br>" + escapeHtml(u.Email || "—") + "</td>" +
             "<td><span style='background:" + roleColor + "22;color:" + roleColor + ";padding:3px 10px;border-radius:20px;font-size:.8rem;font-weight:600'>" + escapeHtml(u.RoleName || "—") + "</span>" +
             roleEditBtn + "</td>" +
             "<td>" + badge(u.Status) + "</td>" +
             "<td style='white-space:nowrap'>" +
-            "<button class='btn-icon edit' title='Đổi mật khẩu' data-user-pwd='" + u.UserId + "' data-user-name='" + escapeHtml(u.FullName || u.Username) + "'><i class='fas fa-key'></i></button> " +
+            "<button class='btn-icon edit' title='Edit Info' data-edit-" + (roleFilter === "Admin" ? "admin" : (roleFilter.toLowerCase() + "-account")) + "='" + u.UserId + "'><i class='fas fa-user-edit'></i></button> " +
+            "<button class='btn-icon edit' title='Change password' data-user-pwd='" + u.UserId + "' data-user-name='" + escapeHtml(u.FullName || u.Username) + "'><i class='fas fa-key'></i></button> " +
             "<button class='" + toggleClass + "' title='" + toggleLabel + "' data-user-toggle='" + u.UserId + "' data-user-status='" + (isActive ? "Inactive" : "Active") + "'><i class='fas " + toggleIcon + "'></i></button>" +
             "</td></tr>";
-    }).join("") || '<tr><td colspan="6" class="empty">Chưa có tài khoản.</td></tr>';
+    }).join("") || '<tr><td colspan="6" class="empty">No accounts found.</td></tr>';
 }
 
 function renderOptions() {
@@ -519,6 +701,14 @@ function renderOptions() {
         state.classes,
         "ClassId",
         function (item) { return item.ClassCode + " - " + item.ClassName; }
+    );
+    fillSelect(
+        document.getElementById("filterEnrollmentClass"),
+        state.classes,
+        "ClassId",
+        function (item) { return item.ClassCode + " - " + item.ClassName; },
+        true,
+        "Tất cả lớp"
     );
     fillSelect(
         document.getElementById("scoreEnrollmentSelect"),
@@ -587,6 +777,12 @@ async function loadAll() {
         // Lấy thêm thông tin tài khoản hiện tại
         state.me = await getJson("/api/auth/me");
         console.log("Current User (state.me):", state.me);
+        try {
+            state.receipts = await getJson("/api/payments/receipts");
+        } catch (receiptError) {
+            state.receipts = [];
+            console.warn("Cannot load receipts:", receiptError);
+        }
 
         renderAll();
         setMessage(globalMessage, "Dữ liệu đã được cập nhật.", "success");
@@ -816,6 +1012,124 @@ function bindForms() {
         }
     });
 
+    var adminAccountFormEl = document.getElementById("adminAccountForm");
+    if (adminAccountFormEl) adminAccountFormEl.addEventListener("submit", async function (event) {
+        event.preventDefault();
+        var form = event.currentTarget;
+        try {
+            var payload = readForm(form);
+            var editId = payload.EditId;
+            delete payload.EditId;
+
+            if (editId) {
+                // Update only editable profile fields for admin account.
+                var updatePayload = {
+                    FullName: payload.FullName,
+                    Email: payload.Email,
+                    PhoneNumber: payload.PhoneNumber,
+                };
+                await sendJson("/api/users/" + editId, "PUT", updatePayload);
+                setMessage(document.getElementById("adminAccountMessage"), "Account updated.", "success");
+                resetFormState("adminAccountForm", "adminAccountFormTitle", "Add Admin Account", "Save Admin");
+                document.getElementById("adminPwdLabel").style.display = "block";
+                form.elements["Password"].required = true;
+            } else {
+                var createPayload = {
+                    Username: payload.Username,
+                    FullName: payload.FullName,
+                    Email: payload.Email,
+                    PhoneNumber: payload.PhoneNumber,
+                    Password: payload.Password,
+                    RoleId: payload.RoleId ? Number(payload.RoleId) : 1,
+                };
+                await sendJson("/api/users", "POST", createPayload);
+                form.reset();
+                setMessage(document.getElementById("adminAccountMessage"), "Admin account created.", "success");
+            }
+            await loadAll();
+        } catch (error) {
+            setMessage(document.getElementById("adminAccountMessage"), error.message, "error");
+        }
+    });
+
+    var teacherAccountFormEl = document.getElementById("teacherAccountForm");
+    if (teacherAccountFormEl) teacherAccountFormEl.addEventListener("submit", async function (event) {
+        event.preventDefault();
+        var form = event.currentTarget;
+        try {
+            var payload = readForm(form);
+            var editId = payload.EditId;
+            delete payload.EditId;
+
+            if (editId) {
+                var updatePayload = {
+                    FullName: payload.FullName,
+                    Email: payload.Email,
+                    PhoneNumber: payload.PhoneNumber,
+                };
+                await sendJson("/api/users/" + editId, "PUT", updatePayload);
+                setMessage(document.getElementById("teacherAccountMessage"), "Teacher account updated.", "success");
+                resetFormState("teacherAccountForm", "teacherAccountFormTitle", "Add Teacher Account", "Save Teacher");
+                document.getElementById("teacherPwdLabel").style.display = "block";
+                form.elements["Password"].required = true;
+            } else {
+                var createPayload = {
+                    Username: payload.Username,
+                    FullName: payload.FullName,
+                    Email: payload.Email,
+                    PhoneNumber: payload.PhoneNumber,
+                    Password: payload.Password,
+                    RoleId: Number(payload.RoleId || 2),
+                };
+                await sendJson("/api/users", "POST", createPayload);
+                form.reset();
+                setMessage(document.getElementById("teacherAccountMessage"), "Teacher account created.", "success");
+            }
+            await loadAll();
+        } catch (error) {
+            setMessage(document.getElementById("teacherAccountMessage"), error.message, "error");
+        }
+    });
+
+    var studentAccountFormEl = document.getElementById("studentAccountForm");
+    if (studentAccountFormEl) studentAccountFormEl.addEventListener("submit", async function (event) {
+        event.preventDefault();
+        var form = event.currentTarget;
+        try {
+            var payload = readForm(form);
+            var editId = payload.EditId;
+            delete payload.EditId;
+
+            if (editId) {
+                var updatePayload = {
+                    FullName: payload.FullName,
+                    Email: payload.Email,
+                    PhoneNumber: payload.PhoneNumber,
+                };
+                await sendJson("/api/users/" + editId, "PUT", updatePayload);
+                setMessage(document.getElementById("studentAccountMessage"), "Student account updated.", "success");
+                resetFormState("studentAccountForm", "studentAccountFormTitle", "Add Student Account", "Save Student");
+                document.getElementById("studentPwdLabel").style.display = "block";
+                form.elements["Password"].required = true;
+            } else {
+                var createPayload = {
+                    Username: payload.Username,
+                    FullName: payload.FullName,
+                    Email: payload.Email,
+                    PhoneNumber: payload.PhoneNumber,
+                    Password: payload.Password,
+                    RoleId: Number(payload.RoleId || 3),
+                };
+                await sendJson("/api/users", "POST", createPayload);
+                form.reset();
+                setMessage(document.getElementById("studentAccountMessage"), "Student account created.", "success");
+            }
+            await loadAll();
+        } catch (error) {
+            setMessage(document.getElementById("studentAccountMessage"), error.message, "error");
+        }
+    });
+
     var scoreFormEl = document.getElementById("scoreForm");
     if (scoreFormEl) scoreFormEl.addEventListener("submit", async function (event) {
         event.preventDefault();
@@ -918,7 +1232,8 @@ function bindDeletes() {
         var scoreButton = event.target.closest("[data-delete-score]");
         var notifButton = event.target.closest("[data-delete-notification]");
         var scheduleButton = event.target.closest("[data-delete-schedule]");
-        var target = studentButton || teacherButton || courseButton || classButton || roomButton || scoreButton || notifButton || scheduleButton;
+        var enrollmentButton = event.target.closest("[data-delete-enrollment]");
+        var target = studentButton || teacherButton || courseButton || classButton || roomButton || scoreButton || notifButton || scheduleButton || enrollmentButton;
         if (!target) return;
 
         var config;
@@ -930,6 +1245,7 @@ function bindDeletes() {
         else if (scoreButton) config = ["/api/scores/", scoreButton.dataset.deleteScore, "điểm số"];
         else if (notifButton) config = ["/api/notifications/", notifButton.dataset.deleteNotification, "thông báo"];
         else if (scheduleButton) config = ["/api/schedules/", scheduleButton.dataset.deleteSchedule, "lịch học"];
+        else if (enrollmentButton) config = ["/api/enrollments/", enrollmentButton.dataset.deleteEnrollment, "ghi danh"];
 
         if (!window.confirm("Xóa " + config[2] + " này?")) return;
 
@@ -1023,6 +1339,36 @@ function bindEdits() {
             }
         }
 
+        var adminBtn = event.target.closest("[data-edit-admin]");
+        var teacherAccountBtn = event.target.closest("[data-edit-teacher-account]");
+        var studentAccountBtn = event.target.closest("[data-edit-student-account]");
+
+        if (adminBtn || teacherAccountBtn || studentAccountBtn) {
+            var id = Number((adminBtn || teacherAccountBtn || studentAccountBtn).dataset[adminBtn ? "editAdmin" : (teacherAccountBtn ? "editTeacherAccount" : "editStudentAccount")]);
+            var user = state.users.find(function (u) { return u.UserId === id; });
+            if (user) {
+                var formId = adminBtn ? "adminAccountForm" : (teacherAccountBtn ? "teacherAccountForm" : "studentAccountForm");
+                var titleId = adminBtn ? "adminAccountFormTitle" : (teacherAccountBtn ? "teacherAccountFormTitle" : "studentAccountFormTitle");
+                var pwdLabelId = adminBtn ? "adminPwdLabel" : (teacherAccountBtn ? "teacherPwdLabel" : "studentPwdLabel");
+                var baseTitle = adminBtn ? "Edit Admin Account" : (teacherAccountBtn ? "Edit Teacher Account" : "Edit Student Account");
+                var updateLabel = adminBtn ? "Update Admin" : (teacherAccountBtn ? "Update Teacher" : "Update Student");
+
+                var form = document.getElementById(formId);
+                form.elements["EditId"].value = user.UserId;
+                form.elements["Username"].value = user.Username || "";
+                form.elements["FullName"].value = user.FullName || "";
+                form.elements["Email"].value = user.Email || "";
+                form.elements["PhoneNumber"].value = user.PhoneNumber || "";
+
+                // Hide password field and remove required when editing
+                document.getElementById(pwdLabelId).style.display = "none";
+                form.elements["Password"].required = false;
+
+                setFormEditMode(formId, titleId, baseTitle, updateLabel);
+                document.getElementById(titleId).scrollIntoView({ behavior: "smooth", block: "start" });
+            }
+        }
+
         var roomBtn = event.target.closest("[data-edit-room]");
         if (roomBtn) {
             var id = Number(roomBtn.dataset.editRoom);
@@ -1110,6 +1456,21 @@ function bindEdits() {
             if (formId === "class_scheduleForm") {
                 resetFormState("class_scheduleForm", "class_scheduleFormTitle", "Thêm lịch học", "Lưu lịch");
             }
+            if (formId === "adminAccountForm") {
+                resetFormState("adminAccountForm", "adminAccountFormTitle", "Add Admin Account", "Save Admin");
+                document.getElementById("adminPwdLabel").style.display = "block";
+                form.elements["Password"].required = true;
+            }
+            if (formId === "teacherAccountForm") {
+                resetFormState("teacherAccountForm", "teacherAccountFormTitle", "Add Teacher Account", "Save Teacher");
+                document.getElementById("teacherPwdLabel").style.display = "block";
+                form.elements["Password"].required = true;
+            }
+            if (formId === "studentAccountForm") {
+                resetFormState("studentAccountForm", "studentAccountFormTitle", "Add Student Account", "Save Student");
+                document.getElementById("studentPwdLabel").style.display = "block";
+                form.elements["Password"].required = true;
+            }
         });
     });
 }
@@ -1145,6 +1506,9 @@ function bindSearch() {
         ["courseSearch", "coursesTableBody"],
         ["classSearch", "classesTableBody"],
         ["roomSearch", "roomsTableBody"],
+        ["adminAccountSearch", "adminAccountsTableBody"],
+        ["teacherAccountSearch", "teacherAccountsTableBody"],
+        ["studentAccountSearch", "studentAccountsTableBody"],
         ["class_scheduleSearch", "class_schedulesTableBody"],
     ].forEach(function (pair) {
         var input = document.getElementById(pair[0]);
@@ -1158,25 +1522,13 @@ function bindSearch() {
             });
         });
     });
-    // Logic lọc tài khoản (kết hợp cả ô tìm kiếm và lọc vai trò)
-    const userSearchInput = document.getElementById("userFilterSearch");
-    const userRoleSelect = document.getElementById("userRoleFilter");
-    const userTableBody = document.getElementById("usersTableBody");
+    // Logic filtering removed because we split tables
+}
 
-    if (userSearchInput && userRoleSelect && userTableBody) {
-        const applyUserFilters = () => {
-            const query = userSearchInput.value.toLowerCase();
-            const role = userRoleSelect.value;
-            userTableBody.querySelectorAll("tr").forEach(row => {
-                const searchText = (row.dataset.search || "").toLowerCase();
-                const rowRole = row.dataset.role || "";
-                const matchesSearch = !query || searchText.includes(query);
-                const matchesRole = !role || rowRole === role;
-                row.hidden = !(matchesSearch && matchesRole);
-            });
-        };
-        userSearchInput.addEventListener("input", applyUserFilters);
-        userRoleSelect.addEventListener("change", applyUserFilters);
+function bindFilters() {
+    var filterClass = document.getElementById("filterEnrollmentClass");
+    if (filterClass) {
+        filterClass.addEventListener("change", renderEnrollments);
     }
 }
 
@@ -1491,6 +1843,7 @@ document.addEventListener("DOMContentLoaded", function () {
     bindDeletes();
     bindEdits();
     bindSearch();
+    bindFilters();
     bindNavigation();
     setDefaultPaymentDate();
 
@@ -1511,9 +1864,48 @@ document.addEventListener("DOMContentLoaded", function () {
 
     var roleModal = document.getElementById("roleModal");
     var roleModalName = document.getElementById("roleModalName");
+
+    // Account Modals Toggles
+    var btnOpenAddTeacherAccount = document.getElementById("btnOpenAddTeacherAccount");
+    if (btnOpenAddTeacherAccount) {
+        btnOpenAddTeacherAccount.addEventListener("click", function () {
+            document.getElementById("teacherAccountModal").style.display = "flex";
+        });
+    }
+    document.querySelectorAll(".teacherAccountModalClose").forEach(btn => {
+        btn.addEventListener("click", function () {
+            document.getElementById("teacherAccountModal").style.display = "none";
+        });
+    });
+
+    var btnOpenAddStudentAccount = document.getElementById("btnOpenAddStudentAccount");
+    if (btnOpenAddStudentAccount) {
+        btnOpenAddStudentAccount.addEventListener("click", function () {
+            document.getElementById("studentAccountModal").style.display = "flex";
+        });
+    }
+    document.querySelectorAll(".studentAccountModalClose").forEach(btn => {
+        btn.addEventListener("click", function () {
+            document.getElementById("studentAccountModal").style.display = "none";
+        });
+    });
+
+    // Close modals on outside click
+    window.addEventListener("click", function (event) {
+        var tModal = document.getElementById("teacherAccountModal");
+        var sModal = document.getElementById("studentAccountModal");
+        if (event.target === tModal) tModal.style.display = "none";
+        if (event.target === sModal) sModal.style.display = "none";
+    });
     var roleModalSelect = document.getElementById("roleModalSelect");
     var roleModalMsg = document.getElementById("roleModalMsg");
     var currentRoleUserId = null;
+    var enrollmentModal = document.getElementById("enrollmentModal");
+    var enrollmentModalName = document.getElementById("enrollmentModalName");
+    var enrollmentModalStatus = document.getElementById("enrollmentModalStatus");
+    var enrollmentModalClass = document.getElementById("enrollmentModalClass");
+    var enrollmentModalMsg = document.getElementById("enrollmentModalMsg");
+    var currentEnrollmentId = null;
 
     function openRoleModal(userId, currentRoleId) {
         currentRoleUserId = userId;
@@ -1548,13 +1940,83 @@ document.addEventListener("DOMContentLoaded", function () {
         }
     });
 
+    function openEnrollmentModal(enrollment) {
+        currentEnrollmentId = Number(enrollment.EnrollmentId);
+        enrollmentModalName.textContent = "Student: " + (enrollment.StudentName || "—") + " • Current class: " + (enrollment.ClassName || "—");
+        enrollmentModalStatus.value = String(enrollment.Status || "Enrolled");
+        enrollmentModalMsg.textContent = "";
+        enrollmentModalMsg.className = "message";
+
+        enrollmentModalClass.innerHTML = "<option value=''>Keep current class</option>";
+        state.classes.forEach(function (cls) {
+            if (Number(cls.ClassId) === Number(enrollment.ClassId)) return;
+            enrollmentModalClass.innerHTML += "<option value='" + cls.ClassId + "'>" +
+                escapeHtml((cls.ClassCode || "") + " - " + (cls.ClassName || "")) +
+                "</option>";
+        });
+
+        enrollmentModal.style.display = "flex";
+    }
+
+    function closeEnrollmentModal() {
+        enrollmentModal.style.display = "none";
+        currentEnrollmentId = null;
+    }
+
+    if (document.getElementById("enrollmentModalClose")) {
+        document.getElementById("enrollmentModalClose").addEventListener("click", closeEnrollmentModal);
+    }
+    if (enrollmentModal) {
+        enrollmentModal.addEventListener("click", function (e) {
+            if (e.target === enrollmentModal) closeEnrollmentModal();
+        });
+    }
+    if (document.getElementById("enrollmentModalSave")) {
+        document.getElementById("enrollmentModalSave").addEventListener("click", async function () {
+            if (!currentEnrollmentId) return;
+            var payload = { Status: enrollmentModalStatus.value };
+            if (enrollmentModalClass.value) payload.ClassId = Number(enrollmentModalClass.value);
+
+            try {
+                await sendJson("/api/enrollments/" + currentEnrollmentId, "PUT", payload);
+                enrollmentModalMsg.textContent = "Đã cập nhật ghi danh.";
+                enrollmentModalMsg.className = "message success";
+                setTimeout(closeEnrollmentModal, 700);
+                await loadAll();
+            } catch (error) {
+                enrollmentModalMsg.textContent = error.message;
+                enrollmentModalMsg.className = "message error";
+            }
+        });
+    }
+
     // Xử lý click vào nút edit-role
     document.body.addEventListener("click", function (e) {
+        var classListBtn = e.target.closest("[data-view-class-list]");
+        if (classListBtn) {
+            var classIdFromTable = classListBtn.dataset.viewClassList;
+            var classNameFromTable = classListBtn.dataset.viewClassName || "";
+            if (classIdFromTable) {
+                openClassListModal(classIdFromTable, classNameFromTable);
+            }
+            return;
+        }
+
         var roleBtn = e.target.closest("[data-user-role]");
         if (roleBtn) {
             var userId = roleBtn.dataset.userRole;
             var currentRoleId = roleBtn.dataset.currentRole;
             openRoleModal(userId, currentRoleId);
+            return;
+        }
+
+        var enrollmentBtn = e.target.closest("[data-edit-enrollment]");
+        if (enrollmentBtn) {
+            var enrollmentId = Number(enrollmentBtn.dataset.editEnrollment);
+            var enrollment = state.enrollments.find(function (item) { return Number(item.EnrollmentId) === enrollmentId; });
+            if (enrollment) {
+                openEnrollmentModal(enrollment);
+            }
         }
     });
 
@@ -1711,6 +2173,7 @@ document.addEventListener("DOMContentLoaded", function () {
         exportScheduleBtn.addEventListener("click", exportScheduleToExcel);
     }
 
+    bindBulkActions();
     loadAll();
 });
 
@@ -1913,7 +2376,7 @@ function renderCharts() {
             data: {
                 labels: labels,
                 datasets: [{
-                    label: 'Số lượng ghi danh',
+                    label: 'Enrollment count',
                     data: counts,
                     backgroundColor: 'rgba(99, 102, 241, 0.6)',
                     borderColor: 'rgb(99, 102, 241)',
@@ -1943,7 +2406,7 @@ function renderCharts() {
         dashboardCharts.tuition = new Chart(ctxTuition, {
             type: 'doughnut',
             data: {
-                labels: ['Đã đóng', 'Công nợ'],
+                labels: ['Paid', 'Debt'],
                 datasets: [{
                     data: [s.TotalRevenue || 0, s.OutstandingTuition || 0],
                     backgroundColor: ['#22c55e', '#ef4444'],

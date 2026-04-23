@@ -2,11 +2,13 @@ import pyodbc
 from flask import Blueprint, jsonify
 
 from models.payment_model import get_all_tuitions, get_tuition_by_id
+from utils.auth import role_required
 
 tuition_bp = Blueprint("tuitions", __name__)
 
 
 @tuition_bp.get("")
+@role_required("Admin")
 def list_tuitions():
     try:
         tuitions = get_all_tuitions()
@@ -18,6 +20,7 @@ def list_tuitions():
 
 
 @tuition_bp.get("/<int:tuition_id>")
+@role_required("Admin")
 def get_tuition(tuition_id: int):
     try:
         tuition = get_tuition_by_id(tuition_id)

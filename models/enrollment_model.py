@@ -147,3 +147,120 @@ def create_enrollment(payload: Dict[str, Any]) -> Dict[str, Any]:
         )
         row = cursor.fetchone()
         return row_to_dict(cursor, row)
+
+
+def update_enrollment(enrollment_id: int, payload: Dict[str, Any]) -> Dict[str, Any] | None:
+    status = payload.get("Status")
+    enrollment_date = payload.get("EnrollmentDate")
+    class_id = payload.get("ClassId")
+
+    with get_db_connection() as connection:
+        cursor = connection.cursor()
+        try:
+            cursor.execute(
+                "SELECT EnrollmentId, StudentId, ClassId FROM Enrollments WHERE EnrollmentId = ?",
+                enrollment_id,
+            )
+            existing = cursor.fetchone()
+            if not existing:
+                return None
+
+            student_id = int(existing[1])
+            current_class_id = int(existing[2])
+            next_class_id = current_class_id
+
+            if class_id is not None:
+                try:
+                    next_class_id = int(class_id)
+                except (TypeError, ValueError) as exc:
+                    raise ValueError("ClassId không hợp lệ.") from exc
+
+            if next_class_id != current_class_id:
+                cursor.execute(
+                    """
+                    SELECT c.MaxStudents, COUNT(e.EnrollmentId) AS CurrentEnrollmentCount
+                    FROM Classes c
+                    LEFT JOIN Enrollments e ON c.ClassId = e.ClassId
+                    WHERE c.ClassId = ?
+                    GROUP BY c.MaxStudents
+                    """,
+                    next_class_id,
+                )
+                class_row = cursor.fetchone()
+                if not class_row:
+                    raise ValueError("Lớp học không tồn tại.")
+
+                max_students = class_row[0]
+                current_count = class_row[1]
+                if max_students is not None and current_count >= max_students:
+                    raise ValueError("Lớp đích đã đủ sĩ số.")
+
+                cursor.execute(
+                    """
+                    SELECT TOP 1 EnrollmentId
+                    FROM Enrollments
+                    WHERE StudentId = ? AND ClassId = ? AND EnrollmentId <> ?
+                    """,
+                    student_id,
+                    next_class_id,
+                    enrollment_id,
+                )
+                if cursor.fetchone():
+                    raise ValueError("Sinh viên đã ghi danh lớp đích.")
+
+            cursor.execute(
+                """
+                UPDATE Enrollments
+                SET
+                    ClassId = COALESCE(?, ClassId),
+                    EnrollmentDate = COALESCE(?, EnrollmentDate),
+                    Status = COALESCE(?, Status)
+                WHERE EnrollmentId = ?
+                """,
+                next_class_id if class_id is not None else None,
+                enrollment_date,
+                status,
+                enrollment_id,
+            )
+            connection.commit()
+        except Exception:
+            connection.rollback()
+            raise
+
+        cursor.execute(
+            ENROLLMENT_DETAILS_BASE + " WHERE e.EnrollmentId = ?",
+            enrollment_id,
+        )
+        row = cursor.fetchone()
+        return row_to_dict(cursor, row) if row else None
+
+
+def delete_enrollment(enrollment_id: int) -> bool:
+    with get_db_connection() as connection:
+        cursor = connection.cursor()
+        try:
+            cursor.execute("SELECT EnrollmentId FROM Enrollments WHERE EnrollmentId = ?", enrollment_id)
+            if not cursor.fetchone():
+                return False
+
+            cursor.execute(
+                """
+                SELECT COUNT(*)
+                FROM Receipts r
+                INNER JOIN Tuitions t ON r.TuitionId = t.TuitionId
+                WHERE t.EnrollmentId = ?
+                """,
+                enrollment_id,
+            )
+            receipt_count = int(cursor.fetchone()[0] or 0)
+            if receipt_count > 0:
+                raise ValueError("Không thể xóa ghi danh đã có phiếu thu. Hãy chuyển trạng thái sang Dropped.")
+
+            cursor.execute("DELETE FROM Tuitions WHERE EnrollmentId = ?", enrollment_id)
+            cursor.execute("DELETE FROM Enrollments WHERE EnrollmentId = ?", enrollment_id)
+            deleted = cursor.rowcount > 0
+            connection.commit()
+            return deleted
+        except Exception:
+            connection.rollback()
+            raise

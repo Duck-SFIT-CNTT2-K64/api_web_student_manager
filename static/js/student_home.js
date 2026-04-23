@@ -18,6 +18,7 @@
         exams: [],
         scores: [],
         finance: [],
+        notifications: [],
     };
 
     var endpoints = {
@@ -31,6 +32,8 @@
         scores: "/api/students/scores/" + userId,
         finance: "/api/students/finance/" + userId,
         payment: "/api/students/finance/" + userId + "/payments",
+        notifications: "/api/notifications/my/all",
+        markRead: "/api/notifications",
     };
 
     var weekdayMap = {
@@ -242,6 +245,60 @@
         }
     }
 
+    function renderNotifications() {
+        var list = document.getElementById("notificationsList");
+        if (!list) return;
+
+        var notifs = state.notifications || [];
+        if (!notifs.length) {
+            list.innerHTML = '<div class="portal-card"><div class="empty" style="padding:32px; text-align:center;"><i class="fas fa-bell-slash" style="font-size:2rem; opacity:0.3; display:block; margin-bottom:12px;"></i>No notifications yet.</div></div>';
+            return;
+        }
+
+        list.innerHTML = notifs.map(function (n) {
+            var isRead = n.IsRead;
+            var date = n.CreatedDate ? String(n.CreatedDate).slice(0, 10) : '';
+            var attachHtml = n.AttachmentUrl
+                ? '<a href="' + escapeHtml(n.AttachmentUrl) + '" target="_blank" class="portal-link" style="display:inline-flex;align-items:center;gap:6px;margin-top:8px;"><i class="fas fa-paperclip"></i> Attachment</a>'
+                : '';
+            return '<div class="portal-card" style="margin-bottom:12px; border-left: 4px solid ' + (isRead ? 'var(--border)' : '#3b82f6') + '; opacity:' + (isRead ? '0.75' : '1') + ';" id="notif-card-' + n.NotificationId + '">'
+                + '<div class="portal-card-head" style="display:flex; align-items:flex-start; justify-content:space-between; gap:12px;">'
+                + '<div style="flex:1;">'
+                + (isRead ? '' : '<span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:#3b82f6;margin-right:8px;vertical-align:middle;"></span>')
+                + '<strong>' + escapeHtml(n.Title) + '</strong>'
+                + '<small style="display:block; color:var(--text-muted); margin-top:4px;"><i class="fas fa-user"></i> ' + escapeHtml(n.CreatorName || 'Instructor') + ' &middot; ' + escapeHtml(date) + '</small>'
+                + '</div>'
+                + (!isRead ? '<button type="button" class="btn btn-outline btn-sm notif-read-btn" data-id="' + n.NotificationId + '" style="font-size:0.75rem; padding:4px 10px; white-space:nowrap;"><i class="fas fa-check"></i> Mark read</button>' : '<span style="font-size:0.75rem; color:var(--text-muted);"><i class="fas fa-check-double"></i> Read</span>')
+                + '</div>'
+                + '<p style="margin:8px 0 0; line-height:1.6;">' + escapeHtml(n.Content || '') + '</p>'
+                + attachHtml
+                + '</div>';
+        }).join('');
+
+        // Mark-as-read buttons
+        list.querySelectorAll('.notif-read-btn').forEach(function (btn) {
+            btn.addEventListener('click', function () {
+                var notifId = this.getAttribute('data-id');
+                fetch(endpoints.markRead + '/' + notifId + '/read', { method: 'PUT' })
+                    .then(function () {
+                        var n = state.notifications.find(function (x) { return String(x.NotificationId) === String(notifId); });
+                        if (n) n.IsRead = 1;
+                        renderNotifications();
+                        updateUnreadBadge();
+                    });
+            });
+        });
+    }
+
+    function updateUnreadBadge() {
+        var unread = (state.notifications || []).filter(function (n) { return !n.IsRead; }).length;
+        var badge = document.querySelector('.portal-nav [data-section="notifications"] .portal-nav-badge');
+        if (badge) {
+            badge.textContent = unread;
+            badge.style.display = unread > 0 ? '' : 'none';
+        }
+    }
+
     async function reloadData() {
         var results = await Promise.all([
             getJson(endpoints.profile),
@@ -252,6 +309,7 @@
             getJson(endpoints.exams),
             getJson(endpoints.scores),
             getJson(endpoints.finance),
+            getJson(endpoints.notifications).catch(function () { return []; }),
         ]);
 
         state.profile = results[0];
@@ -262,6 +320,7 @@
         state.exams = results[5] || [];
         state.scores = results[6] || [];
         state.finance = results[7] || [];
+        state.notifications = results[8] || [];
 
         renderLearning();
         renderScores();
@@ -271,6 +330,8 @@
         renderExams();
         renderFinance();
         renderSummaryStats();
+        renderNotifications();
+        updateUnreadBadge();
     }
 
     async function handleRegistrationSubmit(event) {

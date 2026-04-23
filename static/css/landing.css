@@ -447,6 +447,7 @@ a {
 .user-menu-tile.tile-purple i { background: linear-gradient(135deg, #b5a0c6, #8a779c); }
 .user-menu-tile.tile-orange i { background: linear-gradient(135deg, #d2b58f, #b08854); }
 .user-menu-tile.tile-red i { background: linear-gradient(135deg, #cb9a94, #a5736e); }
+.user-menu-tile.tile-rose i { background: linear-gradient(135deg, #f472b6, #db2777); }
 
 .user-menu-divider {
     height: 1px;

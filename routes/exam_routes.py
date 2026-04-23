@@ -73,10 +73,10 @@ def upload_exam_pdf():
     try:
         file = request.files.get("file")
         if not file or not file.filename:
-            return jsonify({"success": False, "error": "Vui lòng chọn file PDF."}), 400
+            return jsonify({"success": False, "error": "Please select a PDF file."}), 400
 
         if not _is_allowed_pdf(file.filename):
-            return jsonify({"success": False, "error": "Chỉ chấp nhận file PDF."}), 400
+            return jsonify({"success": False, "error": "Only PDF files are accepted."}), 400
 
         os.makedirs(_UPLOAD_FOLDER, exist_ok=True)
         safe_name = secure_filename(file.filename)
@@ -86,7 +86,7 @@ def upload_exam_pdf():
         file.save(save_path)
 
         file_url = f"/static/uploads/exams/{new_name}"
-        return jsonify({"success": True, "message": "Đã tải PDF.", "data": {"url": file_url}}), 201
+        return jsonify({"success": True, "message": "PDF uploaded.", "data": {"url": file_url}}), 201
     except Exception as exc:
         return jsonify({"success": False, "error": str(exc)}), 500
 
@@ -98,7 +98,7 @@ def add_exam():
     try:
         payload = request.get_json(silent=True) or {}
         exam = create_exam(int(user_id), payload)
-        return jsonify({"success": True, "message": "Đã tạo bài kiểm tra.", "data": exam}), 201
+        return jsonify({"success": True, "message": "Exam created.", "data": exam}), 201
     except ValueError as exc:
         return jsonify({"success": False, "error": str(exc)}), 400
     except pyodbc.Error as exc:
@@ -117,8 +117,8 @@ def edit_exam(exam_id: int):
         payload = request.get_json(silent=True) or {}
         exam = update_exam(exam_id, payload)
         if not exam:
-            return jsonify({"success": False, "error": "Không tìm thấy bài kiểm tra."}), 404
-        return jsonify({"success": True, "message": "Đã cập nhật.", "data": exam}), 200
+            return jsonify({"success": False, "error": "Exam not found."}), 404
+        return jsonify({"success": True, "message": "Updated.", "data": exam}), 200
     except ValueError as exc:
         return jsonify({"success": False, "error": str(exc)}), 400
     except Exception as exc:
@@ -136,8 +136,8 @@ def edit_exam_status(exam_id: int):
         status = payload.get("Status")
         exam = update_exam_status(exam_id, status)
         if not exam:
-            return jsonify({"success": False, "error": "Không tìm thấy bài kiểm tra."}), 404
-        return jsonify({"success": True, "message": "Đã cập nhật trạng thái.", "data": exam}), 200
+            return jsonify({"success": False, "error": "Exam not found."}), 404
+        return jsonify({"success": True, "message": "Status updated.", "data": exam}), 200
     except ValueError as exc:
         return jsonify({"success": False, "error": str(exc)}), 400
     except Exception as exc:
@@ -153,8 +153,8 @@ def remove_exam(exam_id: int):
             return jsonify({"success": False, "error": "Forbidden."}), 403
         deleted = delete_exam(exam_id)
         if not deleted:
-            return jsonify({"success": False, "error": "Không tìm thấy bài kiểm tra."}), 404
-        return jsonify({"success": True, "message": "Đã xóa bài kiểm tra."}), 200
+            return jsonify({"success": False, "error": "Exam not found."}), 404
+        return jsonify({"success": True, "message": "Exam deleted."}), 200
     except Exception as exc:
         return jsonify({"success": False, "error": str(exc)}), 500
 
@@ -183,9 +183,9 @@ def grade_submission(exam_id: int, submission_id: int):
         payload = request.get_json(silent=True) or {}
         submission = update_submission_grade(exam_id, submission_id, payload)
         if not submission:
-            return jsonify({"success": False, "error": "Không tìm thấy bài nộp."}), 404
+            return jsonify({"success": False, "error": "Submission not found."}), 404
 
-        return jsonify({"success": True, "message": "Đã cập nhật chấm bài.", "data": submission}), 200
+        return jsonify({"success": True, "message": "Grading updated.", "data": submission}), 200
     except ValueError as exc:
         return jsonify({"success": False, "error": str(exc)}), 400
     except Exception as exc:

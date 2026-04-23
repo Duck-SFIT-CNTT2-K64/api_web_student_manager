@@ -26,6 +26,13 @@
     {% set full_name = (current_user.FullName or current_user.Username or '')|trim %}
     {% set user_initial = (full_name[:1] if full_name else 'S')|upper %}
     {% set active = active_section or 'overview' %}
+    {%- macro gender_en(g) -%}
+        {%- if g in ['Nam', 'nam'] %}Male
+        {%- elif g in ['Nữ', 'Nu', 'nu', 'Female'] %}Female
+        {%- elif g in ['Khác', 'khac', 'Other'] %}Other
+        {%- else %}{{ g or '—' }}
+        {%- endif -%}
+    {%- endmacro -%}
 
     <header class="site-header">
         <div class="header-inner">
@@ -42,6 +49,10 @@
             </nav>
 
             <div class="header-tools">
+                <a href="/student/notifications" class="notif-bell" id="studentNotifBell" title="Notifications" aria-label="Notifications">
+                    <i class="fas fa-bell"></i>
+                    <span class="notif-bell-badge" id="studentNotifBellBadge" hidden>0</span>
+                </a>
                 <button type="button" class="theme-toggle" data-theme-toggle
                         title="Toggle theme" aria-label="Toggle theme" aria-pressed="false">
                     <i class="fas fa-moon" data-theme-icon></i>
@@ -138,6 +149,12 @@
                     <a href="/student/home" data-section="overview" class="{{ 'is-active' if active == 'overview' else '' }}">
                         <i class="fas fa-id-card"></i><span>Overview</span>
                     </a>
+                    <a href="/student/notifications" data-section="notifications" class="{{ 'is-active' if active == 'notifications' else '' }}">
+                        <i class="fas fa-bell"></i><span>Thông báo</span>
+                        {% if home_data.Totals.UnreadNotifications > 0 %}
+                            <span class="portal-nav-badge">{{ home_data.Totals.UnreadNotifications }}</span>
+                        {% endif %}
+                    </a>
                     <a href="/student/scores" data-section="scores" class="{{ 'is-active' if active == 'scores' else '' }}">
                         <i class="fas fa-magnifying-glass-chart"></i><span>Grades</span>
                     </a>
@@ -153,11 +170,20 @@
                     <a href="/student/exams" data-section="exams" class="{{ 'is-active' if active == 'exams' else '' }}">
                         <i class="fas fa-calendar-check"></i><span>Exam schedule</span>
                     </a>
+                    <a href="/student/assignments" data-section="assignments" class="{{ 'is-active' if active == 'assignments' else '' }}">
+                        <i class="fas fa-file-circle-check"></i><span>Assignments</span>
+                    </a>
+                    <a href="/student/attendance" data-section="attendance" class="{{ 'is-active' if active == 'attendance' else '' }}">
+                        <i class="fas fa-clipboard-check"></i><span>Attendance</span>
+                    </a>
                     <a href="/student/tuition" data-section="tuition" class="{{ 'is-active' if active == 'tuition' else '' }}">
                         <i class="fas fa-file-invoice-dollar"></i><span>Tuition</span>
                     </a>
                     <a href="/student/payment" data-section="payment" class="{{ 'is-active' if active == 'payment' else '' }}">
                         <i class="fas fa-credit-card"></i><span>Online payment</span>
+                    </a>
+                    <a href="/student/notifications" data-section="notifications" class="{{ 'is-active' if active == 'notifications' else '' }}">
+                        <i class="fas fa-bell"></i><span>Notifications</span>
                     </a>
                 </nav>
 
@@ -190,7 +216,7 @@
                                 <li><span>Student ID</span><strong>{{ home_data.Profile.StudentCode }}</strong></li>
                                 <li><span>Email</span><strong>{{ home_data.Profile.Email or '—' }}</strong></li>
                                 <li><span>Phone number</span><strong>{{ home_data.Profile.PhoneNumber or '—' }}</strong></li>
-                                <li><span>Gender</span><strong>{{ home_data.Profile.Gender or '—' }}</strong></li>
+                                <li><span>Gender</span><strong>{{ gender_en(home_data.Profile.Gender) }}</strong></li>
                                 <li><span>Date of birth</span><strong>{{ home_data.Profile.DateOfBirth[:10] if home_data.Profile.DateOfBirth else '—' }}</strong></li>
                                 <li><span>Address</span><strong>{{ home_data.Profile.Address or '—' }}</strong></li>
                                 <li><span>Status</span>
@@ -217,9 +243,12 @@
                                 <a href="/student/enrollments" class="portal-tile tile-teal"><i class="fas fa-list-check"></i><span>Enrollments</span></a>
                                 <a href="/student/schedule" class="portal-tile tile-indigo"><i class="fas fa-calendar-days"></i><span>Schedule</span></a>
                                 <a href="/student/exams" class="portal-tile tile-purple"><i class="fas fa-calendar-check"></i><span>Exams</span></a>
+                                <a href="/student/assignments" class="portal-tile tile-indigo"><i class="fas fa-file-circle-check"></i><span>Assignments</span></a>
+                                <a href="/student/attendance" class="portal-tile tile-teal"><i class="fas fa-clipboard-check"></i><span>Attendance</span></a>
                                 <a href="/student/tuition" class="portal-tile tile-orange"><i class="fas fa-file-invoice-dollar"></i><span>Tuition</span></a>
                                 <a href="/student/payment" class="portal-tile tile-red"><i class="fas fa-credit-card"></i><span>Pay online</span></a>
                                 <a href="/settings" class="portal-tile tile-gray"><i class="fas fa-gear"></i><span>Settings</span></a>
+                                <a href="/student/notifications" class="portal-tile tile-rose"><i class="fas fa-bell"></i><span>Notifications</span></a>
                             </div>
                         </div>
                     </div>
@@ -256,6 +285,22 @@
                     </div>
                 </article>
 
+                {# ═══════════════ NOTIFICATIONS ═══════════════ #}
+                <article class="portal-panel {{ 'is-active' if active == 'notifications' else '' }}" data-panel="notifications">
+                    <header class="portal-panel-head">
+                        <div>
+                            <p class="eyebrow">Thông báo</p>
+                            <h2>Thông báo từ trung tâm & giảng viên</h2>
+                        </div>
+                    </header>
+
+                    <div class="portal-cards" id="notificationsList">
+                        <div class="portal-card">
+                            <div class="empty">Đang tải thông báo...</div>
+                        </div>
+                    </div>
+                </article>
+
                 {# ═══════════════ SCORES ═══════════════ #}
                 <article class="portal-panel {{ 'is-active' if active == 'scores' else '' }}" data-panel="scores">
                     <header class="portal-panel-head">
@@ -287,7 +332,7 @@
                                 </div>
                                 <ul class="score-profile-list">
                                     <li><i class="fas fa-cake-candles"></i> {{ home_data.Profile.DateOfBirth[:10] if home_data.Profile.DateOfBirth else '—' }}</li>
-                                    <li><i class="fas fa-venus-mars"></i> {{ home_data.Profile.Gender or '—' }}</li>
+                                    <li><i class="fas fa-venus-mars"></i> {{ gender_en(home_data.Profile.Gender) }}</li>
                                     <li><i class="fas fa-circle-check"></i> {{ home_data.Profile.StatusName or '—' }}</li>
                                 </ul>
                             </div>
@@ -447,10 +492,11 @@
                                             <th>Enrolled on</th>
                                             <th>Tuition</th>
                                             <th>Status</th>
+                                            <th style="width:140px">Actions</th>
                                         </tr>
                                     </thead>
                                     <tbody id="registrationStatusBody">
-                                        <tr><td colspan="6" class="empty">Loading data…</td></tr>
+                                        <tr><td colspan="7" class="empty">Loading data…</td></tr>
                                     </tbody>
                                 </table>
                             </div>
@@ -506,6 +552,58 @@
                                 </ul>
                             </div>
                         </aside>
+                    </div>
+                </article>
+
+                {# ═══════════════ ASSIGNMENTS ═══════════════ #}
+                <article class="portal-panel {{ 'is-active' if active == 'assignments' else '' }}" data-panel="assignments">
+                    <header class="portal-panel-head">
+                        <div>
+                            <p class="eyebrow">Assignments</p>
+                            <h2>Homework &amp; tests</h2>
+                            <small class="portal-readonly-note"><i class="fas fa-file-circle-check"></i> Submit your work before the due date.</small>
+                        </div>
+                    </header>
+                    <div class="portal-card">
+                        <div class="portal-card-head">
+                            <h3><i class="fas fa-inbox"></i> Assigned to you</h3>
+                            <span class="portal-card-badge" id="assignmentCountPill">—</span>
+                        </div>
+                        <div id="assignmentList">
+                            <p class="empty">Loading…</p>
+                        </div>
+                    </div>
+                </article>
+
+                {# ═══════════════ ATTENDANCE ═══════════════ #}
+                <article class="portal-panel {{ 'is-active' if active == 'attendance' else '' }}" data-panel="attendance">
+                    <header class="portal-panel-head">
+                        <div>
+                            <p class="eyebrow">Attendance</p>
+                            <h2>Personal attendance log</h2>
+                            <small class="portal-readonly-note"><i class="fas fa-clipboard-check"></i> Read-only summary across your enrolled classes.</small>
+                        </div>
+                    </header>
+                    <div class="portal-card">
+                        <div class="portal-card-head">
+                            <h3><i class="fas fa-table-list"></i> Sessions</h3>
+                            <span class="portal-card-badge" id="attendanceSummaryPill">—</span>
+                        </div>
+                        <div class="table-wrap">
+                            <table class="portal-table">
+                                <thead>
+                                    <tr>
+                                        <th>Date</th>
+                                        <th>Class</th>
+                                        <th>Course</th>
+                                        <th>Status</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="attendanceTableBody">
+                                    <tr><td colspan="4" class="empty">Loading…</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
                     </div>
                 </article>
 
@@ -676,6 +774,26 @@
                                     <tr><td colspan="6" class="empty">Loading data…</td></tr>
                                 </tbody>
                             </table>
+                        </div>
+                    </div>
+                </article>
+
+                {# ═══════════════ NOTIFICATIONS ═══════════════ #}
+                <article class="portal-panel {{ 'is-active' if active == 'notifications' else '' }}" data-panel="notifications">
+                    <header class="portal-panel-head">
+                        <div>
+                            <p class="eyebrow">Center &amp; instructors</p>
+                            <h2>Notifications</h2>
+                            <small class="portal-readonly-note"><i class="fas fa-bell"></i> Messages sent to your account. Click an item to mark it as read.</small>
+                        </div>
+                    </header>
+                    <div class="portal-card" id="studentNotificationListCard">
+                        <div class="portal-card-head">
+                            <h3><i class="fas fa-inbox"></i> Inbox</h3>
+                            <span class="portal-card-badge" id="studentNotifUnreadPill">—</span>
+                        </div>
+                        <div id="studentNotificationList" class="notification-inbox-list">
+                            <p class="empty">Loading…</p>
                         </div>
                     </div>
                 </article>

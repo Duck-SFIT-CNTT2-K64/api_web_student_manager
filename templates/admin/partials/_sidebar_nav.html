@@ -1,20 +1,20 @@
 {#
-    Admin sidebar nav — 5 collapsible groups.
+Admin sidebar nav — 5 collapsible groups.
 
-    Each group = `.nav-group` (with `data-group` used as a localStorage key).
-    Inside:
-      - `.nav-group-header` is the toggle button.
-      - `.nav-group-items` contains the child `.nav-item` links.
-      - `open` class on `.nav-group` means expanded.
+Each group = `.nav-group` (with `data-group` used as a localStorage key).
+Inside:
+- `.nav-group-header` is the toggle button.
+- `.nav-group-items` contains the child `.nav-item` links.
+- `open` class on `.nav-group` means expanded.
 
-    `active` context (string):
-      home | statistics | students | teachers | courses | classes | rooms |
-      users | enrollments | schedules | scores | tuitions | notifications
-    The group that contains the active item is auto-expanded.
+`active` context (string):
+home | statistics | students | teachers | courses | classes | rooms |
+users | enrollments | schedules | scores | tuitions | notifications
+The group that contains the active item is auto-expanded.
 #}
 {% set active = active|default('') %}
-{%- set dashboard_items   = ['home', 'statistics'] -%}
-{%- set management_items  = ['students', 'teachers', 'courses', 'classes', 'rooms', 'users'] -%}
+{%- set dashboard_items = ['home', 'statistics'] -%}
+{%- set management_items = ['students', 'teachers', 'courses', 'classes', 'rooms', 'admin_accounts', 'teacher_accounts', 'student_accounts'] -%}
 {%- set academic_items    = ['enrollments', 'schedules', 'scores'] -%}
 {%- set finance_items     = ['tuitions'] -%}
 {%- set info_items        = ['notifications'] -%}
@@ -61,8 +61,15 @@
         <a href="/dashboard#rooms" class="nav-item {{ 'active' if active == 'rooms' else '' }}">
             <i class="fas fa-door-open"></i><span>Rooms</span>
         </a>
-        <a href="/dashboard#users" class="nav-item {{ 'active' if active == 'users' else '' }}">
-            <i class="fas fa-users-cog"></i><span>Accounts</span>
+        <div class="nav-divider" style="padding-left:14px; opacity:0.6">Accounts</div>
+        <a href="/dashboard#admin_accounts" class="nav-item {{ 'active' if active == 'admin_accounts' else '' }}">
+            <i class="fas fa-user-shield"></i><span>Admin Accounts</span>
+        </a>
+        <a href="/dashboard#teacher_accounts" class="nav-item {{ 'active' if active == 'teacher_accounts' else '' }}">
+            <i class="fas fa-user-tie"></i><span>Teacher Accounts</span>
+        </a>
+        <a href="/dashboard#student_accounts" class="nav-item {{ 'active' if active == 'student_accounts' else '' }}">
+            <i class="fas fa-user-edit"></i><span>Student Accounts</span>
         </a>
     </div>
 </div>

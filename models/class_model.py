@@ -252,9 +252,34 @@ def update_class(class_id: int, payload: Dict[str, Any]) -> Optional[Dict[str, A
         return get_class_by_id(class_id)
 
 
-def delete_class_by_id(class_id: int) -> bool:
+def delete_class_by_id(class_id: int, user_role: str = "Admin") -> bool:
     with get_db_connection() as connection:
         cursor = connection.cursor()
+        
+        # Lấy danh sách các trạng thái của sinh viên trong lớp
+        cursor.execute("""
+            SELECT ss.StatusName, COUNT(*) as Count
+            FROM Enrollments e
+            INNER JOIN Students s ON e.StudentId = s.StudentId
+            INNER JOIN StudentStatuses ss ON s.StatusId = ss.StatusId
+            WHERE e.ClassId = ?
+            GROUP BY ss.StatusName
+        """, class_id)
+        
+        results = cursor.fetchall()
+        status_counts = {row[0]: row[1] for row in results}
+        
+        # 1. Luôn chặn nếu có sinh viên "Đang học"
+        active_count = status_counts.get('Đang học', 0)
+        if active_count > 0:
+            raise ValueError(f"Không thể xóa: Lớp vẫn còn {active_count} sinh viên đang theo học.")
+            
+        # 2. Kiểm tra trạng thái "Bảo lưu" dựa trên vai trò
+        deferred_count = status_counts.get('Bảo lưu', 0)
+        if deferred_count > 0:
+            if user_role.lower() != "admin":
+                raise ValueError(f"Chỉ Admin mới có quyền xóa lớp có sinh viên đang bảo lưu ({deferred_count} học viên).")
+
         cursor.execute("DELETE FROM Classes WHERE ClassId = ?", class_id)
         deleted = cursor.rowcount > 0
         connection.commit()
