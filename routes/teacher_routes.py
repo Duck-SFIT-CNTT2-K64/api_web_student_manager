@@ -31,6 +31,7 @@ from models.teacher_model import (
     get_student_by_code,
     save_student_and_enroll,
     get_db_connection,
+    get_attendance_summary_by_class,
 )
 from utils.auth import current_session_user, role_required
 
@@ -215,7 +216,7 @@ def save_score():
             if not user_id or not is_enrollment_owned_by_teacher(int(user_id), int(enrollment_id)):
                 return jsonify({"success": False, "error": "Forbidden."}), 403
 
-        save_score_entry(int(enrollment_id), int(score_type_id), float(score_value))
+        save_score_entry(int(enrollment_id), int(score_type_id), float(score_value), int(user_id))
         return jsonify({"success": True, "message": "Score saved."}), 200
     except ValueError as exc:
         return jsonify({"success": False, "error": str(exc)}), 400
@@ -512,3 +513,53 @@ def update_teacher_profile():
         return jsonify({"success": False, "error": "Database error.", "details": str(exc)}), 500
     except Exception as exc:
         return jsonify({"success": False, "error": "Unexpected server error.", "details": str(exc)}), 500
+    
+@teacher_bp.get("/attendance/class/<int:class_id>/summary")
+@role_required("Teacher", "Admin")
+def get_attendance_summary(class_id: int):
+    try:
+        data = get_attendance_summary_by_class(class_id)
+        return jsonify({"success": True, "data": data}), 200
+    except Exception as exc:
+        return jsonify({"success": False, "error": str(exc)}), 500
+    
+@teacher_bp.get("/attendance/class/<int:class_id>/valid-dates")
+@role_required("Teacher", "Admin")
+def get_valid_attendance_dates(class_id: int):
+    """Trả về các ngày học hợp lệ trong vòng 90 ngày gần đây và 14 ngày tới."""
+    try:
+        with get_db_connection() as connection:
+            cursor = connection.cursor()
+            cursor.execute("""
+                SELECT Weekday FROM ClassSchedules WHERE ClassId = ?
+            """, int(class_id))
+            rows = cursor.fetchall()
+            weekdays = [r[0] for r in rows]  # VD: ['Tuesday', 'Thursday']
+
+        if not weekdays:
+            return jsonify({"success": True, "data": []}), 200
+
+        weekday_map = {
+            "Monday": 0, "Tuesday": 1, "Wednesday": 2,
+            "Thursday": 3, "Friday": 4, "Saturday": 5, "Sunday": 6
+        }
+        target_days = set()
+        for wd in weekdays:
+            if wd in weekday_map:
+                target_days.add(weekday_map[wd])
+
+        from datetime import date, timedelta
+        today = date.today()
+        start = today - timedelta(days=90)
+        end   = today + timedelta(days=14)
+
+        valid_dates = []
+        current = start
+        while current <= end:
+            if current.weekday() in target_days:
+                valid_dates.append(current.isoformat())
+            current += timedelta(days=1)
+
+        return jsonify({"success": True, "data": valid_dates}), 200
+    except Exception as exc:
+        return jsonify({"success": False, "error": str(exc)}), 500

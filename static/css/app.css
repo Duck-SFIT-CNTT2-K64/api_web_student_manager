@@ -618,6 +618,41 @@ html[data-theme="dark"] .notif-bell:hover {
     border-color: #fbbf24;
 }
 
+.topbar-reload {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    border-radius: 10px;
+    border: 1px solid var(--border);
+    background: var(--surface, #fff);
+    color: var(--text);
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.topbar-reload:hover {
+    color: var(--primary);
+    border-color: var(--primary);
+    transform: translateY(-1px) rotate(180deg);
+}
+
+.topbar-reload i {
+    font-size: 15px;
+}
+
+html[data-theme="dark"] .topbar-reload {
+    background: #121a2a;
+    border-color: #2d3a52;
+    color: #e2e8f0;
+}
+
+html[data-theme="dark"] .topbar-reload:hover {
+    color: #fde68a;
+    border-color: #fbbf24;
+}
+
 .topbar-user {
     display: flex;
     align-items: center;

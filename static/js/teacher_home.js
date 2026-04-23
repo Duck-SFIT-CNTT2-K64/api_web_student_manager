@@ -15,6 +15,7 @@
         schedule: [],
         selectedClassId: null,
         classStudents: [],
+        scoreViewStudents: [],
         examEditingId: null,
         examPdfFiles: [],
     };
@@ -55,6 +56,14 @@
         "Friday": "Thứ 6",
         "Saturday": "Thứ 7",
         "Sunday": "Chủ nhật"
+    };
+
+    var attendanceState = {
+        classId: null,
+        students: [],
+        dates: [],
+        recordMap: {}, 
+        dirty: {}       
     };
 
     function escapeHtml(value) {
@@ -436,6 +445,7 @@
     function renderScoreStudents() {
         var tbody = document.getElementById("scoreStudentTableBody");
         if (!tbody) return;
+        var keyword = ((document.getElementById("scoreEntrySearchInput") || {}).value || "").trim().toLowerCase();
 
         var saveAllBtn = document.getElementById("saveAllScoresBtn");
         var downloadBtn = document.getElementById("downloadTemplateBtn");
@@ -449,13 +459,28 @@
             return;
         }
 
-        tbody.innerHTML = state.classStudents.map(function (item) {
+        var filteredStudents = state.classStudents.filter(function (item) {
+            if (!keyword) return true;
+            var code = String(item.StudentCode || "").toLowerCase();
+            var name = String(item.FullName || "").toLowerCase();
+            return code.indexOf(keyword) >= 0 || name.indexOf(keyword) >= 0;
+        });
+
+        if (!filteredStudents.length) {
+            tbody.innerHTML = '<tr><td colspan="5" class="empty">Không tìm thấy sinh viên phù hợp.</td></tr>';
+            if (saveAllBtn) saveAllBtn.style.display = "none";
+            if (downloadBtn) downloadBtn.style.display = "inline-flex";
+            if (importLabel) importLabel.style.display = "inline-flex";
+            return;
+        }
+
+        tbody.innerHTML = filteredStudents.map(function (item) {
             return "<tr data-enrollment-id=\"" + Number(item.EnrollmentId) + "\">"
                 + "<td><strong>" + escapeHtml(item.StudentCode) + "</strong></td>"
                 + "<td>" + escapeHtml(item.FullName) + "</td>"
-                + "<td><input type=\"number\" min=\"0\" max=\"10\" step=\"0.1\" data-score-type=\"1\" value=\"" + (item.ChuyenCan ?? "") + "\"></td>"
-                + "<td><input type=\"number\" min=\"0\" max=\"10\" step=\"0.1\" data-score-type=\"2\" value=\"" + (item.GiuaKy ?? "") + "\"></td>"
-                + "<td><input type=\"number\" min=\"0\" max=\"10\" step=\"0.1\" data-score-type=\"3\" value=\"" + (item.CuoiKy ?? "") + "\"></td>"
+                + "<td class=\"text-center\"><input type=\"number\" min=\"0\" max=\"10\" step=\"0.1\" data-score-type=\"1\" value=\"" + (item.ChuyenCan ?? "") + "\"></td>"
+                + "<td class=\"text-center\"><input type=\"number\" min=\"0\" max=\"10\" step=\"0.1\" data-score-type=\"2\" value=\"" + (item.GiuaKy ?? "") + "\"></td>"
+                + "<td class=\"text-center\"><input type=\"number\" min=\"0\" max=\"10\" step=\"0.1\" data-score-type=\"3\" value=\"" + (item.CuoiKy ?? "") + "\"></td>"
                 + "</tr>";
         }).join("");
 
@@ -500,7 +525,7 @@
                 ];
 
                 // Header cột theo mẫu ảnh Excel
-                data.push(["Ngày sinh", "Giới tính", "SĐT", "Email", "Địa chỉ", "", "Chuyên cần", "Giữa kỳ", "Cuối kỳ", "Điểm TB"]);
+                data.push(["Mã SV", "Họ tên", "Ngày sinh", "Giới tính", "SĐT", "Email", "Địa chỉ", "", "Chuyên cần", "Giữa kỳ", "Cuối kỳ", "Điểm TB"]);
 
                 students.forEach(function (sv) {
                     var cc = sv.ChuyenCan !== null && sv.ChuyenCan !== undefined ? Number(sv.ChuyenCan) : null;
@@ -513,6 +538,8 @@
                     }
 
                     data.push([
+                        sv.StudentCode || "",
+                        sv.FullName || "",
                         sv.DateOfBirth || "",
                         sv.Gender || "",
                         sv.PhoneNumber || "",
@@ -529,7 +556,7 @@
                 var ws = XLSX.utils.aoa_to_sheet(data);
 
                 ws["!cols"] = [
-                    { wch: 15 }, { wch: 10 }, { wch: 15 }, { wch: 25 }, { wch: 30 },
+                    { wch: 12 }, { wch: 25 }, { wch: 15 }, { wch: 10 }, { wch: 15 }, { wch: 25 }, { wch: 30 },
                     { wch: 5 }, { wch: 12 }, { wch: 12 }, { wch: 12 }, { wch: 10 }
                 ];
 
@@ -585,12 +612,14 @@
         if (!classId) {
             if (body) body.innerHTML = '<tr><td colspan="7" class="empty">Chọn một lớp để hiển thị bảng điểm.</td></tr>';
             if (summary) summary.style.display = 'none';
+            state.scoreViewStudents = [];
             return;
         }
         if (body) body.innerHTML = '<tr><td colspan="7" class="empty">Đang tải...</td></tr>';
         try {
             var students = await getJson(endpoints.classStudents + Number(classId));
-            renderScoreView(students || []);
+            state.scoreViewStudents = students || [];
+            renderScoreView();
         } catch (err) {
             if (body) body.innerHTML = '<tr><td colspan="7" class="empty">Lỗi: ' + escapeHtml(err.message) + '</td></tr>';
         }
@@ -602,15 +631,33 @@
         var exportBtn = document.getElementById('exportScoreBtn');
         if (!body) return;
 
-        if (!students.length) {
+        if (Array.isArray(students)) {
+            state.scoreViewStudents = students;
+        }
+        var list = state.scoreViewStudents || [];
+        var keyword = ((document.getElementById("scoreViewSearchInput") || {}).value || "").trim().toLowerCase();
+        var filtered = list.filter(function (sv) {
+            if (!keyword) return true;
+            var code = String(sv.StudentCode || "").toLowerCase();
+            var name = String(sv.FullName || "").toLowerCase();
+            return code.indexOf(keyword) >= 0 || name.indexOf(keyword) >= 0;
+        });
+
+        if (!list.length) {
             body.innerHTML = '<tr><td colspan="7" class="empty">Lớp chưa có sinh viên.</td></tr>';
+            if (summary) summary.style.display = 'none';
+            if (exportBtn) exportBtn.style.display = 'none';
+            return;
+        }
+        if (!filtered.length) {
+            body.innerHTML = '<tr><td colspan="7" class="empty">Không tìm thấy sinh viên phù hợp.</td></tr>';
             if (summary) summary.style.display = 'none';
             if (exportBtn) exportBtn.style.display = 'none';
             return;
         }
 
         var totalPass = 0, totalFail = 0;
-        body.innerHTML = students.map(function (sv) {
+        body.innerHTML = filtered.map(function (sv) {
             var cc = sv.ChuyenCan != null ? Number(sv.ChuyenCan) : null;
             var gk = sv.GiuaKy != null ? Number(sv.GiuaKy) : null;
             var ck = sv.CuoiKy != null ? Number(sv.CuoiKy) : null;
@@ -626,16 +673,16 @@
             return '<tr>'
                 + '<td><strong>' + escapeHtml(sv.StudentCode) + '</strong></td>'
                 + '<td>' + escapeHtml(sv.FullName) + '</td>'
-                + '<td>' + (cc != null ? cc : '<span style="color:#94a3b8">--</span>') + '</td>'
-                + '<td>' + (gk != null ? gk : '<span style="color:#94a3b8">--</span>') + '</td>'
-                + '<td>' + (ck != null ? ck : '<span style="color:#94a3b8">--</span>') + '</td>'
-                + '<td><strong style="color:' + (dtb == null ? '#94a3b8' : (dtb >= 8 ? '#16a34a' : (dtb >= 5 ? '#d97706' : '#ef4444'))) + '">' + (dtb != null ? dtb : '--') + '</strong></td>'
-                + '<td>' + resultBadge + '</td>'
+                + '<td class="text-center">' + (cc != null ? cc : '<span style="color:#94a3b8">--</span>') + '</td>'
+                + '<td class="text-center">' + (gk != null ? gk : '<span style="color:#94a3b8">--</span>') + '</td>'
+                + '<td class="text-center">' + (ck != null ? ck : '<span style="color:#94a3b8">--</span>') + '</td>'
+                + '<td class="text-center"><strong style="color:' + (dtb == null ? '#94a3b8' : (dtb >= 8 ? '#16a34a' : (dtb >= 5 ? '#d97706' : '#ef4444'))) + '">' + (dtb != null ? dtb : '--') + '</strong></td>'
+                + '<td class="text-center">' + resultBadge + '</td>'
                 + '</tr>';
         }).join('');
 
         // Summary stats
-        var total = students.length;
+        var total = filtered.length;
         var svTotal = document.getElementById('svTotalCount');
         var svPass = document.getElementById('svPassCount');
         var svFail = document.getElementById('svFailCount');
@@ -859,6 +906,139 @@
         applyActiveState();
     }
 
+    function loadAttendanceSummary(classId) {
+        var head = document.getElementById("attendanceSummaryHead");
+        var body = document.getElementById("attendanceTableBody");
+        var saveBtn = document.getElementById("attendanceSaveBtn");
+        if (!classId) return;
+
+        attendanceState.classId = classId;
+        attendanceState.dirty = {};
+
+        if (head) head.innerHTML = '<tr><th colspan="3" style="text-align:center;padding:24px;color:#94a3b8;"><i class="fas fa-spinner fa-spin"></i> Đang tải...</th></tr>';
+        if (body) body.innerHTML = "";
+        if (saveBtn) saveBtn.style.display = "none";
+
+        getJson('/api/teachers/attendance/class/' + classId + '/summary')
+            .then(function(data) {
+                attendanceState.students  = data.students  || [];
+                attendanceState.dates     = data.dates     || [];
+                attendanceState.recordMap = data.record_map || {};
+                renderAttendanceSummary();
+            })
+            .catch(function(err) {
+                if (head) head.innerHTML = '<tr><th colspan="3" style="text-align:center;color:#ef4444;">Lỗi: ' + escapeHtml(err.message) + '</th></tr>';
+            });
+    }
+
+    function renderAttendanceSummary() {
+        var head    = document.getElementById("attendanceSummaryHead");
+        var body    = document.getElementById("attendanceTableBody");
+        var saveBtn = document.getElementById("attendanceSaveBtn");
+        if (!head || !body) return;
+
+        var students  = attendanceState.students;
+        var dates     = attendanceState.dates;
+        var recordMap = attendanceState.recordMap;
+        var dirty     = attendanceState.dirty;
+
+        var today = new Date().toISOString().slice(0, 10);
+
+        if (!students.length) {
+            head.innerHTML = '<tr><th colspan="3" style="text-align:center;padding:32px;color:#94a3b8;">Lớp chưa có sinh viên.</th></tr>';
+            body.innerHTML = "";
+            return;
+        }
+
+        // Header: STT | Mã SV | Họ tên | [date1] | [date2] ...
+        var headerHtml = '<tr>'
+            + '<th style="width:40px;text-align:center;">STT</th>'
+            + '<th style="min-width:90px;">Mã SV</th>'
+            + '<th style="min-width:160px;">Họ tên</th>';
+
+        dates.forEach(function(d) {
+            // Format dd/MM
+            var parts = d.split("-");
+            var label = parts[2] + "/" + parts[1];
+            var isToday = d === today;
+            headerHtml += '<th class="att-date-header' + (isToday ? ' att-today-col' : '') + '">' + label + '</th>';
+        });
+        headerHtml += '</tr>';
+        head.innerHTML = headerHtml;
+
+        // Body rows
+        body.innerHTML = students.map(function(sv, idx) {
+            var eid = String(sv.EnrollmentId);
+            var svRecord = recordMap[eid] || {};
+            var svDirty  = dirty[eid] || {};
+
+            var cells = '<td style="text-align:center;color:#94a3b8;">' + (idx + 1) + '</td>'
+                + '<td><strong>' + escapeHtml(sv.StudentCode) + '</strong></td>'
+                + '<td>' + escapeHtml(sv.FullName) + '</td>';
+
+            dates.forEach(function(d) {
+                // dirty > saved
+                var status = svDirty.hasOwnProperty(d) ? svDirty[d] : (svRecord[d] || null);
+                var cellClass, cellText;
+
+                if (status === "Absent") {
+                    cellClass = "att-absent"; cellText = "X";
+                } else if (status === "Late") {
+                    cellClass = "att-late";   cellText = "M";
+                } else if (status === "Present") {
+                    cellClass = "att-present"; cellText = "";
+                } else {
+                    cellClass = "att-empty";  cellText = "";
+                }
+
+                cells += '<td class="att-cell ' + cellClass + '"'
+                    + ' data-eid="' + eid + '"'
+                    + ' data-date="' + d + '"'
+                    + ' data-status="' + (status || "") + '"'
+                    + ' title="' + escapeHtml(sv.FullName) + ' - ' + d + '">'
+                    + cellText
+                    + '</td>';
+            });
+
+            return '<tr>' + cells + '</tr>';
+        }).join("");
+
+        // Click vào cell để toggle: trống → Absent(X) → Late(M) → Present(trống) → ...
+        body.querySelectorAll(".att-cell").forEach(function(cell) {
+            cell.addEventListener("click", function() {
+                var eid    = this.dataset.eid;
+                var date   = this.dataset.date;
+                var cur    = this.dataset.status || "";
+
+                // Cycle: "" / Present → Absent → Late → Present
+                var next;
+                if (cur === "" || cur === "Present") next = "Absent";
+                else if (cur === "Absent") next = "Late";
+                else next = "Present";
+
+                // Cập nhật dirty state
+                if (!attendanceState.dirty[eid]) attendanceState.dirty[eid] = {};
+                attendanceState.dirty[eid][date] = next;
+
+                // Cập nhật cell UI trực tiếp
+                this.dataset.status = next;
+                if (next === "Absent") {
+                    this.className = "att-cell att-absent";
+                    this.textContent = "X";
+                } else if (next === "Late") {
+                    this.className = "att-cell att-late";
+                    this.textContent = "M";
+                } else {
+                    this.className = "att-cell att-present";
+                    this.textContent = "";
+                }
+
+                // Hiện nút lưu
+                if (saveBtn) saveBtn.style.display = "inline-flex";
+            });
+        });
+    }
+
     function getLastOccurrence(weekdayStr) {
         var weekdayToJs = {
             "Thứ 2": 1, "Thứ 3": 2, "Thứ 4": 3,
@@ -897,11 +1077,16 @@
         rows.forEach(function (row) {
             var cells = row.querySelectorAll("td");
             var inputs = row.querySelectorAll("input[data-score-type]");
+            var code = cells[0] ? cells[0].textContent.trim() : "";
+            
+            // Tìm thông tin SV trong state để lấy Ngày sinh, Giới tính
+            var svInfo = (state.classStudents || []).find(function(s) { return s.StudentCode === code; });
+
             data.push([
-                cells[0] ? cells[0].textContent.trim() : "",
+                code,
                 cells[1] ? cells[1].textContent.trim() : "",
-                "",  // Ngày sinh — để trống, chỉ tham khảo
-                "",  // Giới tính — để trống
+                svInfo ? (svInfo.DateOfBirth || "") : "",
+                svInfo ? (svInfo.Gender || "") : "",
                 inputs[0] && inputs[0].value !== "" ? Number(inputs[0].value) : "",
                 inputs[1] && inputs[1].value !== "" ? Number(inputs[1].value) : "",
                 inputs[2] && inputs[2].value !== "" ? Number(inputs[2].value) : "",
@@ -1025,6 +1210,23 @@
     }
 
     function bindEvents() {
+        var reloadBtn = document.getElementById("topbarReloadBtn");
+        if (reloadBtn) {
+            reloadBtn.addEventListener("click", function () {
+                var icon = reloadBtn.querySelector("i");
+                if (icon) icon.classList.add("fa-spin");
+                reloadBtn.disabled = true;
+                
+                // Reload data without full page refresh to maintain state if possible, 
+                // but user asked to "reload lại trang" which usually means full refresh.
+                // However, for better UX in SPA, we can just reload all data.
+                // Let's do a full refresh as requested: "reload lại trang"
+                setTimeout(function() {
+                    window.location.reload();
+                }, 300);
+            });
+        }
+
         var pdfDropZone = document.getElementById("examPdfDropZone");
         var pdfFileInput = document.getElementById("examPdfFileInput");
         if (pdfDropZone && pdfFileInput) {
@@ -1069,6 +1271,12 @@
                 });
             });
         }
+        var scoreEntrySearchInput = document.getElementById("scoreEntrySearchInput");
+        if (scoreEntrySearchInput) {
+            scoreEntrySearchInput.addEventListener("input", function () {
+                renderScoreStudents();
+            });
+        }
 
         // Tải file mẫu
         var downloadTemplateBtn = document.getElementById("downloadTemplateBtn");
@@ -1097,47 +1305,160 @@
         }
 
         // 4. Attendance
+        // 4. Attendance - Automatically add session when date is selected
+        var dateSelect = document.getElementById("attendanceDateSelect");
+        if (dateSelect) {
+            dateSelect.addEventListener("change", function() {
+                var classId = document.getElementById("attendanceClassSelect").value;
+                var date = this.value;
+
+                if (!classId || !date) return;
+
+                // Nếu ngày chưa có trong danh sách → thêm vào và re-render
+                if (!attendanceState.dates.includes(date)) {
+                    attendanceState.dates.push(date);
+                    attendanceState.dates.sort();
+                }
+
+                // Mặc định tất cả sinh viên là Present cho ngày mới (nếu chưa có dirty/saved)
+                attendanceState.students.forEach(function(sv) {
+                    var eid = String(sv.EnrollmentId);
+                    if (!attendanceState.dirty[eid]) attendanceState.dirty[eid] = {};
+                    
+                    // Chỉ set nếu chưa có dữ liệu saved và chưa có dữ liệu dirty
+                    var hasSaved = attendanceState.recordMap[eid] && attendanceState.recordMap[eid][date];
+                    if (!hasSaved && !attendanceState.dirty[eid][date]) {
+                        attendanceState.dirty[eid][date] = "Present";
+                    }
+                });
+
+                renderAttendanceSummary();
+
+                // Cập nhật option trong select → thêm dấu ✓
+                Array.from(this.options).forEach(function(opt) {
+                    if (opt.value === date && !opt.text.includes("✓")) {
+                        opt.text += " ✓";
+                    }
+                });
+
+                var saveBtn = document.getElementById("attendanceSaveBtn");
+                if (saveBtn) saveBtn.style.display = "inline-flex";
+            });
+        }
+
+        // Sửa attendanceSearchBtn — chỉ cần chọn lớp
         var attSearchBtn = document.getElementById("attendanceSearchBtn");
         if (attSearchBtn) {
-            attSearchBtn.addEventListener('click', function () {
+            attSearchBtn.addEventListener('click', function() {
                 var classId = document.getElementById('attendanceClassSelect').value;
-                var date = document.getElementById('attendanceDateInput').value;
-                var body = document.getElementById('attendanceTableBody');
-
-                if (!classId || !date) {
-                    alert('Vui lòng chọn lớp và ngày học!');
-                    return;
-                }
+                if (!classId) { alert('Vui lòng chọn lớp!'); return; }
 
                 attSearchBtn.disabled = true;
                 attSearchBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Đang tải...';
-                body.innerHTML = '<tr><td colspan="5" style="text-align:center;padding:32px;color:#94a3b8;"><i class="fas fa-spinner fa-spin"></i> Đang tải...</td></tr>';
 
-                getJson('/api/teachers/attendance/' + classId + '?date=' + date)
-                    .then(function (students) {
-                        if (!students || students.length === 0) {
-                            body.innerHTML = '<tr><td colspan="5" style="text-align:center;padding:32px;color:#94a3b8;"><i class="fas fa-users-slash" style="font-size:1.5rem;margin-bottom:8px;display:block;"></i>Lớp chưa có sinh viên.</td></tr>';
-                        } else {
-                            body.innerHTML = students.map(function (sv) {
-                                var present = sv.AttendanceStatus === 'Present' ? 'checked' : '';
-                                var absent = sv.AttendanceStatus === 'Absent' ? 'checked' : '';
-                                var late = sv.AttendanceStatus === 'Late' ? 'checked' : '';
-                                return "<tr data-enrollment-id='" + sv.EnrollmentId + "' style='hover:background:#f8fafc;'>"
-                                    + "<td><strong>" + escapeHtml(sv.StudentCode) + "</strong></td>"
-                                    + "<td>" + escapeHtml(sv.FullName) + "</td>"
-                                    + "<td style='text-align:center'><label style='cursor:pointer;display:inline-flex;align-items:center;'><input type='radio' name='att_" + sv.EnrollmentId + "' value='Present' " + present + " style='margin-right:6px;'><span style='color:#15803d;font-weight:500;'>Có</span></label></td>"
-                                    + "<td style='text-align:center'><label style='cursor:pointer;display:inline-flex;align-items:center;'><input type='radio' name='att_" + sv.EnrollmentId + "' value='Absent' " + absent + " style='margin-right:6px;'><span style='color:#b91c1c;font-weight:500;'>Vắng</span></label></td>"
-                                    + "<td style='text-align:center'><label style='cursor:pointer;display:inline-flex;align-items:center;'><input type='radio' name='att_" + sv.EnrollmentId + "' value='Late' " + late + " style='margin-right:6px;'><span style='color:#ea580c;font-weight:500;'>Trễ</span></label></td>"
-                                    + "</tr>";
-                            }).join('');
-                        }
+                // Reset date select
+                var dateSelect = document.getElementById("attendanceDateSelect");
+                if (dateSelect) {
+                    dateSelect.innerHTML = '<option value="">Đang tải ngày học...</option>';
+                    dateSelect.disabled = true;
+                }
+
+                // Load summary và valid dates song song
+                Promise.all([
+                    new Promise(function(resolve) {
+                        loadAttendanceSummary(Number(classId));
+                        resolve();
+                    }),
+                    getJson('/api/teachers/attendance/class/' + classId + '/valid-dates')
+                ])
+                .then(function(results) {
+                    var validDates = results[1] || [];
+                    if (!dateSelect) return;
+
+                    if (!validDates.length) {
+                        dateSelect.innerHTML = '<option value="">Lớp chưa có lịch học</option>';
+                        return;
+                    }
+
+                    var today = new Date().toISOString().slice(0, 10);
+
+                    dateSelect.innerHTML = '<option value="">-- Chọn buổi học --</option>'
+                        + validDates.map(function(d) {
+                            // Format hiển thị: Thứ X, dd/MM/YYYY
+                            var dt = new Date(d + "T00:00:00");
+                            var dayNames = ["Chủ Nhật","Thứ Hai","Thứ Ba","Thứ Tư","Thứ Năm","Thứ Sáu","Thứ Bảy"];
+                            var dayName = dayNames[dt.getDay()];
+                            var parts = d.split("-");
+                            var label = dayName + ", " + parts[2] + "/" + parts[1] + "/" + parts[0];
+
+                            // Highlight hôm nay
+                            var extra = d === today ? " ★ Hôm nay" : "";
+
+                            // Đã có dữ liệu điểm danh chưa → check trong attendanceState
+                            var hasData = attendanceState.dates && attendanceState.dates.includes(d);
+                            var suffix = hasData ? " ✓" : "";
+
+                            return '<option value="' + d + '"' + (d === today ? ' selected' : '') + '>'
+                                + label + extra + suffix
+                                + '</option>';
+                        }).join('');
+
+                    dateSelect.disabled = false;
+                })
+                .catch(function(err) {
+                    if (dateSelect) dateSelect.innerHTML = '<option value="">Lỗi tải ngày học</option>';
+                    console.error(err);
+                })
+                .finally(function() {
+                    attSearchBtn.disabled = false;
+                    attSearchBtn.innerHTML = '<i class="fas fa-search"></i> Tải điểm danh';
+                });
+            });
+        }
+
+        // Lưu tất cả dirty records
+        var attSaveBtn = document.getElementById("attendanceSaveBtn");
+        if (attSaveBtn) {
+            attSaveBtn.addEventListener('click', function() {
+                var dirty = attendanceState.dirty;
+                var records = [];
+
+                Object.keys(dirty).forEach(function(eid) {
+                    Object.keys(dirty[eid]).forEach(function(date) {
+                        records.push({
+                            EnrollmentId: Number(eid),
+                            SessionDate:  date,
+                            Status:       dirty[eid][date]
+                        });
+                    });
+                });
+
+                if (!records.length) {
+                    alert('Không có thay đổi nào để lưu!');
+                    return;
+                }
+
+                attSaveBtn.disabled = true;
+                attSaveBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Đang lưu...';
+
+                postJson('/api/teachers/attendance/save', { records: records })
+                    .then(function() {
+                        alert('Đã lưu ' + records.length + ' bản ghi điểm danh!');
+                        attendanceState.dirty = {};
+                        // Merge dirty vào recordMap
+                        records.forEach(function(r) {
+                            var eid = String(r.EnrollmentId);
+                            if (!attendanceState.recordMap[eid]) attendanceState.recordMap[eid] = {};
+                            attendanceState.recordMap[eid][r.SessionDate] = r.Status;
+                        });
+                        attSaveBtn.style.display = "none";
                     })
-                    .catch(function (err) {
-                        body.innerHTML = '<tr><td colspan="5" style="text-align:center;padding:32px;color:#ef4444;"><i class="fas fa-exclamation-circle" style="font-size:1.5rem;margin-bottom:8px;display:block;"></i>Lỗi: ' + escapeHtml(err.message) + '</td></tr>';
+                    .catch(function(err) {
+                        alert('Lỗi: ' + err.message);
                     })
-                    .finally(function () {
-                        attSearchBtn.disabled = false;
-                        attSearchBtn.innerHTML = '<i class="fas fa-search"></i> Tải danh sách';
+                    .finally(function() {
+                        attSaveBtn.disabled = false;
+                        attSaveBtn.innerHTML = '<i class="fas fa-save"></i> Lưu điểm danh';
                     });
             });
         }
@@ -1232,15 +1553,21 @@
                         modal.style.display = "none";
                         var sel = document.getElementById("attendanceClassSelect");
                         if (sel) sel.value = String(classId);
-                        var dateInput = document.getElementById("attendanceDateInput");
-                        if (dateInput) {
-                            // Ưu tiên dùng data-cal-date nếu có, fallback getLastOccurrence
-                            var calDate = calDetailBtn.getAttribute("data-cal-date");
-                            dateInput.value = calDate || getLastOccurrence(weekdayVi);
-                        }
                         window.location.hash = "#attendance";
+
+                        // Tự động load lịch và chọn đúng ngày
                         var searchBtn = document.getElementById("attendanceSearchBtn");
-                        if (searchBtn) searchBtn.click();
+                        if (searchBtn) {
+                            searchBtn.click();
+                            // Sau khi load xong, select đúng ngày từ cal-date
+                            var calDate = calDetailBtn.getAttribute("data-cal-date");
+                            if (calDate) {
+                                setTimeout(function() {
+                                    var dateSelect = document.getElementById("attendanceDateSelect");
+                                    if (dateSelect) dateSelect.value = calDate;
+                                }, 800); // Đợi load valid-dates xong
+                            }
+                        }
                     };
                 }
 
@@ -1684,8 +2011,10 @@
                                 + "<td>" + escapeHtml(sv.DateOfBirth || "—") + "</td>"
                                 + "<td>" + escapeHtml(sv.Gender || "—") + "</td>"
                                 + "<td>" + escapeHtml(sv.PhoneNumber || "—") + "</td>"
+                                + "<td>" + escapeHtml(sv.Email || "—") + "</td>"
+                                + "<td>" + escapeHtml(sv.Address || "—") + "</td>"
                                 + "</tr>";
-                        }).join("") || '<tr><td colspan="7" class="empty">Lớp chưa có sinh viên.</td></tr>';
+                        }).join("") || '<tr><td colspan="8" class="empty">Lớp chưa có sinh viên.</td></tr>';
 
                         var exportBtn = document.getElementById("exportClassListBtn");
                         if (exportBtn) {
@@ -1810,56 +2139,6 @@
             });
         }
 
-        // Lưu điểm danh
-        var attSaveBtn = document.getElementById("attendanceSaveBtn");
-        if (attSaveBtn) {
-            attSaveBtn.addEventListener('click', function () {
-                var date = document.getElementById('attendanceDateInput').value;
-                var rows = document.querySelectorAll('#attendanceTableBody tr[data-enrollment-id]');
-
-                if (!rows.length || !date) {
-                    alert('Chưa có dữ liệu điểm danh!');
-                    return;
-                }
-
-                var records = [];
-                var selectedCount = 0;
-                rows.forEach(function (row) {
-                    var enrollmentId = Number(row.dataset.enrollmentId);
-                    var checked = row.querySelector('input[type="radio"]:checked');
-                    if (checked) {
-                        selectedCount++;
-                        records.push({
-                            EnrollmentId: enrollmentId,
-                            SessionDate: date,
-                            Status: checked.value
-                        });
-                    }
-                });
-
-                if (!records.length) {
-                    alert('Vui lòng chọn trạng thái điểm danh cho ít nhất một sinh viên!');
-                    return;
-                }
-
-                attSaveBtn.disabled = true;
-                attSaveBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Đang lưu...';
-
-                postJson('/api/teachers/attendance/save', { records: records })
-                    .then(function () {
-                        alert('Đã lưu điểm danh cho ' + selectedCount + ' sinh viên thành công!');
-                        document.getElementById('attendanceSearchBtn').click(); // Reload
-                    })
-                    .catch(function (err) {
-                        alert('Lỗi: ' + err.message);
-                    })
-                    .finally(function () {
-                        attSaveBtn.disabled = false;
-                        attSaveBtn.innerHTML = '<i class="fas fa-save"></i> Lưu điểm danh';
-                    });
-            });
-        }
-
         // Gửi thông báo
         var notifSendBtn = document.getElementById('notificationSendBtn');
         if (notifSendBtn) {
@@ -1957,9 +2236,9 @@
         }
 
         // Xem điểm lớp
-        var scoreViewLoadBtn = document.getElementById('scoreViewLoadBtn');
-        if (scoreViewLoadBtn) {
-            scoreViewLoadBtn.addEventListener('click', function () {
+        var scoreViewSearchBtn = document.getElementById('scoreViewSearchBtn');
+        if (scoreViewSearchBtn) {
+            scoreViewSearchBtn.addEventListener('click', function () {
                 var classId = document.getElementById('scoreViewClassSelect').value;
                 if (!classId) {
                     alert('Vui lòng chọn lớp để xem điểm!');
@@ -1973,6 +2252,12 @@
         if (scoreViewSel) {
             scoreViewSel.addEventListener('change', function () {
                 if (this.value) loadScoreView(Number(this.value));
+            });
+        }
+        var scoreViewSearchInput = document.getElementById('scoreViewSearchInput');
+        if (scoreViewSearchInput) {
+            scoreViewSearchInput.addEventListener('input', function () {
+                renderScoreView();
             });
         }
 
@@ -2035,6 +2320,21 @@
                 });
             });
         }
+        var reportTableBody = document.getElementById('reportClassStatsBody');
+        if (reportTableBody) {
+            reportTableBody.addEventListener('click', function (event) {
+                var btn = event.target.closest('.btn-export-class-report');
+                if (!btn) return;
+                var classId = Number(btn.dataset.classId || 0);
+                if (!classId) return;
+                exportClassReportPdf(
+                    classId,
+                    btn.dataset.classCode || '',
+                    btn.dataset.className || '',
+                    btn.dataset.courseName || ''
+                );
+            });
+        }
 
         // Khởi tạo thông báo
         loadNotifications();
@@ -2094,6 +2394,231 @@
         }
     }
 
+    function calcFinalScore(chuyenCan, giuaKy, cuoiKy) {
+        var cc = chuyenCan != null ? Number(chuyenCan) : null;
+        var gk = giuaKy != null ? Number(giuaKy) : null;
+        var ck = cuoiKy != null ? Number(cuoiKy) : null;
+        if (cc == null || gk == null || ck == null) return null;
+        return Math.round((0.1 * cc + 0.3 * gk + 0.6 * ck) * 10) / 10;
+    }
+
+    function renderClassAvgChart(classStats) {
+        var chartWrap = document.getElementById('classAvgChart');
+        if (!chartWrap) return;
+        var stats = (classStats || []).filter(function (c) { return c.AvgScore != null; });
+        if (!stats.length) {
+            chartWrap.innerHTML = '<div style="text-align:center;color:#94a3b8;padding:20px 0;">Chưa có dữ liệu điểm trung bình.</div>';
+            return;
+        }
+        var leftPad = 42;
+        var rightPad = 12;
+        var topPad = 14;
+        var bottomPad = 36;
+        var chartHeight = 260;
+        var plotHeight = chartHeight - topPad - bottomPad;
+        var barStep = 86;
+        var svgWidth = Math.max(760, leftPad + rightPad + stats.length * barStep);
+        var axisColor = '#cbd5e1';
+        var gridColor = '#e2e8f0';
+
+        function yByScore(score) {
+            return topPad + (10 - score) * (plotHeight / 10);
+        }
+
+        var gridLines = '';
+        for (var s = 0; s <= 10; s++) {
+            var y = yByScore(s).toFixed(1);
+            gridLines += '<line x1="' + leftPad + '" y1="' + y + '" x2="' + (svgWidth - rightPad) + '" y2="' + y + '" stroke="' + gridColor + '" stroke-width="' + (s % 5 === 0 ? 1.4 : 1) + '"/>';
+            gridLines += '<text x="' + (leftPad - 8) + '" y="' + (Number(y) + 3) + '" font-size="11" fill="#64748b" text-anchor="end">' + s + '</text>';
+        }
+
+        var bars = stats.map(function (c, idx) {
+            var avgScore = Number(c.AvgScore);
+            var barX = leftPad + idx * barStep + 18;
+            var barW = 26;
+            var yTop = yByScore(avgScore);
+            var barH = Math.max(2, (topPad + plotHeight) - yTop);
+            var color = avgScore >= 8 ? '#16a34a' : (avgScore >= 5 ? '#d97706' : '#ef4444');
+            var classCode = escapeHtml(c.ClassCode || '');
+            return '<g class="avg-bar-group" data-value="' + avgScore.toFixed(2) + '" style="cursor:pointer;">'
+                + '<title>' + classCode + ': ' + avgScore.toFixed(2) + '</title>'
+                + '<rect x="' + barX + '" y="' + yTop.toFixed(1) + '" width="' + barW + '" height="' + barH.toFixed(1) + '" rx="6" ry="6" fill="' + color + '" opacity="0.92"></rect>'
+                + '<text x="' + (barX + barW / 2) + '" y="' + (yTop - 6).toFixed(1) + '" font-size="11" font-weight="700" text-anchor="middle" fill="' + color + '">' + avgScore.toFixed(2) + '</text>'
+                + '<text x="' + (barX + barW / 2) + '" y="' + (topPad + plotHeight + 16) + '" font-size="11" font-weight="600" text-anchor="middle" fill="#334155">' + classCode + '</text>'
+                + '</g>';
+        }).join('');
+
+        var svgHtml = '<svg width="' + svgWidth + '" height="' + chartHeight + '" viewBox="0 0 ' + svgWidth + ' ' + chartHeight + '" xmlns="http://www.w3.org/2000/svg">'
+            + '<line x1="' + leftPad + '" y1="' + topPad + '" x2="' + leftPad + '" y2="' + (topPad + plotHeight) + '" stroke="' + axisColor + '" stroke-width="1.5"/>'
+            + '<line x1="' + leftPad + '" y1="' + (topPad + plotHeight) + '" x2="' + (svgWidth - rightPad) + '" y2="' + (topPad + plotHeight) + '" stroke="' + axisColor + '" stroke-width="1.5"/>'
+            + gridLines
+            + bars
+            + '</svg>';
+
+        chartWrap.innerHTML = '<div style="overflow-x:auto;border:1px solid #e2e8f0;border-radius:12px;padding:10px;background:#fff;">' + svgHtml + '</div>'
+            + '<div style="display:flex;justify-content:space-between;font-size:12px;color:#64748b;margin-top:8px;">'
+            + '<span>Trục Y: thang điểm 0-10</span><span>Di chuột vào cột để xem chi tiết</span>'
+            + '</div>';
+
+        chartWrap.querySelectorAll('.avg-bar-group').forEach(function (group) {
+            group.addEventListener('mouseenter', function () {
+                var rect = group.querySelector('rect');
+                if (rect) {
+                    rect.setAttribute('opacity', '1');
+                    rect.setAttribute('stroke', '#1e293b');
+                    rect.setAttribute('stroke-width', '1');
+                }
+            });
+            group.addEventListener('mouseleave', function () {
+                var rect = group.querySelector('rect');
+                if (rect) {
+                    rect.setAttribute('opacity', '0.92');
+                    rect.removeAttribute('stroke');
+                    rect.removeAttribute('stroke-width');
+                }
+            });
+        });
+    }
+
+    async function exportClassReportPdf(classId, classCode, className, courseName) {
+        try {
+            var students = await getJson('/api/teachers/class-students/' + Number(classId));
+            if (!students || !students.length) {
+                alert('Lớp chưa có sinh viên để xuất PDF.');
+                return;
+            }
+            if (!window.jspdf || !window.jspdf.jsPDF) {
+                alert('Không thể tải thư viện PDF. Vui lòng thử lại.');
+                return;
+            }
+            var teacherName = document.getElementById('profileFullName')
+                ? document.getElementById('profileFullName').textContent.trim()
+                : 'Giảng viên';
+            var now = new Date();
+            var dateStr = now.toLocaleDateString('vi-VN');
+            var bodyRows = students.map(function (sv, idx) {
+                var cc = sv.ChuyenCan != null ? Number(sv.ChuyenCan) : null;
+                var gk = sv.GiuaKy != null ? Number(sv.GiuaKy) : null;
+                var ck = sv.CuoiKy != null ? Number(sv.CuoiKy) : null;
+                var avg = calcFinalScore(cc, gk, ck);
+                var result = avg == null ? 'Chưa có điểm' : (avg >= 5 ? 'Pass' : 'Fail');
+                return [
+                    idx + 1,
+                    sv.StudentCode || '',
+                    sv.FullName || '',
+                    cc != null ? cc.toFixed(1) : '-',
+                    gk != null ? gk.toFixed(1) : '-',
+                    ck != null ? ck.toFixed(1) : '-',
+                    avg != null ? avg.toFixed(1) : '-',
+                    result
+                ];
+            });
+            var reportTitle = 'BaoCao_Lop_' + String(classCode || classId).replace(/[^a-zA-Z0-9_]/g, '_');
+            if (typeof window.html2canvas !== 'function') {
+                alert('Không thể tải thư viện xuất PDF. Vui lòng thử lại.');
+                return;
+            }
+
+            var tableRowsHtml = students.map(function (sv, idx) {
+                var cc = sv.ChuyenCan != null ? Number(sv.ChuyenCan) : null;
+                var gk = sv.GiuaKy != null ? Number(sv.GiuaKy) : null;
+                var ck = sv.CuoiKy != null ? Number(sv.CuoiKy) : null;
+                var avg = calcFinalScore(cc, gk, ck);
+                var result = avg == null ? 'Chưa có điểm' : (avg >= 5 ? 'Pass' : 'Fail');
+                var resultColor = avg == null ? '#64748b' : (avg >= 5 ? '#15803d' : '#be123c');
+                return '<tr>'
+                    + '<td style="border:1px solid #cbd5e1;padding:8px 6px;text-align:center;">' + (idx + 1) + '</td>'
+                    + '<td style="border:1px solid #cbd5e1;padding:8px 10px;"><b>' + escapeHtml(sv.StudentCode || '') + '</b></td>'
+                    + '<td style="border:1px solid #cbd5e1;padding:8px 10px;">' + escapeHtml(sv.FullName || '') + '</td>'
+                    + '<td style="border:1px solid #cbd5e1;padding:8px 6px;text-align:center;">' + (cc != null ? cc.toFixed(1) : '-') + '</td>'
+                    + '<td style="border:1px solid #cbd5e1;padding:8px 6px;text-align:center;">' + (gk != null ? gk.toFixed(1) : '-') + '</td>'
+                    + '<td style="border:1px solid #cbd5e1;padding:8px 6px;text-align:center;">' + (ck != null ? ck.toFixed(1) : '-') + '</td>'
+                    + '<td style="border:1px solid #cbd5e1;padding:8px 6px;text-align:center;font-weight:700;">' + (avg != null ? avg.toFixed(1) : '-') + '</td>'
+                    + '<td style="border:1px solid #cbd5e1;padding:8px 6px;text-align:center;font-weight:700;color:' + resultColor + ';">' + result + '</td>'
+                    + '</tr>';
+            }).join('');
+
+            var wrapper = document.createElement('div');
+            wrapper.style.position = 'fixed';
+            wrapper.style.left = '-99999px';
+            wrapper.style.top = '0';
+            wrapper.style.width = '794px';
+            wrapper.style.background = '#f8fafc';
+            wrapper.style.padding = '28px 30px';
+            wrapper.style.fontFamily = '"Segoe UI", Arial, sans-serif';
+            wrapper.innerHTML =
+                '<div style="width:100%;background:#f8fafc;color:#1f2937;">'
+                + '<h1 style="margin:0;text-align:center;font-size:24px;letter-spacing:.5px;color:#1d4ed8;font-weight:700;">ACADEMIC PERFORMANCE REPORT</h1>'
+                + '<div style="text-align:center;margin-top:8px;font-size:16px;color:#64748b;">Hệ thống Quản lý Students CLASSES369</div>'
+                + '<div style="height:2px;background:#2563eb;margin:22px 0 18px 0;"></div>'
+                + '<div style="display:flex;justify-content:space-between;gap:16px;background:#f1f5f9;border:1px solid #cbd5e1;border-radius:10px;padding:14px 16px;">'
+                + '<div style="font-size:14px;line-height:1.75;">'
+                + '<div><b>Class:</b> ' + escapeHtml(classCode || '') + ' - ' + escapeHtml(className || '') + '</div>'
+                + '<div><b>Subject:</b> ' + escapeHtml(courseName || '--') + '</div>'
+                + '<div><b>Semester:</b> Kỳ 1 - 2025</div>'
+                + '</div>'
+                + '<div style="font-size:14px;line-height:1.75;text-align:left;min-width:230px;">'
+                + '<div><b>Teacher:</b> ' + escapeHtml(teacherName) + '</div>'
+                + '<div><b>Created Date:</b> ' + escapeHtml(dateStr) + '</div>'
+                + '<div><b>Students:</b> ' + students.length + ' sinh viên</div>'
+                + '</div>'
+                + '</div>'
+                + '<table style="width:100%;border-collapse:collapse;margin-top:18px;background:#fff;font-size:13px;">'
+                + '<thead><tr style="background:#e2e8f0;color:#475569;">'
+                + '<th style="border:1px solid #cbd5e1;padding:8px 6px;">NO.</th>'
+                + '<th style="border:1px solid #cbd5e1;padding:8px 6px;">STUDENT ID</th>'
+                + '<th style="border:1px solid #cbd5e1;padding:8px 6px;">FULL NAME</th>'
+                + '<th style="border:1px solid #cbd5e1;padding:8px 6px;">CHUYÊN CẦN</th>'
+                + '<th style="border:1px solid #cbd5e1;padding:8px 6px;">GIỮA KỲ</th>'
+                + '<th style="border:1px solid #cbd5e1;padding:8px 6px;">CUỐI KỲ</th>'
+                + '<th style="border:1px solid #cbd5e1;padding:8px 6px;">AVG</th>'
+                + '<th style="border:1px solid #cbd5e1;padding:8px 6px;">RESULT</th>'
+                + '</tr></thead><tbody>'
+                + tableRowsHtml
+                + '</tbody></table>'
+                + '<div style="margin-top:18px;text-align:right;font-size:16px;color:#1f2937;">Ngày ' + escapeHtml(dateStr) + '</div>'
+                + '</div>';
+            document.body.appendChild(wrapper);
+
+            var canvas = await window.html2canvas(wrapper, {
+                scale: 3,
+                backgroundColor: '#f8fafc',
+                useCORS: true
+            });
+            wrapper.remove();
+
+            var jsPDF = window.jspdf.jsPDF;
+            var doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+            var pageWidth = doc.internal.pageSize.getWidth();
+            var pageHeight = doc.internal.pageSize.getHeight();
+            var imgData = canvas.toDataURL('image/png', 1.0);
+            var imgW = pageWidth;
+            var imgH = canvas.height * imgW / canvas.width;
+
+            if (imgH <= pageHeight) {
+                doc.addImage(imgData, 'PNG', 0, 0, imgW, imgH, '', 'FAST');
+            } else {
+                var yOffset = 0;
+                var pageCanvas = document.createElement('canvas');
+                var pageCtx = pageCanvas.getContext('2d');
+                var pagePixelHeight = Math.floor(canvas.width * (pageHeight / pageWidth));
+                pageCanvas.width = canvas.width;
+                pageCanvas.height = pagePixelHeight;
+                while (yOffset < canvas.height) {
+                    pageCtx.clearRect(0, 0, pageCanvas.width, pageCanvas.height);
+                    pageCtx.drawImage(canvas, 0, yOffset, canvas.width, pagePixelHeight, 0, 0, pageCanvas.width, pageCanvas.height);
+                    var pageImg = pageCanvas.toDataURL('image/png', 1.0);
+                    if (yOffset > 0) doc.addPage();
+                    doc.addImage(pageImg, 'PNG', 0, 0, pageWidth, pageHeight, '', 'FAST');
+                    yOffset += pagePixelHeight;
+                }
+            }
+            doc.save(reportTitle + '.pdf');
+        } catch (err) {
+            alert('Không thể xuất PDF: ' + err.message);
+        }
+    }
+
     function loadReport() {
         var body = document.getElementById('reportClassStatsBody');
         if (!body) return Promise.resolve();
@@ -2102,10 +2627,6 @@
             if (res) {
                 var avgAtt = res.avg_attendance !== null ? Number(res.avg_attendance) : null;
                 var passR = res.pass_rate !== null ? Number(res.pass_rate) : null;
-
-                if (document.getElementById('avgAttendance')) document.getElementById('avgAttendance').textContent = (avgAtt !== null ? avgAtt + '%' : '--%');
-                if (document.getElementById('passRate')) document.getElementById('passRate').textContent = (passR !== null ? passR + '%' : '--%');
-                if (document.getElementById('excellentCount')) document.getElementById('excellentCount').textContent = res.excellent_count || 0;
 
                 // Phần Tổng hợp
                 if (document.getElementById('topClass')) document.getElementById('topClass').textContent = escapeHtml(res.top_class || '--');
@@ -2118,6 +2639,7 @@
 
                 if (document.getElementById('attendanceRateBar')) document.getElementById('attendanceRateBar').textContent = (avgAtt !== null ? avgAtt + '%' : '0%');
                 if (document.getElementById('attendanceBarFill')) document.getElementById('attendanceBarFill').style.width = (avgAtt !== null ? avgAtt : 0) + '%';
+                renderClassAvgChart(res.class_stats || []);
 
                 if (res.class_stats && res.class_stats.length > 0) {
                     body.innerHTML = res.class_stats.map(function (c) {
@@ -2128,14 +2650,28 @@
                             '<td style="text-align:center;font-weight:bold;color:#1e293b;">' + (c.AvgScore !== null ? Number(c.AvgScore).toFixed(2) : '--') + '</td>' +
                             '<td style="text-align:center;color:#15803d;">' + (c.PassCount || 0) + '</td>' +
                             '<td style="text-align:center;color:#9a3412;">' + (c.ExcellentCount || 0) + '</td>' +
+                            '<td style="text-align:center;">'
+                            + '<button class="btn-ghost btn-export-class-report" title="Xuất PDF lớp này"'
+                            + ' data-class-id="' + Number(c.ClassId || 0) + '"'
+                            + ' data-class-code="' + escapeHtml(c.ClassCode || '') + '"'
+                            + ' data-class-name="' + escapeHtml(c.ClassName || '') + '"'
+                            + ' data-course-name="' + escapeHtml(c.CourseName || '') + '"'
+                            + ' style="color:#dc2626;">'
+                            + '<i class="fas fa-file-pdf"></i>'
+                            + '</button>'
+                            + '</td>' +
                             '</tr>';
                     }).join('');
                 } else {
-                    body.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:32px;color:#94a3b8;">Không có dữ liệu thống kê.</td></tr>';
+                    body.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:32px;color:#94a3b8;">Không có dữ liệu thống kê.</td></tr>';
                 }
             }
         }).catch(function (err) {
-            body.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:32px;color:#ef4444;">Lỗi tải báo cáo: ' + escapeHtml(err.message) + '</td></tr>';
+            var chartWrap = document.getElementById('classAvgChart');
+            if (chartWrap) {
+                chartWrap.innerHTML = '<div style="text-align:center;color:#ef4444;padding:20px 0;">Không thể tải biểu đồ: ' + escapeHtml(err.message) + '</div>';
+            }
+            body.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:32px;color:#ef4444;">Lỗi tải báo cáo: ' + escapeHtml(err.message) + '</td></tr>';
         });
     }
 
