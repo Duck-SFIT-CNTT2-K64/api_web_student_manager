@@ -2690,3 +2690,14 @@ html[data-theme="dark"] .notif-inbox-item.is-read {
 html[data-theme="dark"] .notif-inbox-title { color: var(--dk-text); }
 html[data-theme="dark"] .notif-inbox-body { color: var(--dk-text-2); }
 
+/* Small button helper (used in some legacy panels) */
+.btn-small {
+    padding: 6px 12px;
+    font-size: 0.75rem;
+    height: auto;
+}
+
+.portal-card-body p {
+    line-height: 1.5;
+}
+

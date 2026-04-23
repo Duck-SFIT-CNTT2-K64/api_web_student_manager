@@ -6,13 +6,13 @@ from models.helpers import row_to_dict, rows_to_list
 NOTIFICATION_SELECT_BASE = """
 SELECT
     n.NotificationId,
-    n.CreatorId,
+    n.AttachmentUrl,
     creator.FullName AS CreatorName,
     n.Title,
     n.Content,
     n.CreatedDate,
-    COUNT(nr.RecipientId) AS RecipientCount,
-    SUM(CASE WHEN nr.IsRead = 1 THEN 1 ELSE 0 END) AS ReadCount
+    COUNT(DISTINCT nr.RecipientId) AS RecipientCount,
+    COALESCE(CAST(SUM(CASE WHEN nr.IsRead = 1 THEN 1 ELSE 0 END) AS INT), 0) AS ReadCount
 FROM Notifications n
 LEFT JOIN Users creator ON n.CreatorId = creator.UserId
 LEFT JOIN NotificationRecipients nr ON n.NotificationId = nr.NotificationId
@@ -25,7 +25,7 @@ def get_all_notifications() -> List[Dict[str, Any]]:
         cursor.execute(
             NOTIFICATION_SELECT_BASE
             + """
-            GROUP BY n.NotificationId, n.CreatorId, creator.FullName, n.Title, n.Content, n.CreatedDate
+            GROUP BY n.NotificationId, n.CreatorId, n.AttachmentUrl, creator.FullName, n.Title, n.Content, n.CreatedDate
             ORDER BY n.CreatedDate DESC
             """
         )
@@ -103,6 +103,28 @@ def get_unread_notifications_for_user(user_id: int) -> List[Dict[str, Any]]:
         cursor.execute(query, user_id)
         rows = cursor.fetchall()
         return rows_to_list(cursor, rows)
+ 
+ 
+def get_all_notifications_for_user(user_id: int) -> List[Dict[str, Any]]:
+    with get_db_connection() as connection:
+        cursor = connection.cursor()
+        query = """
+        SELECT
+            n.NotificationId,
+            n.Title,
+            n.Content,
+            n.CreatedDate,
+            c.FullName AS CreatorName,
+            nr.IsRead
+        FROM Notifications n
+        INNER JOIN NotificationRecipients nr ON n.NotificationId = nr.NotificationId
+        LEFT JOIN Users c ON n.CreatorId = c.UserId
+        WHERE nr.RecipientId = ?
+        ORDER BY n.CreatedDate DESC
+        """
+        cursor.execute(query, user_id)
+        rows = cursor.fetchall()
+        return rows_to_list(cursor, rows)
 
 
 def mark_notification_as_read(notification_id: int, user_id: int) -> bool:
@@ -129,7 +151,7 @@ def get_notification_by_id(notification_id: int) -> Dict[str, Any] | None:
             NOTIFICATION_SELECT_BASE
             + """
             WHERE n.NotificationId = ?
-            GROUP BY n.NotificationId, n.CreatorId, creator.FullName, n.Title, n.Content, n.CreatedDate
+            GROUP BY n.NotificationId, n.CreatorId, n.AttachmentUrl, creator.FullName, n.Title, n.Content, n.CreatedDate
             """,
             notification_id,
         )
@@ -184,6 +206,7 @@ def create_notification(payload: Dict[str, Any]) -> Dict[str, Any]:
         raise ValueError("Title is required.")
 
     content = payload.get("Content") or None
+    attachment_url = payload.get("AttachmentUrl") or None
     creator_id = payload.get("CreatorId")
 
     with get_db_connection() as connection:
@@ -194,13 +217,14 @@ def create_notification(payload: Dict[str, Any]) -> Dict[str, Any]:
 
             cursor.execute(
                 """
-                INSERT INTO Notifications (CreatorId, Title, Content, CreatedDate)
+                INSERT INTO Notifications (CreatorId, Title, Content, AttachmentUrl, CreatedDate)
                 OUTPUT INSERTED.NotificationId
-                VALUES (?, ?, ?, GETDATE())
+                VALUES (?, ?, ?, ?, GETDATE())
                 """,
                 int(creator_id),
                 title,
                 content,
+                attachment_url,
             )
             notification_id = int(cursor.fetchone()[0])
 
@@ -237,11 +261,12 @@ def update_notification(notification_id: int, payload: Dict[str, Any]) -> Dict[s
             cursor.execute(
                 """
                 UPDATE Notifications
-                SET Title = ?, Content = ?
+                SET Title = ?, Content = ?, AttachmentUrl = ?
                 WHERE NotificationId = ?
                 """,
                 title,
                 content,
+                attachment_url,
                 notification_id,
             )
             if cursor.rowcount == 0:
@@ -262,3 +287,30 @@ def update_notification(notification_id: int, payload: Dict[str, Any]) -> Dict[s
             return get_notification_by_id(notification_id)
     except Exception:
         raise
+
+
+def get_notification_read_details(notification_id: int) -> List[Dict[str, Any]]:
+    with get_db_connection() as connection:
+        cursor = connection.cursor()
+        query = """
+        SELECT
+            u.UserId,
+            u.FullName,
+            u.Username,
+            r.RoleName,
+            nr.IsRead,
+            c.ClassName,
+            c.ClassCode
+        FROM NotificationRecipients nr
+        INNER JOIN Users u ON nr.RecipientId = u.UserId
+        LEFT JOIN Roles r ON u.RoleId = r.RoleId
+        LEFT JOIN Students s ON u.UserId = s.UserId
+        LEFT JOIN Enrollments e ON s.StudentId = e.StudentId
+        LEFT JOIN Notifications n ON nr.NotificationId = n.NotificationId
+        LEFT JOIN Classes c ON e.ClassId = c.ClassId AND (n.ClassId IS NULL OR n.ClassId = c.ClassId)
+        WHERE nr.NotificationId = ?
+        ORDER BY nr.IsRead DESC, u.FullName ASC
+        """
+        cursor.execute(query, notification_id)
+        rows = cursor.fetchall()
+        return rows_to_list(cursor, rows)

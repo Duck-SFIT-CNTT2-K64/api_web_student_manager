@@ -73,19 +73,23 @@ def add_schedule():
         if not class_id or not weekday or not start_time or not end_time:
             return jsonify({"success": False, "error": "Thiếu thông tin bắt buộc (ClassId, Weekday, StartTime, EndTime)."}), 400
 
-        # Kiểm tra xung đột lịch (cùng phòng, cùng thứ, giờ trùng lặp)
+        if start_time >= end_time:
+            return jsonify({"success": False, "error": "Giờ bắt đầu phải nhỏ hơn giờ kết thúc."}), 400
+
         with get_db_connection() as conn:
             cursor = conn.cursor()
+
+            # 1. Kiểm tra trùng phòng (Room overlap)
             if room_id:
                 cursor.execute("""
                     SELECT 1 FROM ClassSchedules 
                     WHERE RoomId = ? AND Weekday = ? 
-                      AND ((StartTime < ? AND EndTime > ?) OR (StartTime < ? AND EndTime > ?))
-                """, (room_id, weekday, end_time, start_time, end_time, start_time))
+                      AND StartTime < ? AND EndTime > ?
+                """, (room_id, weekday, end_time, start_time))
                 if cursor.fetchone():
-                    return jsonify({"success": False, "error": "Phòng học đã có lịch trùng khung giờ."}), 400
+                    return jsonify({"success": False, "error": "Phòng học này đã có lịch khác trong khung giờ này."}), 400
 
-            # Kiểm tra giảng viên (qua lớp) có bị trùng lịch không
+            # 2. Kiểm tra trùng giảng viên (Teacher overlap)
             cursor.execute("SELECT TeacherId FROM Classes WHERE ClassId = ?", (class_id,))
             teacher_row = cursor.fetchone()
             if teacher_row and teacher_row[0]:
@@ -94,10 +98,19 @@ def add_schedule():
                     SELECT 1 FROM ClassSchedules cs
                     JOIN Classes c ON cs.ClassId = c.ClassId
                     WHERE c.TeacherId = ? AND cs.Weekday = ?
-                      AND ((cs.StartTime < ? AND cs.EndTime > ?) OR (cs.StartTime < ? AND cs.EndTime > ?))
-                """, (teacher_id, weekday, end_time, start_time, end_time, start_time))
+                      AND cs.StartTime < ? AND cs.EndTime > ?
+                """, (teacher_id, weekday, end_time, start_time))
                 if cursor.fetchone():
-                    return jsonify({"success": False, "error": "Giảng viên đã có lịch dạy trùng khung giờ."}), 400
+                    return jsonify({"success": False, "error": "Giảng viên của lớp này đã có lịch dạy khác trong khung giờ này."}), 400
+
+            # 3. Kiểm tra trùng lớp (Class overlap - cùng một lớp không thể học 2 nơi cùng lúc)
+            cursor.execute("""
+                SELECT 1 FROM ClassSchedules 
+                WHERE ClassId = ? AND Weekday = ? 
+                  AND StartTime < ? AND EndTime > ?
+            """, (class_id, weekday, end_time, start_time))
+            if cursor.fetchone():
+                return jsonify({"success": False, "error": "Lớp học này đã có lịch khác trong khung giờ này."}), 400
 
             cursor.execute("""
                 INSERT INTO ClassSchedules (ClassId, RoomId, Weekday, StartTime, EndTime)
@@ -125,18 +138,23 @@ def update_schedule(schedule_id: int):
         if not class_id or not weekday or not start_time or not end_time:
             return jsonify({"success": False, "error": "Thiếu thông tin bắt buộc."}), 400
 
+        if start_time >= end_time:
+            return jsonify({"success": False, "error": "Giờ bắt đầu phải nhỏ hơn giờ kết thúc."}), 400
+
         with get_db_connection() as conn:
             cursor = conn.cursor()
-            # Kiểm tra xung đột (bỏ qua chính nó)
+
+            # 1. Kiểm tra trùng phòng (Room overlap)
             if room_id:
                 cursor.execute("""
                     SELECT 1 FROM ClassSchedules 
                     WHERE RoomId = ? AND Weekday = ? AND ScheduleId != ?
-                      AND ((StartTime < ? AND EndTime > ?) OR (StartTime < ? AND EndTime > ?))
-                """, (room_id, weekday, schedule_id, end_time, start_time, end_time, start_time))
+                      AND StartTime < ? AND EndTime > ?
+                """, (room_id, weekday, schedule_id, end_time, start_time))
                 if cursor.fetchone():
-                    return jsonify({"success": False, "error": "Phòng học đã có lịch trùng."}), 400
+                    return jsonify({"success": False, "error": "Phòng học này đã có lịch khác trong khung giờ này."}), 400
 
+            # 2. Kiểm tra trùng giảng viên (Teacher overlap)
             cursor.execute("SELECT TeacherId FROM Classes WHERE ClassId = ?", (class_id,))
             teacher_row = cursor.fetchone()
             if teacher_row and teacher_row[0]:
@@ -145,10 +163,19 @@ def update_schedule(schedule_id: int):
                     SELECT 1 FROM ClassSchedules cs
                     JOIN Classes c ON cs.ClassId = c.ClassId
                     WHERE c.TeacherId = ? AND cs.Weekday = ? AND cs.ScheduleId != ?
-                      AND ((cs.StartTime < ? AND cs.EndTime > ?) OR (cs.StartTime < ? AND cs.EndTime > ?))
-                """, (teacher_id, weekday, schedule_id, end_time, start_time, end_time, start_time))
+                      AND cs.StartTime < ? AND cs.EndTime > ?
+                """, (teacher_id, weekday, schedule_id, end_time, start_time))
                 if cursor.fetchone():
-                    return jsonify({"success": False, "error": "Giảng viên đã có lịch trùng."}), 400
+                    return jsonify({"success": False, "error": "Giảng viên của lớp này đã có lịch dạy khác trong khung giờ này."}), 400
+
+            # 3. Kiểm tra trùng lớp (Class overlap)
+            cursor.execute("""
+                SELECT 1 FROM ClassSchedules 
+                WHERE ClassId = ? AND Weekday = ? AND ScheduleId != ?
+                  AND StartTime < ? AND EndTime > ?
+            """, (class_id, weekday, schedule_id, end_time, start_time))
+            if cursor.fetchone():
+                return jsonify({"success": False, "error": "Lớp học này đã có lịch khác trong khung giờ này."}), 400
 
             cursor.execute("""
                 UPDATE ClassSchedules

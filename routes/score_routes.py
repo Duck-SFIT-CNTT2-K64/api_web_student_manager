@@ -32,6 +32,7 @@ def list_score_types():
 
 
 @score_bp.post("")
+@role_required("Admin")
 def add_score():
     try:
         payload = request.get_json(silent=True) or {}

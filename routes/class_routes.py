@@ -12,6 +12,8 @@ from models.class_model import (
 )
 from utils.auth import role_required
 
+from utils.auth import current_session_user, role_required
+
 class_bp = Blueprint("classes", __name__)
 
 
@@ -104,10 +106,15 @@ def edit_class(class_id: int):
 @role_required("Admin")
 def remove_class(class_id: int):
     try:
-        deleted = delete_class_by_id(class_id)
+        user = current_session_user()
+        role = user.get("RoleName", "Guest")
+        
+        deleted = delete_class_by_id(class_id, user_role=role)
         if not deleted:
             return jsonify({"success": False, "error": "Class not found."}), 404
         return jsonify({"success": True, "message": "Class deleted."}), 200
+    except ValueError as exc:
+        return jsonify({"success": False, "error": str(exc)}), 400
     except pyodbc.IntegrityError as exc:
         return jsonify({"success": False, "error": "Cannot delete class with related enrollments.", "details": str(exc)}), 400
     except pyodbc.Error as exc:

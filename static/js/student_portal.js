@@ -39,6 +39,7 @@
         attendance: [],
         scores: [],
         finance: [],
+        notifications: [],
     };
 
     var endpoints = {
@@ -554,6 +555,34 @@
                 return '<div class="score-judge ' + cls + '" style="display:block;padding:10px 14px;margin-bottom:8px;font-size:0.9rem">' + esc(m.text) + '</div>';
             }).join("");
         }
+    }
+
+    function renderNotifications() {
+        var listEl = document.getElementById("notificationsList");
+        if (!listEl) return;
+        var notifs = state.notifications || [];
+        if (!notifs.length) {
+            listEl.innerHTML = '<div class="portal-card"><div class="empty">Bạn không có thông báo nào.</div></div>';
+            return;
+        }
+        listEl.innerHTML = notifs.map(function (n) {
+            var dateStr = fmtDateVi(n.CreatedDate);
+            var unreadStyle = n.IsRead ? "" : 'border-left: 4px solid var(--accent); background: #fdf9f5;';
+            var markReadBtn = n.IsRead ? "" : '<button class="btn btn-outline btn-small" data-read-id="' + n.NotificationId + '">Đánh dấu đã đọc</button>';
+            return '<div class="portal-card" style="' + unreadStyle + '">'
+                + '  <div class="portal-card-head">'
+                + '    <h3>' + (n.IsRead ? "" : '<i class="fas fa-circle" style="font-size:0.5rem; color:var(--accent); vertical-align:middle; margin-right:6px"></i>') + esc(n.Title) + '</h3>'
+                + '    <span class="portal-card-badge">' + esc(n.CreatorName || "Hệ thống") + '</span>'
+                + '  </div>'
+                + '  <div class="portal-card-body">'
+                + '    <p style="margin: 0 0 10px; color: var(--ink-light); white-space: pre-wrap;">' + esc(n.Content) + '</p>'
+                + '    <div style="display:flex; align-items:center; justify-content:space-between">'
+                + '      <span style="font-size:0.8rem; color:var(--ink-lightest); font-weight:600">' + dateStr + '</span>'
+                + markReadBtn
+                + '    </div>'
+                + '  </div>'
+                + '</div>';
+        }).join("");
     }
 
     // ───────────────────────── REGISTRATION ─────────────────────────
@@ -1404,6 +1433,7 @@
 
         var examExport = document.getElementById("examExportBtn");
         if (examExport) examExport.addEventListener("click", exportExamsCSV);
+
     }
 
     // ───────────────────────── MAIN LOAD ─────────────────────────

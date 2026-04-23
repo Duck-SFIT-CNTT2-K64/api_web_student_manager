@@ -661,5 +661,75 @@
 
     <script src="{{ url_for('static', filename='js/theme.js') }}"></script>
     <script src="{{ url_for('static', filename='js/landing.js') }}"></script>
+
+    {% if current_user %}
+    {# ── Notification toast for logged-in users ── #}
+    <div id="studentNotifToast" style="
+        display:none; position:fixed; bottom:24px; right:24px; z-index:9999;
+        background:linear-gradient(135deg,#1e40af,#3b82f6);
+        color:#fff; border-radius:14px; box-shadow:0 8px 32px rgba(59,130,246,.45);
+        padding:14px 18px; max-width:340px; cursor:pointer;
+        transition:opacity .3s, transform .3s;
+        font-family:'Inter',sans-serif; font-size:0.9rem;
+        animation: slideInUp .4s ease;
+    " id="notifToastEl">
+        <div style="display:flex; align-items:center; gap:12px;">
+            <span style="font-size:1.5rem; flex-shrink:0;">🔔</span>
+            <div>
+                <strong id="studentNotifTitle" style="display:block; margin-bottom:2px;">New notification</strong>
+                <span id="studentNotifBody" style="opacity:.88;">You have unread messages from your instructor.</span>
+            </div>
+            <button onclick="event.stopPropagation(); document.getElementById('notifToastEl').style.display='none';"
+                style="background:none; border:none; color:#fff; opacity:.7; cursor:pointer; margin-left:4px; font-size:1.1rem;" aria-label="Close">&times;</button>
+        </div>
+        <div style="margin-top:10px; font-size:0.78rem; opacity:.75;">
+            <i class="fas fa-arrow-right"></i> Click to view all notifications
+        </div>
+    </div>
+    <style>
+        @keyframes slideInUp {
+            from { opacity:0; transform:translateY(24px); }
+            to   { opacity:1; transform:translateY(0); }
+        }
+    </style>
+    <script>
+        (function () {
+            var roleName = {{ '"' ~ role_name ~ '"' | safe }};
+            var notifUrl = roleName === 'student'
+                ? '/student/notifications'
+                : (roleName === 'teacher' ? '/teacher/home#notifications' : '/');
+
+            fetch('/api/notifications/my/all')
+                .then(function (r) { return r.ok ? r.json() : null; })
+                .then(function (json) {
+                    if (!json || !json.success) return;
+                    var notifs = json.data || [];
+                    var unread = notifs.filter(function (n) { return !n.IsRead; });
+                    if (!unread.length) return;
+
+                    var toast = document.getElementById('notifToastEl');
+                    var titleEl = document.getElementById('studentNotifTitle');
+                    var bodyEl = document.getElementById('studentNotifBody');
+
+                    var latest = unread[0];
+                    titleEl.textContent = latest.Title || 'New notification';
+                    bodyEl.textContent = unread.length > 1
+                        ? 'You have ' + unread.length + ' unread notifications.'
+                        : (latest.Content || '').slice(0, 80) + ((latest.Content || '').length > 80 ? '…' : '');
+
+                    toast.onclick = function () { window.location.href = notifUrl; };
+                    toast.style.display = 'block';
+
+                    // Auto-hide after 10s
+                    setTimeout(function () {
+                        toast.style.opacity = '0';
+                        toast.style.transform = 'translateY(16px)';
+                        setTimeout(function () { toast.style.display = 'none'; }, 300);
+                    }, 10000);
+                })
+                .catch(function () { /* silent – user not logged in */ });
+        })();
+    </script>
+    {% endif %}
 </body>
 </html>
