@@ -15,6 +15,26 @@ def _build_agent():
 
 
 _AGENT = None
+_AGENT_SIG = None
+
+
+def _agent_signature() -> str:
+    # Any change here should rebuild agent to avoid stale cached model order.
+    return "|".join(
+        [
+            os.getenv("ASSISTANT_MODEL_ORDER", "").strip(),
+            os.getenv("ASSISTANT_TEMPERATURE", "").strip(),
+        ]
+    )
+
+
+def _get_model_used(agent_obj) -> str | None:
+    # Works for both single model and fallback wrapper.
+    if getattr(agent_obj, "model_name", None):
+        return str(getattr(agent_obj, "model_name"))
+    if getattr(agent_obj, "last_model_used", None):
+        return str(getattr(agent_obj, "last_model_used"))
+    return None
 
 
 @assistant_bp.post("/chat")
@@ -25,13 +45,14 @@ def chat():
     Uses GOOGLE_API_KEY from environment. Never hardcode secrets.
     """
     global _AGENT
+    global _AGENT_SIG
 
-    if not os.getenv("GOOGLE_API_KEY"):
+    if not (os.getenv("SHOPAIKEY_API_KEY") or os.getenv("GOOGLE_API_KEY")):
         return (
             jsonify(
                 {
                     "success": False,
-                    "error": "Missing GOOGLE_API_KEY. Please set it in environment (.env / docker env).",
+                    "error": "Missing SHOPAIKEY_API_KEY (preferred) or GOOGLE_API_KEY. Please set it in environment (.env / docker env).",
                 }
             ),
             500,
@@ -49,8 +70,10 @@ def chat():
     role_name = str(user.get("RoleName") or "")
 
     try:
-        if _AGENT is None:
+        sig = _agent_signature()
+        if _AGENT is None or _AGENT_SIG != sig:
             _AGENT = _build_agent()
+            _AGENT_SIG = sig
 
         reply = _AGENT.reply(
             user_id=user_id,
@@ -58,7 +81,17 @@ def chat():
             message=message,
             history=history,
         )
-        return jsonify({"success": True, "reply": reply}), 200
+        return jsonify({"success": True, "reply": reply, "model_used": _get_model_used(_AGENT)}), 200
     except Exception as exc:
-        return jsonify({"success": False, "error": "Assistant error.", "details": str(exc)}), 500
+        return (
+            jsonify(
+                {
+                    "success": False,
+                    "error": "Assistant error.",
+                    "details": str(exc),
+                    "model_used": _get_model_used(_AGENT),
+                }
+            ),
+            500,
+        )
 

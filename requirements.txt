@@ -5,3 +5,4 @@ python-dotenv
 langchain>=0.2.16
 langgraph>=0.2.35
 langchain-google-genai>=1.0.10
+google-genai>=1.73.1

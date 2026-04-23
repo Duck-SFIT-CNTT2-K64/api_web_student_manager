@@ -14,6 +14,7 @@
   var inputEl = document.getElementById("saInput");
   var sendBtn = document.getElementById("saSend");
   var closeBtn = document.getElementById("saClose");
+  var quickWrap = document.getElementById("saQuickWrap");
 
   var history = [];
   var sending = false;
@@ -77,10 +78,11 @@
     sendBtn.disabled = !canSend();
   }
 
-  async function send() {
+  async function send(rawText) {
     if (!canSend()) return;
-    var text = inputEl.value.trim();
-    inputEl.value = "";
+    var text = String(rawText != null ? rawText : inputEl.value).trim();
+    if (!text) return;
+    if (inputEl) inputEl.value = "";
     syncSendState();
 
     addMessage("user", text);
@@ -99,11 +101,16 @@
         }),
       });
       var json = await resp.json();
-      if (!resp.ok || json.success === false) throw new Error(json.error || "Assistant error");
-      addMessage("assistant", json.reply || "Mình chưa trả lời được lúc này.");
+      if (!resp.ok || json.success === false) {
+        var msg = (json && (json.error || json.message)) || ("HTTP " + resp.status);
+        if (json && json.details) msg += "\n" + String(json.details);
+        throw new Error(msg);
+      }
+      addMessage("assistant", (json.reply || "Mình chưa trả lời được lúc này."));
       setStatus("Online");
     } catch (e) {
-      addMessage("assistant", "Mình đang gặp lỗi khi kết nối hệ thống. Bạn thử lại sau nhé.");
+      // Best-effort: show error message to help diagnose quota/billing.
+      addMessage("assistant", "Lỗi kết nối AI: " + String(e && e.message ? e.message : e));
       setStatus("Offline");
     } finally {
       sending = false;
@@ -133,8 +140,19 @@
 
   if (sendBtn) sendBtn.addEventListener("click", send);
 
+  function wireQuickButtons() {
+    if (!quickWrap) return;
+    quickWrap.addEventListener("click", function (e) {
+      var btn = e.target && (e.target.closest ? e.target.closest("[data-quick]") : null);
+      if (!btn) return;
+      var q = btn.getAttribute("data-quick") || "";
+      if (q) send(q);
+    });
+  }
+
   setStatus("Online");
   addMessage("assistant", "Chào bạn! Mình là Trợ lý sinh viên. Bạn có thể hỏi: lịch học hôm nay, công nợ học phí, điểm theo môn, hoặc hồ sơ.");
+  wireQuickButtons();
   syncSendState();
 })();
 
