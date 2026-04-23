@@ -129,6 +129,13 @@ def create_enrollment(payload: Dict[str, Any]) -> Dict[str, Any]:
                     class_row[1],
                     due_days,
                 )
+            
+            # Cập nhật trạng thái sinh viên thành "Đang học" nếu chưa active
+            cursor.execute("SELECT StatusId FROM Students WHERE StudentId = ?", student_id_int)
+            current_status_row = cursor.fetchone()
+            if current_status_row and current_status_row[0] != 1:  # 1 = "Đang học"
+                cursor.execute("UPDATE Students SET StatusId = 1 WHERE StudentId = ?", student_id_int)
+            
             connection.commit()
         except Exception:
             connection.rollback()

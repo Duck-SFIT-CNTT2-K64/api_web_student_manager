@@ -808,3 +808,76 @@
     from { opacity: 0; transform: translateY(10px); }
     to { opacity: 1; transform: translateY(0); }
 }
+/* Calendar navigation */
+.calendar-nav {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 16px;
+    gap: 12px;
+}
+
+.calendar-nav-label {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+}
+
+.calendar-week-label {
+    font-weight: 700;
+    font-size: 1rem;
+    color: #1e293b;
+}
+
+.calendar-week-range {
+    font-size: 0.8rem;
+    color: #64748b;
+}
+
+.btn-cal-nav {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 16px;
+    background: #f1f5f9;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: #475569;
+    cursor: pointer;
+    transition: background 0.15s, color 0.15s;
+}
+
+.btn-cal-nav:hover {
+    background: #6d28d9;
+    color: #fff;
+    border-color: #6d28d9;
+}
+
+/* Ngày hôm nay */
+.cal-col-today .calendar-day-header {
+    background: #ede9fe;
+    color: #6d28d9;
+    border-radius: 8px 8px 0 0;
+}
+
+.calendar-day-date {
+    display: block;
+    font-size: 0.75rem;
+    font-weight: 500;
+    opacity: 0.8;
+    margin-top: 2px;
+}
+
+/* Buổi học đã qua */
+.cal-past {
+    opacity: 0.55;
+}
+
+/* Buổi học hôm nay */
+.cal-today {
+    border: 2px solid #6d28d9 !important;
+    background: #faf5ff !important;
+}

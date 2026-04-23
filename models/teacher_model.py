@@ -63,6 +63,26 @@ def get_teacher_by_id(teacher_id: int) -> Optional[Dict[str, Any]]:
         return row_to_dict(cursor, row) if row else None
 
 
+def get_teacher_by_user_id(user_id: int) -> Optional[Dict[str, Any]]:
+    with get_db_connection() as connection:
+        cursor = connection.cursor()
+        cursor.execute(
+            """
+            SELECT
+                t.TeacherId, t.UserId, t.TeacherCode, t.FirstName, t.LastName,
+                CONCAT(t.FirstName, N' ', t.LastName) AS FullName,
+                t.Specialization, t.PhoneNumber, t.Email,
+                u.Username, u.Status AS AccountStatus
+            FROM Teachers t
+            LEFT JOIN Users u ON t.UserId = u.UserId
+            WHERE t.UserId = ?
+            """,
+            user_id,
+        )
+        row = cursor.fetchone()
+        return row_to_dict(cursor, row) if row else None
+
+
 def _get_role_id(cursor, role_name: str) -> int:
     cursor.execute("SELECT RoleId FROM Roles WHERE RoleName = ?", role_name)
     row = cursor.fetchone()
@@ -571,10 +591,25 @@ def save_student_and_enroll(class_id: int, user_id: int, payload: Dict[str, Any]
             except Exception as e:
                 return {"success": False, "error": "Error creating new student account: " + str(e)}
 
+                cursor.execute("""
+                    INSERT INTO Students (UserId, StudentCode, FullName, Email, PhoneNumber, DateOfBirth, Gender, Address)
+                    OUTPUT INSERTED.StudentId
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                """, (
+                    new_user_id, student_code.strip(), payload.get("FullName"), payload.get("Email"),
+                    payload.get("PhoneNumber"), payload.get("DateOfBirth"), payload.get("Gender"), payload.get("Address")
+                ))
+                student_id = cursor.fetchone()[0]
+            except Exception as e:
+                return {"success": False, "error": "Lỗi tạo tài khoản sinh viên mới: " + str(e)}
+
         # 3. Ghi danh vào lớp (nếu chưa có)
         cursor.execute("SELECT 1 FROM Enrollments WHERE StudentId = ? AND ClassId = ?", (student_id, class_id))
         if not cursor.fetchone():
             cursor.execute("INSERT INTO Enrollments (StudentId, ClassId) VALUES (?, ?)", (student_id, class_id))
+            
+            # Cập nhật trạng thái sinh viên thành "Đang học"
+            cursor.execute("UPDATE Students SET StatusId = 1 WHERE StudentId = ?", student_id)
         
         connection.commit()
         return {"success": True, "message": "Student info saved and enrolled successfully!"}
@@ -586,11 +621,31 @@ def remove_student_from_class(enrollment_id: int, user_id: int) -> bool:
 
     with get_db_connection() as connection:
         cursor = connection.cursor()
+        
+        # Lấy StudentId trước khi xóa
+        cursor.execute("SELECT StudentId FROM Enrollments WHERE EnrollmentId = ?", enrollment_id)
+        student_row = cursor.fetchone()
+        if not student_row:
+            return False
+        student_id = student_row[0]
+        
         # Xóa các dữ liệu liên quan (điểm, điểm danh)
         cursor.execute("DELETE FROM Scores WHERE EnrollmentId = ?", enrollment_id)
         cursor.execute("DELETE FROM Attendances WHERE EnrollmentId = ?", enrollment_id)
         # Xóa enrollment
         cursor.execute("DELETE FROM Enrollments WHERE EnrollmentId = ?", enrollment_id)
+        
+        # Kiểm tra xem sinh viên còn ghi danh lớp nào khác không
+        cursor.execute("""
+            SELECT COUNT(*) FROM Enrollments 
+            WHERE StudentId = ? AND Status = 'Enrolled'
+        """, student_id)
+        remaining_enrollments = cursor.fetchone()[0]
+        
+        # Nếu không còn ghi danh lớp nào, cập nhật trạng thái thành "Đã nghỉ học"
+        if remaining_enrollments == 0:
+            cursor.execute("UPDATE Students SET StatusId = 4 WHERE StudentId = ?", student_id)
+        
         connection.commit()
         return True
 
@@ -604,7 +659,7 @@ def remove_student_from_class_by_code(class_id: int, student_code: str, user_id:
         
         # Tìm StudentId và EnrollmentId
         cursor.execute("""
-            SELECT e.EnrollmentId, s.FullName 
+            SELECT e.EnrollmentId, s.FullName, s.StudentId 
             FROM Enrollments e
             INNER JOIN Students s ON e.StudentId = s.StudentId
             WHERE e.ClassId = ? AND s.StudentCode = ?
@@ -616,11 +671,23 @@ def remove_student_from_class_by_code(class_id: int, student_code: str, user_id:
         
         enrollment_id = row[0]
         student_name = row[1]
+        student_id = row[2]
         
         # Xóa
         cursor.execute("DELETE FROM Scores WHERE EnrollmentId = ?", enrollment_id)
         cursor.execute("DELETE FROM Attendances WHERE EnrollmentId = ?", enrollment_id)
         cursor.execute("DELETE FROM Enrollments WHERE EnrollmentId = ?", enrollment_id)
+        
+        # Kiểm tra xem sinh viên còn ghi danh lớp nào khác không
+        cursor.execute("""
+            SELECT COUNT(*) FROM Enrollments 
+            WHERE StudentId = ? AND Status = 'Enrolled'
+        """, student_id)
+        remaining_enrollments = cursor.fetchone()[0]
+        
+        # Nếu không còn ghi danh lớp nào, cập nhật trạng thái thành "Đã nghỉ học"
+        if remaining_enrollments == 0:
+            cursor.execute("UPDATE Students SET StatusId = 4 WHERE StudentId = ?", student_id)
         
         connection.commit()
         return {"success": True, "message": f"Removed student {student_name} from class."}

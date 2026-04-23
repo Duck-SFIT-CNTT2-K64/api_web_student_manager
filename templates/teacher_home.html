@@ -1,124 +1,131 @@
-{% extends 'layouts/base.html' %} {% block title %}Teacher Dashboard | CLASSES369{% endblock %}
-{% block sidebar_subtitle %}Teacher{% endblock %}
+{% extends 'layouts/base.html' %} {% block title %}Trang chủ Giảng viên | CLASSES369{% endblock %}
+{% block sidebar_subtitle %}Giảng viên{% endblock %}
 {% block sidebar_nav %}
 <a href="#overview" class="nav-item active">
-  <i class="fas fa-home"></i><span>Overview</span>
+  <i class="fas fa-home"></i><span>Tổng quan</span>
 </a>
-<div class="nav-divider">Teaching</div>
+<div class="nav-divider">Giảng dạy</div>
 <a href="#my-classes" class="nav-item">
-  <i class="fas fa-chalkboard"></i><span>My Classes</span>
+  <i class="fas fa-chalkboard"></i><span>Lớp của tôi</span>
 </a>
 <a href="#teaching-schedule" class="nav-item">
-  <i class="fas fa-calendar-days"></i><span>Teaching Schedule</span>
+  <i class="fas fa-calendar-days"></i><span>Xem lịch dạy</span>
 </a>
 <div class="nav-group">
   <div class="nav-item has-sub">
-    <i class="fas fa-pen-to-square"></i><span>Grade Management</span>
+    <i class="fas fa-pen-to-square"></i><span>Quản lý Điểm số</span>
     <i class="fas fa-chevron-down submenu-arrow"></i>
   </div>
   <div class="nav-submenu">
-    <a href="#score-entry" class="nav-subitem"><i class="fas fa-edit"></i> Enter Grades</a>
-    <a href="#score-view" class="nav-subitem"><i class="fas fa-eye"></i> View Grades</a>
+    <a href="#score-entry" class="nav-subitem"><i class="fas fa-edit"></i> Nhập điểm</a>
+    <a href="#score-view" class="nav-subitem"><i class="fas fa-eye"></i> Xem điểm lớp</a>
   </div>
 </div>
 <a href="#class-list" class="nav-item">
-  <i class="fas fa-users"></i><span>Class Roster</span>
+  <i class="fas fa-users"></i><span>Xem danh sách lớp</span>
 </a>
 <a href="#exams" class="nav-item">
-  <i class="fas fa-file-alt"></i><span>Create Exam</span>
+  <i class="fas fa-file-alt"></i><span>Tạo bài kiểm tra</span>
 </a>
 <a href="#attendance" class="nav-item">
-  <i class="fas fa-clipboard-check"></i><span>Attendance</span>
+  <i class="fas fa-clipboard-check"></i><span>Điểm danh</span>
 </a>
 <a href="#notifications" class="nav-item">
-  <i class="fas fa-bell"></i><span>Notifications</span>
+  <i class="fas fa-bell"></i><span>Thông báo</span>
 </a>
 <a href="#reports-stats" class="nav-item">
-  <i class="fas fa-chart-line"></i><span>Reports & Analytics</span>
+  <i class="fas fa-chart-line"></i><span>Báo cáo & Thống kê</span>
 </a>
 {% endblock %}
 
 {% block topbar_title %}
-<h1>Teacher Dashboard</h1>
+<h1>Trang chủ Giảng viên</h1>
 {% endblock %}
 
 {% block content %}
 {% if home_data.Profile %}
-<div id="teacherPortalRoot" data-user-id="{{ current_user.UserId }}"></div>
+<div id="teacherPortalRoot" data-user-id="{{ current_user.UserId }}" data-username="{{ current_user.Username }}"></div>
 
+<!-- ══════════════════ TỔNG QUAN ══════════════════ -->
 <section class="section active" id="overview">
 
+  <!-- Welcome Banner -->
   <div class="teacher-welcome-banner">
     <div class="wb-left">
-      <div class="wb-greeting"><i class="fas fa-sun"></i> Welcome,</div>
+      <div class="wb-greeting"><i class="fas fa-sun"></i> Xin chào,</div>
       <div class="wb-name" id="profileFullName">{{ home_data.Profile.FullName }}</div>
       <div class="wb-meta">
         <span><i class="fas fa-id-badge"></i> {{ home_data.Profile.TeacherCode }}</span>
-        <span><i class="fas fa-book-open"></i> {{ home_data.Profile.Specialization or 'Not specified' }}</span>
+        <span><i class="fas fa-book-open"></i> {{ home_data.Profile.Specialization or 'Chưa cập nhật' }}</span>
         <span><i class="fas fa-envelope"></i> {{ home_data.Profile.Email or '—' }}</span>
       </div>
     </div>
     <div class="wb-right">
       <div class="wb-stat">
         <div class="wb-stat-value" id="teacherClassCount">{{ home_data.Totals.TotalClasses or 0 }}</div>
-        <div class="wb-stat-label">Classes</div>
+        <div class="wb-stat-label">Lớp dạy</div>
       </div>
       <div class="wb-stat">
         <div class="wb-stat-value" id="teacherStudentCount">{{ home_data.Totals.TotalStudents or 0 }}</div>
-        <div class="wb-stat-label">Students</div>
+        <div class="wb-stat-label">Sinh viên</div>
       </div>
       <div class="wb-stat">
         <div class="wb-stat-value" id="teacherScoreCount">0</div>
-        <div class="wb-stat-label">Grades Entered</div>
+        <div class="wb-stat-label">Lượt nhập điểm</div>
       </div>
     </div>
   </div>
 
+  <!-- Quick Actions -->
   <div class="quick-actions-grid">
     <a href="#my-classes" class="qa-card">
       <div class="qa-icon qa-blue"><i class="fas fa-chalkboard"></i></div>
-      <span class="qa-label">My Classes</span>
+      <span class="qa-label">Lớp của tôi</span>
     </a>
     <a href="#teaching-schedule" class="qa-card">
       <div class="qa-icon qa-purple"><i class="fas fa-calendar-days"></i></div>
-      <span class="qa-label">Schedule</span>
+      <span class="qa-label">Lịch dạy</span>
     </a>
     <a href="#score-entry" class="qa-card">
       <div class="qa-icon qa-green"><i class="fas fa-pen"></i></div>
-      <span class="qa-label">Enter Grades</span>
+      <span class="qa-label">Nhập điểm</span>
     </a>
     <a href="#score-view" class="qa-card">
       <div class="qa-icon qa-teal"><i class="fas fa-table-list"></i></div>
-      <span class="qa-label">View Grades</span>
+      <span class="qa-label">Xem điểm</span>
     </a>
     <a href="#class-list" class="qa-card">
       <div class="qa-icon qa-indigo"><i class="fas fa-users"></i></div>
-      <span class="qa-label">Class List</span>
+      <span class="qa-label">Danh sách lớp</span>
     </a>
     <a href="#attendance" class="qa-card">
       <div class="qa-icon qa-amber"><i class="fas fa-clipboard-check"></i></div>
-      <span class="qa-label">Attendance</span>
+      <span class="qa-label">Điểm danh</span>
     </a>
     <a href="#notifications" class="qa-card">
       <div class="qa-icon qa-rose"><i class="fas fa-bell"></i></div>
-      <span class="qa-label">Notifications</span>
+      <span class="qa-label">Thông báo</span>
     </a>
     <a href="#reports-stats" class="qa-card">
       <div class="qa-icon qa-orange"><i class="fas fa-chart-line"></i></div>
-      <span class="qa-label">Reports</span>
+      <span class="qa-label">Báo cáo</span>
     </a>
   </div>
 
+  <!-- Profile card -->
   <div class="profile-card">
     <div class="profile-card-header">
       <div class="profile-avatar"><i class="fas fa-user-tie"></i></div>
       <div>
         <div class="profile-card-name">{{ home_data.Profile.FullName }}</div>
-        <div class="profile-card-code">{{ home_data.Profile.TeacherCode }} · Teacher</div>
+        <div class="profile-card-code">{{ home_data.Profile.TeacherCode }} · Giảng viên</div>
       </div>
       <div style="margin-left:auto;">
+        <button class="btn btn-sm btn-outline-primary me-2" id="editProfileBtn">
+          <i class="fas fa-edit"></i> Chỉnh sửa
+        </button>
         {% if (home_data.Profile.AccountStatus or '')|lower == 'active' %}
-        <span class="t-badge t-badge-green"><i class="fas fa-circle" style="font-size:.5rem"></i> Active</span>
+        <span class="t-badge t-badge-green"><i class="fas fa-circle" style="font-size:.5rem"></i> Hoạt động</span>
         {% else %}
         <span class="t-badge t-badge-gray">{{ home_data.Profile.AccountStatus }}</span>
         {% endif %}
@@ -127,8 +134,8 @@
     <div class="profile-card-body">
       <div class="profile-row">
         <div class="profile-row-icon"><i class="fas fa-book"></i></div>
-        <div class="profile-row-label">Specialization</div>
-        <div class="profile-row-value">{{ home_data.Profile.Specialization or 'Not updated' }}</div>
+        <div class="profile-row-label">Chuyên môn</div>
+        <div class="profile-row-value">{{ home_data.Profile.Specialization or 'Chưa cập nhật' }}</div>
       </div>
       <div class="profile-row">
         <div class="profile-row-icon"><i class="fas fa-envelope"></i></div>
@@ -137,26 +144,27 @@
       </div>
       <div class="profile-row">
         <div class="profile-row-icon"><i class="fas fa-phone"></i></div>
-        <div class="profile-row-label">Phone Number</div>
+        <div class="profile-row-label">Số điện thoại</div>
         <div class="profile-row-value">{{ home_data.Profile.PhoneNumber or '—' }}</div>
       </div>
     </div>
   </div>
 </section>
 
+<!-- ══════════════════ LỚP CỦA TÔI ══════════════════ -->
 <section class="section" id="my-classes">
   <div class="section-heading">
     <div>
-      <h2><span class="sh-icon" style="background:#dbeafe;color:#1d4ed8;"><i class="fas fa-chalkboard"></i></span>My
-        Classes</h2>
-      <p>List of assigned classes.</p>
+      <h2><span class="sh-icon" style="background:#dbeafe;color:#1d4ed8;"><i class="fas fa-chalkboard"></i></span>Lớp
+        của tôi</h2>
+      <p>Danh sách các lớp được phân công giảng dạy.</p>
     </div>
   </div>
   <div class="t-card">
     <div class="t-card-header">
       <div class="t-card-title">
         <span class="tct-icon" style="background:#dbeafe;color:#1d4ed8;"><i class="fas fa-list"></i></span>
-        Assigned Classes
+        Lớp được phân công
       </div>
     </div>
     <div class="t-card-body-flush">
@@ -164,16 +172,16 @@
         <table class="t-table">
           <thead>
             <tr>
-              <th>Class Code</th>
-              <th>Class Name</th>
-              <th>Course</th>
-              <th>Students</th>
-              <th>Actions</th>
+              <th>Mã lớp</th>
+              <th>Tên lớp</th>
+              <th>Khóa học</th>
+              <th>Sinh viên</th>
+              <th>Thao tác</th>
             </tr>
           </thead>
           <tbody id="teacherClassesBody">
             <tr>
-              <td colspan="5" style="text-align:center;padding:32px;color:var(--text-muted);">Loading data...</td>
+              <td colspan="5" style="text-align:center;padding:32px;color:#94a3b8;">Đang tải dữ liệu...</td>
             </tr>
           </tbody>
         </table>
@@ -182,12 +190,13 @@
   </div>
 </section>
 
+<!-- ══════════════════ LỊCH DẠY ══════════════════ -->
 <section class="section" id="teaching-schedule">
   <div class="section-heading">
     <div>
       <h2><span class="sh-icon" style="background:#ede9fe;color:#6d28d9;"><i
-            class="fas fa-calendar-days"></i></span>Schedule</h2>
-      <p>Weekly schedule of assigned classes.</p>
+            class="fas fa-calendar-days"></i></span>Lịch dạy</h2>
+      <p>Lịch học theo tuần của các lớp được phân công.</p>
     </div>
   </div>
   <div class="t-card" style="margin-bottom:20px;">
@@ -196,16 +205,16 @@
         <table class="t-table">
           <thead>
             <tr>
-              <th>Class</th>
-              <th>Course</th>
-              <th>Day</th>
-              <th>Shift</th>
-              <th>Room</th>
+              <th>Lớp</th>
+              <th>Khóa học</th>
+              <th>Thứ</th>
+              <th>Ca dạy</th>
+              <th>Phòng</th>
             </tr>
           </thead>
           <tbody id="teacherScheduleBody">
             <tr>
-              <td colspan="5" style="text-align:center;padding:32px;color:var(--text-muted);">Loading data...</td>
+              <td colspan="5" style="text-align:center;padding:32px;color:#94a3b8;">Đang tải dữ liệu...</td>
             </tr>
           </tbody>
         </table>
@@ -216,7 +225,7 @@
     <div class="t-card-header">
       <div class="t-card-title">
         <span class="tct-icon" style="background:#ede9fe;color:#6d28d9;"><i class="fas fa-calendar-alt"></i></span>
-        Calendar View
+        Lịch dạng Calendar
       </div>
     </div>
     <div class="t-card-body">
@@ -225,47 +234,35 @@
   </div>
 </section>
 
+<!-- ══════════════════ NHẬP ĐIỂM ══════════════════ -->
 <section class="section" id="score-entry">
   <div class="section-heading">
     <div>
-      <h2><span class="sh-icon" style="background:#dcfce7;color:#15803d;"><i class="fas fa-pen"></i></span>Enter Grades
+      <h2><span class="sh-icon" style="background:#dcfce7;color:#15803d;"><i class="fas fa-pen"></i></span>Nhập điểm
       </h2>
-      <p>Select a class to enter attendance, midterm, and final grades for each student.</p>
+      <p>Chọn lớp, nhập điểm chuyên cần, giữa kỳ và cuối kỳ cho từng sinh viên.</p>
     </div>
   </div>
 
+  <!-- Bộ lọc + Quy ước -->
   <div class="grid two" style="margin-bottom:16px; gap:16px;">
     <div class="t-card">
       <div class="t-card-header">
         <div class="t-card-title">
           <span class="tct-icon" style="background:#dcfce7;color:#15803d;"><i class="fas fa-filter"></i></span>
-          Select Class
+          Chọn lớp
         </div>
       </div>
       <div class="t-card-body">
         <form id="teacherClassForm" class="t-form">
-          <div class="grid two" style="gap:12px; margin-bottom:12px;">
-            <div class="t-form-group">
-              <label>Semester</label>
-              <select id="scoreEntrySemesterFilter">
-                <option value="">All semesters</option>
-              </select>
-            </div>
-            <div class="t-form-group">
-              <label>Subject</label>
-              <select id="scoreEntrySubjectFilter">
-                <option value="">All subjects</option>
-              </select>
-            </div>
-          </div>
           <div class="t-form-group">
-            <label>Class</label>
+            <label>Lớp học</label>
             <select id="teacherClassSelect" required>
-              <option value="">Select a class to enter grades</option>
+              <option value="">Chọn lớp để nhập điểm</option>
             </select>
           </div>
           <button class="btn btn-primary" type="submit" style="align-self:flex-start;">
-            <i class="fas fa-list"></i> Load student list
+            <i class="fas fa-list"></i> Tải danh sách sinh viên
           </button>
           <p id="scoreMessage" class="message"></p>
         </form>
@@ -276,40 +273,41 @@
       <div class="t-card-header">
         <div class="t-card-title">
           <span class="tct-icon" style="background:#fef3c7;color:#b45309;"><i class="fas fa-info-circle"></i></span>
-          Grade Convention
+          Quy ước điểm
         </div>
       </div>
       <div class="t-card-body">
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
-          <div style="background:var(--page-bg);border-radius:10px;padding:12px;text-align:center;">
+          <div style="background:#f8fafc;border-radius:10px;padding:12px;text-align:center;">
             <div style="font-size:1.3rem;font-weight:800;color:#1d4ed8;">10%</div>
-            <div style="font-size:0.75rem;color:var(--text-secondary);font-weight:600;">Attendance</div>
+            <div style="font-size:0.75rem;color:#64748b;font-weight:600;">Chuyên cần</div>
           </div>
-          <div style="background:var(--page-bg);border-radius:10px;padding:12px;text-align:center;">
+          <div style="background:#f8fafc;border-radius:10px;padding:12px;text-align:center;">
             <div style="font-size:1.3rem;font-weight:800;color:#7c3aed;">30%</div>
-            <div style="font-size:0.75rem;color:var(--text-secondary);font-weight:600;">Midterm</div>
+            <div style="font-size:0.75rem;color:#64748b;font-weight:600;">Giữa kỳ</div>
           </div>
-          <div style="background:var(--page-bg);border-radius:10px;padding:12px;text-align:center;grid-column:span 2;">
+          <div style="background:#f8fafc;border-radius:10px;padding:12px;text-align:center;grid-column:span 2;">
             <div style="font-size:1.3rem;font-weight:800;color:#15803d;">60%</div>
-            <div style="font-size:0.75rem;color:var(--text-secondary);font-weight:600;">Final</div>
+            <div style="font-size:0.75rem;color:#64748b;font-weight:600;">Cuối kỳ</div>
           </div>
         </div>
         <div style="margin-top:12px;padding:10px;background:#dbeafe;border-radius:8px;font-size:0.8rem;color:#1d4ed8;">
-          <i class="fas fa-circle-info"></i> Scale 0 - 10. Pass if Avg ≥ 5.0
+          <i class="fas fa-circle-info"></i> Thang điểm 0 – 10. Đạt khi ĐTB ≥ 5.0
         </div>
       </div>
     </div>
   </div>
 
+  <!-- Bảng nhập điểm -->
   <div class="t-card">
     <div class="t-card-header">
       <div class="t-card-title">
         <span class="tct-icon" style="background:#dcfce7;color:#15803d;"><i class="fas fa-table"></i></span>
-        Student List and Grades
+        Danh sách sinh viên và điểm
       </div>
       <div style="display:flex;gap:8px;">
         <button class="btn btn-ghost" id="downloadTemplateBtn" style="display:none;">
-          <i class="fas fa-download"></i> Download template
+          <i class="fas fa-download"></i> Tải file mẫu
         </button>
         <label class="btn btn-ghost" id="importExcelLabel" style="display:none;cursor:pointer;">
           <i class="fas fa-file-import"></i> Import Excel
@@ -320,84 +318,63 @@
     <div class="t-card-body-flush">
       <div class="t-table-wrap">
         <table class="t-table">
-          <thead id="scoreStudentTableHeader">
+          <thead>
             <tr>
-              <th>Student ID</th>
-              <th>Full Name</th>
-              <th style="text-align:center;">Attendance</th>
-              <th style="text-align:center;">Midterm</th>
-              <th style="text-align:center;">Final</th>
+              <th>Mã SV</th>
+              <th>Họ tên</th>
+              <th style="text-align:center;">Chuyên cần</th>
+              <th style="text-align:center;">Giữa kỳ</th>
+              <th style="text-align:center;">Cuối kỳ</th>
             </tr>
           </thead>
           <tbody id="scoreStudentTableBody">
             <tr>
-              <td colspan="5" style="text-align:center;padding:32px;color:var(--text-muted);font-style:italic;">Select a
-                class to start entering grades.</td>
+              <td colspan="5" style="text-align:center;padding:32px;color:#94a3b8;font-style:italic;">Chọn lớp để bắt
+                đầu nhập điểm.</td>
             </tr>
           </tbody>
         </table>
       </div>
     </div>
-    <div style="display:flex;justify-content:flex-end;padding:16px;border-top:1px solid var(--border);">
+    <div style="display:flex;justify-content:flex-end;padding:16px;border-top:1px solid #f1f5f9;">
       <button class="btn btn-primary" id="saveAllScoresBtn" style="display:none;">
-        <i class="fas fa-save"></i> Save all grades
+        <i class="fas fa-save"></i> Lưu tất cả điểm
       </button>
     </div>
   </div>
 </section>
 
+<!-- ══════════════════ XEM ĐIỂM ══════════════════ -->
 <section class="section" id="score-view">
   <div class="section-heading">
     <div>
-      <h2><span class="sh-icon" style="background:#ccfbf1;color:#0f766e;"><i class="fas fa-table-list"></i></span>View
-        Class Grades</h2>
-      <p>Monitor aggregate grade table of students by class.</p>
+      <h2><span class="sh-icon" style="background:#ccfbf1;color:#0f766e;"><i class="fas fa-table-list"></i></span>Xem
+        điểm lớp</h2>
+      <p>Theo dõi bảng điểm tổng hợp của sinh viên theo từng lớp.</p>
     </div>
   </div>
 
-  <div class="t-filter-bar"
-    style="flex-wrap: wrap; gap: 12px; padding: 16px; background:var(--surface); border-radius: 12px; border: 1px solid var(--border); margin-bottom: 16px;">
-    <div style="display:flex; align-items:center; gap:8px;">
-      <label style="white-space:nowrap; font-weight:600; color:var(--text-secondary);"><i class="fas fa-calendar-alt"
-          style="color:#0f766e;"></i> Semester:</label>
-      <select id="scoreViewSemesterFilter"
-        style="padding:8px; border-radius:8px; border:1px solid var(--border); min-width:140px;">
-        <option value="">All</option>
-      </select>
-    </div>
-    <div style="display:flex; align-items:center; gap:8px;">
-      <label style="white-space:nowrap; font-weight:600; color:var(--text-secondary);"><i class="fas fa-book"
-          style="color:#0f766e;"></i> Subject:</label>
-      <select id="scoreViewSubjectFilter"
-        style="padding:8px; border-radius:8px; border:1px solid var(--border); min-width:140px;">
-        <option value="">All</option>
-      </select>
-    </div>
-    <div style="display:flex; align-items:center; gap:8px; flex:1;">
-      <label style="white-space:nowrap; font-weight:600; color:var(--text-secondary);"><i class="fas fa-chalkboard"
-          style="color:#0f766e;"></i> Class:</label>
-      <select id="scoreViewClassSelect"
-        style="padding:8px; border-radius:8px; border:1px solid var(--border); flex:1; min-width:180px;">
-        <option value="">Select Class...</option>
-      </select>
-    </div>
-    <div style="display:flex; gap:8px;">
-      <button class="btn btn-primary" id="scoreViewLoadBtn">
-        <i class="fas fa-search"></i> View Grades
-      </button>
-      <button class="btn" id="exportScoreBtn" style="display:none;background:#10b981;border-color:#10b981;color:#fff;">
-        <i class="fas fa-file-excel"></i> Export Excel
-      </button>
-    </div>
+  <div class="t-filter-bar">
+    <label><i class="fas fa-filter" style="color:#0f766e;"></i> Chọn lớp</label>
+    <select id="scoreViewClassSelect" style="flex:1;min-width:200px;">
+      <option value="">Chọn lớp để xem điểm...</option>
+    </select>
+    <button class="btn btn-primary" id="scoreViewLoadBtn">
+      <i class="fas fa-search"></i> Xem điểm
+    </button>
+    <button class="btn" id="exportScoreBtn" style="display:none;background:#10b981;border-color:#10b981;color:#fff;">
+      <i class="fas fa-file-excel"></i> Xuất Excel
+    </button>
   </div>
 
+  <!-- Summary badges -->
   <div id="scoreViewSummary" style="display:none;margin-bottom:16px;">
     <div class="grid three" style="gap:12px;">
       <div class="stat-card">
         <div class="stat-icon" style="background:#1d4ed8;color:#fff;box-shadow:0 4px 10px rgba(29,78,216,0.2);"><i
             class="fas fa-users"></i></div>
         <div class="stat-details">
-          <span class="stat-label">Total Students</span>
+          <span class="stat-label">Tổng sinh viên</span>
           <span class="stat-value" id="svTotalCount"
             style="display:inline-block; padding:4px 12px; border-radius:6px; background:#eff6ff; color:#1d4ed8; border:1px solid #bfdbfe; margin-top:4px;">0</span>
         </div>
@@ -406,7 +383,7 @@
         <div class="stat-icon" style="background:#15803d;color:#fff;box-shadow:0 4px 10px rgba(21,128,61,0.2);"><i
             class="fas fa-check-circle"></i></div>
         <div class="stat-details">
-          <span class="stat-label">Pass (Avg ≥ 5.0)</span>
+          <span class="stat-label">Đạt (ĐTB ≥ 5.0)</span>
           <span class="stat-value" id="svPassCount"
             style="display:inline-block; padding:4px 12px; border-radius:6px; background:#f0fdf4; color:#15803d; border:1px solid #bbf7d0; margin-top:4px;">0</span>
         </div>
@@ -415,7 +392,7 @@
         <div class="stat-icon" style="background:#be123c;color:#fff;box-shadow:0 4px 10px rgba(190,18,60,0.2);"><i
             class="fas fa-times-circle"></i></div>
         <div class="stat-details">
-          <span class="stat-label">Fail</span>
+          <span class="stat-label">Không đạt</span>
           <span class="stat-value" id="svFailCount"
             style="display:inline-block; padding:4px 12px; border-radius:6px; background:#fef2f2; color:#be123c; border:1px solid #fecaca; margin-top:4px;">0</span>
         </div>
@@ -427,22 +404,21 @@
     <div class="t-card-body-flush">
       <div class="t-table-wrap">
         <table class="t-table" id="scoreViewTable">
-          <thead id="scoreViewTableHeader">
+          <thead>
             <tr>
-              <th style="cursor:pointer;" data-sort="StudentCode">Student ID <i class="fas fa-sort"></i></th>
-              <th style="cursor:pointer;" data-sort="FullName">Full Name <i class="fas fa-sort"></i></th>
-              <th style="text-align:center;">Attendance</th>
-              <th style="text-align:center;">Midterm</th>
-              <th style="text-align:center;">Final</th>
-              <th style="text-align:center;cursor:pointer;" data-sort="AvgScore">Avg (10) <i class="fas fa-sort"></i>
-              </th>
-              <th style="text-align:center;">Result</th>
+              <th>Mã SV</th>
+              <th>Họ tên</th>
+              <th style="text-align:center;">Chuyên cần</th>
+              <th style="text-align:center;">Giữa kỳ</th>
+              <th style="text-align:center;">Cuối kỳ</th>
+              <th style="text-align:center;">ĐTB (10)</th>
+              <th style="text-align:center;">Kết quả</th>
             </tr>
           </thead>
           <tbody id="scoreViewBody">
             <tr>
-              <td colspan="7" style="text-align:center;padding:32px;color:var(--text-muted);font-style:italic;">Select a
-                class to display the grade table.</td>
+              <td colspan="7" style="text-align:center;padding:32px;color:#94a3b8;font-style:italic;">Chọn một lớp để
+                hiển thị bảng điểm.</td>
             </tr>
           </tbody>
         </table>
@@ -451,107 +427,105 @@
   </div>
 </section>
 
+<!-- ══════════════════ DANH SÁCH LỚP ══════════════════ -->
 <section class="section" id="class-list">
   <div class="section-heading">
     <div>
-      <h2><span class="sh-icon" style="background:#e0e7ff;color:#3730a3;"><i class="fas fa-users"></i></span>Class List
-      </h2>
-      <p>View the student list for each assigned class.</p>
+      <h2><span class="sh-icon" style="background:#e0e7ff;color:#3730a3;"><i class="fas fa-users"></i></span>Danh sách
+        lớp</h2>
+      <p>Xem danh sách sinh viên theo từng lớp được phân công.</p>
     </div>
   </div>
 
+  <!-- Filter -->
   <div class="t-filter-bar">
-    <label><i class="fas fa-chalkboard" style="color:#3730a3;"></i> Select Class</label>
+    <label><i class="fas fa-chalkboard" style="color:#3730a3;"></i> Chọn lớp</label>
     <select id="classListSelect">
-      <option value="">Select Class...</option>
+      <option value="">Chọn lớp...</option>
     </select>
     <button class="btn btn-primary" type="button" id="classListBtn">
-      <i class="fas fa-magnifying-glass"></i> View List
+      <i class="fas fa-magnifying-glass"></i> Xem danh sách
     </button>
     <button class="btn" id="exportClassListBtn"
       style="display:none;margin-left:auto;background:#10b981;border-color:#10b981;color:#fff;">
-      <i class="fas fa-file-excel"></i> Export Excel
+      <i class="fas fa-file-excel"></i> Xuất Excel
     </button>
   </div>
 
+  <!-- Grid Layout -->
   <div class="grid two" style="grid-template-columns: 350px 1fr; gap: 20px; align-items: start;">
 
+    <!-- Left: Full Action Form -->
     <div class="t-card">
       <div class="t-card-body" style="padding: 24px;">
         <form id="studentActionForm" class="t-form" style="display:flex; flex-direction:column; gap:16px;">
           <div class="t-form-group">
-            <label style="font-weight:500; font-size:0.9rem; color:var(--text); margin-bottom:6px;">Student ID</label>
-            <input type="text" id="actionStudentCode" placeholder="Enter Student ID (Required)" required
-              style="width:100%; padding:10px; border:1px solid var(--border); border-radius:8px; font-size:0.9rem;">
+            <label style="font-weight:500; font-size:0.9rem; color:#1e293b; margin-bottom:6px;">Mã sinh viên</label>
+            <input type="text" id="actionStudentCode" placeholder="Nhập mã SV (Bắt buộc)" required
+              style="width:100%; padding:10px; border:1px solid #e2e8f0; border-radius:8px; font-size:0.9rem;">
           </div>
 
           <div class="t-form-group">
-            <label style="font-weight:500; font-size:0.9rem; color:var(--text); margin-bottom:6px;">Full Name</label>
-            <input type="text" id="actionFullName" placeholder="Enter full name"
-              style="width:100%; padding:10px; border:1px solid var(--border); border-radius:8px; font-size:0.9rem;">
+            <label style="font-weight:500; font-size:0.9rem; color:#1e293b; margin-bottom:6px;">Họ tên</label>
+            <input type="text" id="actionFullName" placeholder="Nhập họ và tên"
+              style="width:100%; padding:10px; border:1px solid #e2e8f0; border-radius:8px; font-size:0.9rem;">
           </div>
 
           <div class="t-form-group">
-            <label style="font-weight:500; font-size:0.9rem; color:var(--text); margin-bottom:6px;">Email</label>
-            <input type="email" id="actionEmail" placeholder="Enter student email"
-              style="width:100%; padding:10px; border:1px solid var(--border); border-radius:8px; font-size:0.9rem;">
+            <label style="font-weight:500; font-size:0.9rem; color:#1e293b; margin-bottom:6px;">Email</label>
+            <input type="email" id="actionEmail" placeholder="Nhập email sinh viên"
+              style="width:100%; padding:10px; border:1px solid #e2e8f0; border-radius:8px; font-size:0.9rem;">
           </div>
 
           <div class="t-form-group">
-            <label style="font-weight:500; font-size:0.9rem; color:var(--text); margin-bottom:6px;">Phone Number</label>
-            <input type="text" id="actionPhone" placeholder="Enter phone number"
-              style="width:100%; padding:10px; border:1px solid var(--border); border-radius:8px; font-size:0.9rem;">
+            <label style="font-weight:500; font-size:0.9rem; color:#1e293b; margin-bottom:6px;">Số điện thoại</label>
+            <input type="text" id="actionPhone" placeholder="Nhập số điện thoại"
+              style="width:100%; padding:10px; border:1px solid #e2e8f0; border-radius:8px; font-size:0.9rem;">
           </div>
 
           <div class="t-form-group">
-            <label style="font-weight:500; font-size:0.9rem; color:var(--text); margin-bottom:6px;">Date of
-              Birth</label>
+            <label style="font-weight:500; font-size:0.9rem; color:#1e293b; margin-bottom:6px;">Ngày sinh</label>
             <input type="date" id="actionDob"
-              style="width:100%; padding:10px; border:1px solid var(--border); border-radius:8px; font-size:0.9rem;">
+              style="width:100%; padding:10px; border:1px solid #e2e8f0; border-radius:8px; font-size:0.9rem;">
           </div>
 
           <div class="t-form-group">
-            <label style="font-weight:500; font-size:0.9rem; color:var(--text); margin-bottom:6px;">Gender</label>
+            <label style="font-weight:500; font-size:0.9rem; color:#1e293b; margin-bottom:6px;">Giới tính</label>
             <select id="actionGender"
-              style="width:100%; padding:10px; border:1px solid var(--border); border-radius:8px; font-size:0.9rem;">
-              <option value="">Select gender</option>
-              <option value="Male">Male</option>
-              <option value="Female">Female</option>
-              <option value="Other">Other</option>
+              style="width:100%; padding:10px; border:1px solid #e2e8f0; border-radius:8px; font-size:0.9rem;">
+              <option value="">Chọn giới tính</option>
+              <option value="Nam">Nam</option>
+              <option value="Nữ">Nữ</option>
+              <option value="Khác">Khác</option>
             </select>
           </div>
 
           <div style="display:flex; flex-direction:column; gap:12px; margin-top:8px;">
             <button type="button" class="btn btn-primary" id="quickAddStudentBtn"
               style="width:100%; justify-content:center; padding:12px; font-weight:600;">
-              <i class="fas fa-save"></i> Add student
+              <i class="fas fa-save"></i> Thêm sinh viên
             </button>
             <button type="button" class="btn" id="quickRemoveStudentBtn"
               style="width:100%; justify-content:center; padding:12px; background:#ef4444; color:#fff; border:none; font-weight:600;">
-              <i class="fas fa-user-minus"></i> Remove from class
+              <i class="fas fa-user-minus"></i> Xóa khỏi lớp
             </button>
           </div>
         </form>
       </div>
     </div>
 
+    <!-- Right: Student Table -->
     <div class="t-card">
       <div class="t-card-header">
         <div class="t-card-title">
           <span class="tct-icon" style="background:#e0e7ff;color:#3730a3;"><i class="fas fa-list-ul"></i></span>
-          Class Roster
+          Danh sách lớp học
         </div>
-        <div style="display:flex; align-items:center; gap:10px; margin-left:auto;">
-          <button class="btn" id="bulkRemoveStudentsBtn"
-            style="display:none; background:#ef4444; border-color:#ef4444; color:#fff; padding:7px 14px; font-size:0.85rem; font-weight:600; border-radius:8px; cursor:pointer; align-items:center; gap:6px;">
-            <i class="fas fa-trash-alt"></i> Remove Selected (<span id="selectedStudentCount">0</span>)
-          </button>
-          <div class="search-box" style="position:relative;">
-            <i class="fas fa-search"
-              style="position:absolute; left:10px; top:50%; transform:translateY(-50%); color:var(--text-muted); font-size:0.9rem;"></i>
-            <input type="text" id="studentSearchInput" placeholder="Search name, ID..."
-              style="padding:8px 12px 8px 32px; border:1px solid var(--border); border-radius:8px; font-size:0.9rem; width:220px;">
-          </div>
+        <div class="search-box" style="position:relative; margin-left:auto;">
+          <i class="fas fa-search"
+            style="position:absolute; left:10px; top:50%; transform:translateY(-50%); color:#94a3b8; font-size:0.9rem;"></i>
+          <input type="text" id="studentSearchInput" placeholder="Tìm tên, mã SV..."
+            style="padding:8px 12px 8px 32px; border:1px solid #e2e8f0; border-radius:8px; font-size:0.9rem; width:220px;">
         </div>
       </div>
       <div class="t-card-body-flush">
@@ -559,24 +533,21 @@
           <table class="t-table">
             <thead>
               <tr>
-                <th style="width:40px; text-align:center;">
-                  <input type="checkbox" id="selectAllStudents" title="Select all" style="cursor:pointer; width:16px; height:16px;">
-                </th>
-                <th style="width:50px;">No.</th>
-                <th>Student ID</th>
-                <th>Full Name</th>
-                <th>Date of Birth</th>
-                <th>Gender</th>
-                <th>Phone</th>
+                <th style="width:50px;">STT</th>
+                <th>Mã SV</th>
+                <th>Họ tên</th>
+                <th>Ngày sinh</th>
+                <th>Giới tính</th>
+                <th>SĐT</th>
                 <th>Email</th>
               </tr>
             </thead>
             <tbody id="classListTableBody">
               <tr>
-                <td colspan="8" style="text-align:center;padding:48px;color:var(--text-muted);font-style:italic;">
+                <td colspan="7" style="text-align:center;padding:48px;color:#94a3b8;font-style:italic;">
                   <i class="fas fa-info-circle"
                     style="display:block; font-size:2rem; margin-bottom:12px; opacity:0.3;"></i>
-                  Please select a class above to display the list.
+                  Vui lòng chọn lớp bên trên để hiển thị danh sách.
                 </td>
               </tr>
             </tbody>
@@ -587,84 +558,87 @@
   </div>
 </section>
 
+<!-- Bài kiểm tra section follows -->
 
+<!-- ══════════════════ TẠO BÀI KIỂM TRA ══════════════════ -->
 <section class="section" id="exams">
   <div class="section-heading">
     <div>
-      <h2><span class="sh-icon" style="background:#fef3c7;color:#b45309;"><i class="fas fa-file-alt"></i></span>Exams &
-        Assignments</h2>
-      <p>Create and manage exams/assignments for students.</p>
+      <h2><span class="sh-icon" style="background:#fef3c7;color:#b45309;"><i class="fas fa-file-alt"></i></span>Tạo bài
+        kiểm tra</h2>
+      <p>Tạo và quản lý bài kiểm tra/bài tập cho sinh viên.</p>
     </div>
   </div>
 
   <div class="grid two" style="gap:16px; margin-bottom:20px;">
+    <!-- Form tạo -->
     <div class="t-card">
       <div class="t-card-header">
         <div class="t-card-title">
           <span class="tct-icon" style="background:#fef3c7;color:#b45309;"><i class="fas fa-plus"></i></span>
-          Create new exam
+          Tạo bài mới
         </div>
       </div>
       <div class="t-card-body">
         <form id="examForm" class="t-form">
           <div class="t-form-group">
-            <label>Class</label>
+            <label>Lớp học</label>
             <select id="examClassSelect" required>
-              <option value="">Select Class...</option>
+              <option value="">Chọn lớp...</option>
             </select>
           </div>
           <div class="t-form-group">
-            <label>Title</label>
-            <input id="examTitleInput" required placeholder="E.g., Midterm Exam" />
+            <label>Tiêu đề</label>
+            <input id="examTitleInput" required placeholder="VD: Kiểm tra giữa kỳ" />
           </div>
           <div class="t-form-row">
             <div class="t-form-group">
-              <label>Type</label>
+              <label>Loại bài</label>
               <select id="examTypeSelect">
-                <option value="Multiple Choice">Multiple Choice</option>
-                <option value="Essay">Essay</option>
+                <option value="Trắc nghiệm">Trắc nghiệm</option>
+                <option value="Tự luận">Tự luận</option>
               </select>
             </div>
             <div class="t-form-group">
-              <label>Deadline</label>
-              <input type="datetime-local" id="examDueDate" required />
+              <label>Hạn nộp</label>
+              <input type="datetime-local" id="examDueDate" />
             </div>
           </div>
           <div class="t-form-group">
-            <label>Notes</label>
-            <textarea id="examDescription" rows="2" placeholder="Content or instructions..."></textarea>
+            <label>Ghi chú</label>
+            <textarea id="examDescription" rows="2" placeholder="Nội dung hoặc hướng dẫn..."></textarea>
           </div>
           <div class="t-form-group">
-            <label>Upload PDF Exam</label>
+            <label>Tải đề PDF từ thiết bị</label>
             <div id="examPdfDropZone"
-              style="border:2px dashed var(--border);border-radius:10px;padding:14px;text-align:center;color:var(--text-secondary);background:var(--page-bg);cursor:pointer;">
-              Drag & drop multiple PDF files here or click to select
+              style="border:2px dashed #cbd5e1;border-radius:10px;padding:14px;text-align:center;color:#475569;background:#f8fafc;cursor:pointer;">
+              Kéo/thả nhiều file PDF vào đây hoặc bấm để chọn file
               <input id="examPdfFileInput" type="file" accept=".pdf,application/pdf" multiple style="display:none;" />
             </div>
-            <small id="examPdfUploadStatus" style="display:block;margin-top:6px;color:var(--text-secondary);">No file
-              uploaded.</small>
+            <small id="examPdfUploadStatus" style="display:block;margin-top:6px;color:#64748b;">Chưa tải file.</small>
             <div id="examPdfList" style="margin-top:8px;display:flex;flex-direction:column;gap:6px;"></div>
           </div>
           <button class="btn btn-primary" type="submit" style="align-self:flex-start;">
-            <i class="fas fa-plus"></i> Create Exam
+            <i class="fas fa-plus"></i> Tạo bài kiểm tra
           </button>
         </form>
       </div>
     </div>
 
+    <!-- Hướng dẫn -->
     <div class="t-card">
       <div class="t-card-header">
         <div class="t-card-title">
           <span class="tct-icon" style="background:#dbeafe;color:#1d4ed8;"><i class="fas fa-lightbulb"></i></span>
-          Instructions
+          Hướng dẫn
         </div>
       </div>
-      <div class="t-card-body" style="font-size:0.875rem; color:var(--text-secondary); line-height:1.6;">
+      <div class="t-card-body" style="font-size:0.875rem; color:#475569; line-height:1.6;">
         <ul style="padding-left:20px; margin:0;">
-          <li>Select the correct class to assign.</li>
-          <li><b>Deadline:</b> Students cannot submit after this time.</li>
-          <li><b>Type:</b> Multiple Choice will be auto-graded if there is a question bank.</li>
-          <li>Changes after creation will notify students immediately.</li>
+          <li>Chọn đúng lớp học cần giao bài.</li>
+          <li><b>Hạn nộp:</b> Sinh viên không thể nộp bài sau thời gian này.</li>
+          <li><b>Loại bài:</b> Trắc nghiệm sẽ được hệ thống hỗ trợ chấm tự động (nếu có ngân hàng câu hỏi).</li>
+          <li>Mọi thay đổi sau khi tạo sẽ được thông báo ngay đến sinh viên qua ứng dụng.</li>
         </ul>
       </div>
     </div>
@@ -674,7 +648,7 @@
     <div class="t-card-header">
       <div class="t-card-title">
         <span class="tct-icon" style="background:#fef3c7;color:#b45309;"><i class="fas fa-list"></i></span>
-        Assigned Exams
+        Danh sách bài kiểm tra đã giao
       </div>
     </div>
     <div class="t-card-body-flush">
@@ -682,18 +656,18 @@
         <table class="t-table">
           <thead>
             <tr>
-              <th>Title</th>
-              <th>Class</th>
-              <th>Type</th>
-              <th>Deadline</th>
-              <th>Status</th>
-              <th style="width:80px;">Actions</th>
+              <th>Tiêu đề</th>
+              <th>Lớp</th>
+              <th>Loại</th>
+              <th>Hạn nộp</th>
+              <th>Trạng thái</th>
+              <th style="width:80px;">Thao tác</th>
             </tr>
           </thead>
           <tbody id="examTableBody">
             <tr>
-              <td colspan="6" style="text-align:center;padding:32px;color:var(--text-muted);font-style:italic;">Loading
-                data...
+              <td colspan="6" style="text-align:center;padding:32px;color:#94a3b8;font-style:italic;">Đang tải dữ
+                liệu...
               </td>
             </tr>
           </tbody>
@@ -703,24 +677,26 @@
   </div>
 </section>
 
+<!-- ══════════════════ ĐIỂM DANH ══════════════════ -->
 <section class="section" id="attendance">
   <div class="section-heading">
     <div>
       <h2><span class="sh-icon" style="background:#fef9c3;color:#854d0e;"><i
-            class="fas fa-clipboard-check"></i></span>Attendance</h2>
-      <p>Manage student attendance for each session.</p>
+            class="fas fa-clipboard-check"></i></span>Điểm danh</h2>
+      <p>Quản lý điểm danh sinh viên trong từng buổi học.</p>
     </div>
   </div>
 
+  <!-- Filter -->
   <div class="t-filter-bar">
-    <label><i class="fas fa-chalkboard" style="color:#854d0e;"></i> Select Class</label>
+    <label><i class="fas fa-chalkboard" style="color:#854d0e;"></i> Chọn lớp</label>
     <select id="attendanceClassSelect">
-      <option value="">Select Class...</option>
+      <option value="">Chọn lớp...</option>
     </select>
-    <label><i class="fas fa-calendar" style="color:#854d0e;"></i> Date</label>
+    <label><i class="fas fa-calendar" style="color:#854d0e;"></i> Ngày học</label>
     <input type="date" id="attendanceDateInput" />
     <button class="btn btn-primary" type="button" id="attendanceSearchBtn">
-      <i class="fas fa-search"></i> Load list
+      <i class="fas fa-search"></i> Tải danh sách
     </button>
   </div>
 
@@ -728,10 +704,10 @@
     <div class="t-card-header">
       <div class="t-card-title">
         <span class="tct-icon" style="background:#fef9c3;color:#854d0e;"><i class="fas fa-users"></i></span>
-        Student List
+        Danh sách sinh viên
       </div>
       <button class="btn btn-primary" id="attendanceSaveBtn">
-        <i class="fas fa-save"></i> Save Attendance
+        <i class="fas fa-save"></i> Lưu điểm danh
       </button>
     </div>
     <div class="t-card-body-flush">
@@ -739,17 +715,17 @@
         <table class="t-table">
           <thead>
             <tr>
-              <th>Student ID</th>
-              <th>Full Name</th>
-              <th style="text-align:center;width:100px;">Present</th>
-              <th style="text-align:center;width:80px;">Absent</th>
-              <th style="text-align:center;width:80px;">Late</th>
+              <th>Mã SV</th>
+              <th>Họ tên</th>
+              <th style="text-align:center;width:100px;">Có mặt</th>
+              <th style="text-align:center;width:80px;">Vắng</th>
+              <th style="text-align:center;width:80px;">Trễ</th>
             </tr>
           </thead>
           <tbody id="attendanceTableBody">
             <tr>
-              <td colspan="5" style="text-align:center;padding:32px;color:var(--text-muted);font-style:italic;">Select a
-                class and date to take attendance.</td>
+              <td colspan="5" style="text-align:center;padding:32px;color:#94a3b8;font-style:italic;">Chọn lớp và ngày
+                để điểm danh.</td>
             </tr>
           </tbody>
         </table>
@@ -758,139 +734,149 @@
   </div>
 </section>
 
+<!-- ══════════════════ THÔNG BÁO ══════════════════ -->
 <section class="section" id="notifications">
   <div class="section-heading">
     <div>
-      <h2><span class="sh-icon" style="background:#ffe4e6;color:#be123c;"><i
-            class="fas fa-bell"></i></span>Notifications
+      <h2><span class="sh-icon" style="background:#ffe4e6;color:#be123c;"><i class="fas fa-bell"></i></span>Thông báo
       </h2>
-      <p>Send important notifications to students or your assigned classes.</p>
+      <p>Gửi thông báo quan trọng đến sinh viên hoặc lớp mà bạn phụ trách.</p>
     </div>
   </div>
 
   <div class="grid two" style="gap:16px;">
+    <!-- Form gửi -->
     <div class="t-card">
       <div class="t-card-header">
         <div class="t-card-title">
           <span class="tct-icon" style="background:#ffe4e6;color:#be123c;"><i class="fas fa-paper-plane"></i></span>
-          Send New Notification
+          Gửi thông báo mới
         </div>
       </div>
       <div class="t-card-body">
         <form id="notificationForm" class="t-form">
           <div class="t-form-group">
-            <label>Send to</label>
+            <label>Gửi đến</label>
             <select id="notificationTargetSelect">
-              <option value="all">All My Classes</option>
+              <option value="all">Tất cả lớp của tôi</option>
             </select>
           </div>
-
           <div class="t-form-group">
-            <label>Title</label>
-            <input id="notifTitleInput" required placeholder="E.g., Class cancellation notice..." />
-          </div>
-          <div class="t-form-group">
-            <label>Content</label>
-            <textarea id="notifContentInput" rows="4" required placeholder="Enter notification content..."></textarea>
+            <label>Tiêu đề</label>
+            <input required placeholder="VD: Thông báo nghỉ học ngày..." />
           </div>
           <div class="t-form-group">
-            <label>Attach File</label>
-            <input type="file" id="notifAttachmentInput" class="form-input">
+            <label>Nội dung</label>
+            <textarea rows="5" required placeholder="Nhập nội dung thông báo..."></textarea>
           </div>
-
-          <div style="display:flex; gap:10px;">
-            <button class="btn btn-primary" type="button" id="notificationSendBtn">
-              <i class="fas fa-paper-plane"></i> Send Notification
-            </button>
-            <button class="btn btn-ghost" type="button" id="notificationCancelBtn" style="display:none;">
-              <i class="fas fa-times"></i> Cancel
-            </button>
-          </div>
+          <button class="btn btn-primary" type="button" id="notificationSendBtn" style="align-self:flex-start;">
+            <i class="fas fa-paper-plane"></i> Gửi thông báo
+          </button>
         </form>
       </div>
     </div>
 
+    <!-- Danh sách đã gửi -->
     <div class="t-card">
       <div class="t-card-header">
         <div class="t-card-title">
           <span class="tct-icon" style="background:#ffe4e6;color:#be123c;"><i class="fas fa-history"></i></span>
-          Sent Notifications
+          Thông báo đã gửi
         </div>
       </div>
       <div class="t-card-body-flush" style="padding:16px;">
         <div id="notificationTableBody" class="notification-list"
           style="max-height:420px;overflow-y:auto;padding-right:8px;">
-          <div style="text-align:center;padding:40px;color:var(--text-muted);">
+          <div style="text-align:center;padding:40px;color:#94a3b8;">
             <i class="fas fa-inbox" style="font-size:2rem;margin-bottom:10px;display:block;"></i>
-            You haven't sent any notifications.
+            Bạn chưa gửi thông báo nào.
           </div>
         </div>
       </div>
     </div>
   </div>
 
+  <!-- Modal xem thông báo -->
   <div id="notifModal"
     style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.45);z-index:9999;align-items:center;justify-content:center;">
     <div
-      style="background:var(--surface);border-radius:16px;padding:28px;max-width:520px;width:90%;box-shadow:0 16px 48px rgba(0,0,0,0.2);position:relative;">
+      style="background:#fff;border-radius:16px;padding:28px;max-width:520px;width:90%;box-shadow:0 16px 48px rgba(0,0,0,0.2);position:relative;">
       <button id="notifModalClose"
-        style="position:absolute;top:14px;right:16px;background:none;border:none;font-size:1.4rem;cursor:pointer;color:var(--text-muted);">&times;</button>
+        style="position:absolute;top:14px;right:16px;background:none;border:none;font-size:1.4rem;cursor:pointer;color:#94a3b8;">&times;</button>
       <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px;">
         <div
           style="width:40px;height:40px;background:#ffe4e6;color:#be123c;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:1.1rem;flex-shrink:0;">
           <i class="fas fa-bell"></i>
         </div>
-        <h3 id="notifModalTitle" style="margin:0;font-size:1rem;color:var(--text);padding-right:24px;"></h3>
+        <h3 id="notifModalTitle" style="margin:0;font-size:1rem;color:#1e293b;padding-right:24px;"></h3>
       </div>
       <div
-        style="background:var(--page-bg);border-radius:10px;padding:14px;margin-bottom:14px;display:flex;flex-wrap:wrap;gap:10px;">
-        <span style="font-size:0.78rem;color:var(--text-secondary);"><i class="fas fa-user"></i> <span
+        style="background:#f8fafc;border-radius:10px;padding:14px;margin-bottom:14px;display:flex;flex-wrap:wrap;gap:10px;">
+        <span style="font-size:0.78rem;color:#64748b;"><i class="fas fa-user"></i> <span
             id="notifModalCreator"></span></span>
-        <span style="font-size:0.78rem;color:var(--text-secondary);"><i class="fas fa-users"></i> <span
+        <span style="font-size:0.78rem;color:#64748b;"><i class="fas fa-users"></i> <span
             id="notifModalTarget"></span></span>
-        <span style="font-size:0.78rem;color:var(--text-secondary);"><i class="fas fa-clock"></i> <span
+        <span style="font-size:0.78rem;color:#64748b;"><i class="fas fa-clock"></i> <span
             id="notifModalDate"></span></span>
       </div>
       <div
-        style="background:var(--page-bg);border-radius:10px;padding:14px;font-size:0.9rem;line-height:1.75;white-space:pre-wrap;color:var(--text);"
+        style="background:#f8fafc;border-radius:10px;padding:14px;font-size:0.9rem;line-height:1.75;white-space:pre-wrap;color:#334155;"
         id="notifModalContent"></div>
     </div>
   </div>
 </section>
 
+<!-- ══════════════════ BÁO CÁO & THỐNG KÊ ══════════════════ -->
 <section class="section" id="reports-stats">
   <div class="section-heading">
     <div>
-      <h2><span class="sh-icon" style="background:#ffedd5;color:#9a3412;"><i
-            class="fas fa-chart-line"></i></span>Reports & Analytics</h2>
-      <p>Statistical analysis of learning efficiency from Grade and Attendance data.</p>
+      <h2><span class="sh-icon" style="background:#ffedd5;color:#9a3412;"><i class="fas fa-chart-line"></i></span>Báo
+        cáo & Thống kê</h2>
+      <p>Thống kê hiệu quả học tập từ dữ liệu Điểm số và Điểm danh.</p>
     </div>
     <button class="btn btn-primary" id="reloadReportBtn">
-      <i class="fas fa-sync-alt"></i> Refresh
+      <i class="fas fa-sync-alt"></i> Làm mới
     </button>
   </div>
 
+  <!-- KPI Cards -->
   <div class="grid three" style="margin-bottom:20px;">
-  </div>
-
-  <div class="t-card" style="margin-bottom: 20px;">
-    <div class="t-card-header">
-      <div class="t-card-title">
-        <span class="tct-icon" style="background:#e0e7ff;color:#3730a3;"><i class="fas fa-chart-bar"></i></span>
-        Class Performance Chart
+    <div class="stat-card">
+      <div class="stat-icon" style="background:#3730a3;color:#fff;box-shadow:0 4px 10px rgba(55,48,163,0.2);"><i
+          class="fas fa-user-check"></i></div>
+      <div class="stat-details">
+        <span class="stat-label">Tỷ lệ đi học TB</span>
+        <span class="stat-value" id="avgAttendance"
+          style="display:inline-block; padding:4px 12px; border-radius:6px; background:#e0e7ff; color:#3730a3; border:1px solid #c7d2fe; margin-top:4px;">--%</span>
       </div>
     </div>
-    <div class="t-card-body" style="height: 320px; position: relative;">
-      <canvas id="classPerformanceChart"></canvas>
+    <div class="stat-card">
+      <div class="stat-icon" style="background:#15803d;color:#fff;box-shadow:0 4px 10px rgba(21,128,61,0.2);"><i
+          class="fas fa-graduation-cap"></i></div>
+      <div class="stat-details">
+        <span class="stat-label">Tỷ lệ đạt (≥ 5.0)</span>
+        <span class="stat-value" id="passRate"
+          style="display:inline-block; padding:4px 12px; border-radius:6px; background:#dcfce7; color:#15803d; border:1px solid #bbf7d0; margin-top:4px;">--%</span>
+      </div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon" style="background:#b45309;color:#fff;box-shadow:0 4px 10px rgba(180,83,9,0.2);"><i
+          class="fas fa-award"></i></div>
+      <div class="stat-details">
+        <span class="stat-label">SV Xuất sắc (≥ 9.0)</span>
+        <span class="stat-value" id="excellentCount"
+          style="display:inline-block; padding:4px 12px; border-radius:6px; background:#fef3c7; color:#b45309; border:1px solid #fde68a; margin-top:4px;">0</span>
+      </div>
     </div>
   </div>
 
   <div class="grid two" style="gap:16px;">
+    <!-- Bảng ĐTB từng lớp -->
     <div class="t-card">
       <div class="t-card-header">
         <div class="t-card-title">
           <span class="tct-icon" style="background:#ffedd5;color:#9a3412;"><i class="fas fa-table"></i></span>
-          Average Grade by Class
+          ĐTB từng lớp
         </div>
       </div>
       <div class="t-card-body-flush">
@@ -898,18 +884,17 @@
           <table class="t-table">
             <thead>
               <tr>
-                <th>Class</th>
-                <th>Subject</th>
-                <th style="text-align:center;">Students</th>
-                <th style="text-align:center;">Avg</th>
-                <th style="text-align:center;">Pass</th>
-                <th style="text-align:center;">Excellent</th>
-                <th style="text-align:center;">Actions</th>
+                <th>Lớp</th>
+                <th>Môn học</th>
+                <th style="text-align:center;">Sĩ số</th>
+                <th style="text-align:center;">ĐTB</th>
+                <th style="text-align:center;">Đạt</th>
+                <th style="text-align:center;">XS</th>
               </tr>
             </thead>
             <tbody id="reportClassStatsBody">
               <tr>
-                <td colspan="7" style="text-align:center;padding:32px;color:var(--text-muted);">Loading...</td>
+                <td colspan="6" style="text-align:center;padding:32px;color:#94a3b8;">Đang tải...</td>
               </tr>
             </tbody>
           </table>
@@ -917,24 +902,26 @@
       </div>
     </div>
 
+    <!-- Chi tiết tổng hợp -->
     <div class="t-card">
       <div class="t-card-header">
         <div class="t-card-title">
           <span class="tct-icon" style="background:#ffedd5;color:#9a3412;"><i class="fas fa-chart-pie"></i></span>
-          Summary
+          Tổng hợp
         </div>
       </div>
       <div class="t-card-body">
         <ul class="info-list" style="margin-bottom:20px;">
-          <li><span class="label">Class with highest Avg</span><span class="value" id="topClass">--</span></li>
-          <li><span class="label">Highest Avg</span><span class="value" id="topClassAvg">--</span></li>
-          <li><span class="label">Total Students</span><span class="value" id="reportTotalStudents">0</span></li>
-          <li><span class="label">Classes Managed</span><span class="value" id="reportTotalClasses">0</span></li>
+          <li><span class="label">Lớp có ĐTB cao nhất</span><span class="value" id="topClass">--</span></li>
+          <li><span class="label">ĐTB cao nhất</span><span class="value" id="topClassAvg">--</span></li>
+          <li><span class="label">Tổng sinh viên</span><span class="value" id="reportTotalStudents">0</span></li>
+          <li><span class="label">Số lớp phụ trách</span><span class="value" id="reportTotalClasses">0</span></li>
         </ul>
 
+        <!-- Progress bars -->
         <div>
           <div class="t-progress-row">
-            <span style="color:var(--text-secondary);">Pass Rate</span>
+            <span style="color:#64748b;">Tỷ lệ đạt</span>
             <span style="color:#15803d;font-weight:700;" id="passRateBar">--%</span>
           </div>
           <div class="t-progress-track">
@@ -943,7 +930,7 @@
           </div>
 
           <div class="t-progress-row">
-            <span style="color:var(--text-secondary);">Attendance Rate</span>
+            <span style="color:#64748b;">Tỷ lệ đi học</span>
             <span style="color:#3730a3;font-weight:700;" id="attendanceRateBar">--%</span>
           </div>
           <div class="t-progress-track">
@@ -955,54 +942,48 @@
     </div>
 </section>
 
-<div id="classDetailModal"
+<!-- Modal Chi tiết lớp từ Calendar (đặt ngoài section để hiển thị đúng) -->
+<div id="calDetailModal"
   style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.5); z-index:9999; align-items:center; justify-content:center;">
   <div
-    style="background:var(--surface); border-radius:16px; padding:28px; max-width:850px; width:95%; max-height:85vh; overflow-y:auto; box-shadow:0 12px 48px rgba(0,0,0,0.2); position:relative;">
-    <button id="classDetailModalClose"
-      style="position:absolute; top:16px; right:20px; background:none; border:none; font-size:1.5rem; cursor:pointer; color:var(--text-muted); transition:color 0.2s;">&times;</button>
+    style="background:#fff; border-radius:12px; padding:28px; max-width:700px; width:95%; max-height:85vh; overflow-y:auto; box-shadow:0 8px 32px rgba(0,0,0,0.2); position:relative;">
+    <button id="calDetailModalClose"
+      style="position:absolute; top:14px; right:16px; background:none; border:none; font-size:1.4rem; cursor:pointer; color:#94a3b8;">&times;</button>
 
-    <div style="margin-bottom:20px; padding-right:40px;">
-      <h3 id="classDetailModalTitle" style="margin:0 0 6px 0; color:var(--text); font-size:1.25rem; font-weight:700;">
-      </h3>
-      <p id="classDetailModalSubtitle"
-        style="color:var(--text-secondary); font-size:0.95rem; margin:0; display:flex; align-items:center; gap:6px;">
-        <i class="fas fa-clock"></i> <span id="classDetailTimeText"></span>
-      </p>
+    <div style="margin-bottom:8px;">
+      <h3 id="calDetailModalTitle" style="margin-bottom:4px; color:#1e293b;"></h3>
+      <p id="calDetailModalSubtitle" style="color:#64748b; font-size:0.9rem; margin:0;"></p>
     </div>
 
-    <div style="display:flex; gap:12px; margin-bottom:24px; flex-wrap:wrap;">
-      <button class="btn btn-primary" id="classDetailGoScore"
-        style="padding:10px 20px; font-weight:600; border-radius:10px; box-shadow: 0 4px 12px rgba(37, 99, 235, 0.2);">
-        <i class="fas fa-pen"></i> Enter Grades
+    <!-- 3 button hành động -->
+    <div style="display:flex; gap:8px; margin-bottom:20px; margin-top:16px;">
+      <button class="btn btn-primary" id="calDetailGoScore">
+        <i class="fas fa-pen"></i> Nhập điểm
       </button>
-      <button class="btn" id="classDetailGoAttend"
-        style="background:#fef9c3; color:#854d0e; border:1px solid #fde68a; padding:10px 20px; font-weight:600; border-radius:10px; box-shadow: 0 4px 12px rgba(234, 179, 8, 0.15);">
-        <i class="fas fa-clipboard-check"></i> Attendance
+      <button class="btn" id="calDetailGoAttend"
+        style="background:#fef9c3; color:#854d0e; border:1px solid #fde68a;">
+        <i class="fas fa-clipboard-check"></i> Điểm danh
       </button>
-      <button class="btn" id="classDetailGoExams"
-        style="background:#e0e7ff; color:#3730a3; border:1px solid #c7d2fe; padding:10px 20px; font-weight:600; border-radius:10px;">
-        <i class="fas fa-file-alt"></i> Add Assignment
+      <button class="btn" id="calDetailGoExam"
+        style="background:#fef3c7; color:#b45309; border:1px solid #fed7aa;">
+        <i class="fas fa-file-alt"></i> Bài tập
       </button>
     </div>
 
-    <div class="t-table-wrap" style="border: 1px solid var(--border); border-radius:12px; overflow:hidden;">
+    <div class="t-table-wrap">
       <table class="t-table">
         <thead>
           <tr>
-            <th style="width:60px; text-align:center;">No.</th>
-            <th>Student ID</th>
-            <th>Full Name</th>
-            <th style="text-align:center;">Date of Birth</th>
-            <th style="text-align:center;">Gender</th>
+            <th>STT</th>
+            <th>Mã SV</th>
+            <th>Họ tên</th>
+            <th>Ngày sinh</th>
+            <th>Giới tính</th>
           </tr>
         </thead>
-        <tbody id="classDetailTableBody">
+        <tbody id="calDetailTableBody">
           <tr>
-            <td colspan="5" style="text-align:center;padding:48px;color:var(--text-muted);">
-              <i class="fas fa-spinner fa-spin" style="font-size:1.5rem; margin-bottom:12px; display:block;"></i>
-              Loading student list...
-            </td>
+            <td colspan="5" style="text-align:center;padding:32px;color:#94a3b8;">Đang tải...</td>
           </tr>
         </tbody>
       </table>
@@ -1013,27 +994,27 @@
 <div id="examSubmissionsModal"
   style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.45);z-index:9999;align-items:center;justify-content:center;">
   <div
-    style="background:var(--surface);border-radius:14px;padding:20px;max-width:950px;width:95%;max-height:85vh;overflow:auto;position:relative;">
+    style="background:#fff;border-radius:14px;padding:20px;max-width:950px;width:95%;max-height:85vh;overflow:auto;position:relative;">
     <button id="examSubmissionsClose"
-      style="position:absolute;top:12px;right:14px;background:none;border:none;font-size:1.3rem;cursor:pointer;color:var(--text-muted);">&times;</button>
-    <h3 id="examSubmissionsTitle" style="margin:0 0 14px 0;color:var(--text);">Submissions</h3>
+      style="position:absolute;top:12px;right:14px;background:none;border:none;font-size:1.3rem;cursor:pointer;color:#94a3b8;">&times;</button>
+    <h3 id="examSubmissionsTitle" style="margin:0 0 14px 0;color:#1e293b;">Danh sách bài nộp</h3>
     <div class="t-table-wrap">
       <table class="t-table">
         <thead>
           <tr>
-            <th>Student ID</th>
-            <th>Full Name</th>
-            <th>Submitted at</th>
-            <th>File</th>
-            <th>Score</th>
+            <th>Mã SV</th>
+            <th>Họ tên</th>
+            <th>Nộp lúc</th>
+            <th>Tệp nộp</th>
+            <th>Điểm</th>
             <th>Feedback</th>
-            <th>Status</th>
-            <th>Actions</th>
+            <th>Trạng thái</th>
+            <th>Thao tác</th>
           </tr>
         </thead>
         <tbody id="examSubmissionsBody">
           <tr>
-            <td colspan="8" style="text-align:center;padding:28px;color:var(--text-muted);">No data available.</td>
+            <td colspan="8" style="text-align:center;padding:28px;color:#94a3b8;">Chưa có dữ liệu.</td>
           </tr>
         </tbody>
       </table>
@@ -1041,39 +1022,63 @@
   </div>
 </div>
 
-<div id="scoreHistoryModal"
-  style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:10000;align-items:center;justify-content:center;">
-  <div
-    style="background:var(--surface);border-radius:16px;padding:24px;max-width:650px;width:95%;box-shadow:0 12px 32px rgba(0,0,0,0.25);position:relative;">
-    <button id="scoreHistoryModalClose"
-      style="position:absolute;top:14px;right:16px;background:none;border:none;font-size:1.4rem;cursor:pointer;color:var(--text-muted);">&times;</button>
-    <div
-      style="display:flex;align-items:center;gap:12px;margin-bottom:20px;border-bottom:1px solid var(--border);padding-bottom:12px;">
-      <div
-        style="width:36px;height:36px;background:#fef3c7;color:#b45309;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:1rem;">
-        <i class="fas fa-history"></i>
+<!-- Modal Chỉnh sửa hồ sơ -->
+<div id="editProfileModal" class="modal-overlay" style="display:none;background:rgba(0,0,0,0.5);">
+  <div class="modal-content" style="max-width:600px;border-radius:12px;box-shadow:0 20px 60px rgba(0,0,0,0.3);">
+    <div class="modal-header" style="background:linear-gradient(135deg, #1e40af 0%, #2563eb 100%);color:white;padding:24px;border-radius:12px 12px 0 0;">
+      <div style="display:flex;align-items:center;gap:12px;flex:1;">
+        <i class="fas fa-user-edit" style="font-size:1.5rem;"></i>
+        <div>
+          <h3 style="margin:0;font-size:1.25rem;font-weight:600;">Chỉnh sửa hồ sơ cá nhân</h3>
+          <p style="margin:4px 0 0 0;font-size:0.875rem;opacity:0.9;">Cập nhật thông tin của bạn</p>
+        </div>
       </div>
-      <div>
-        <h3 style="margin:0;font-size:1.1rem;color:var(--text);">Grade History</h3>
-        <p id="scoreHistorySubtitle" style="margin:2px 0 0 0;font-size:0.85rem;color:var(--text-secondary);"></p>
-      </div>
+      <button id="editProfileModalClose" class="modal-close-btn" style="background:rgba(255,255,255,0.2);color:white;border:none;width:32px;height:32px;border-radius:6px;cursor:pointer;">
+        <i class="fas fa-times"></i>
+      </button>
     </div>
-    <div style="max-height:400px;overflow-y:auto;">
-      <table class="t-table" style="font-size:0.85rem;">
-        <thead>
-          <tr>
-            <th>Time</th>
-            <th>Old</th>
-            <th>New</th>
-            <th>Modified by</th>
-          </tr>
-        </thead>
-        <tbody id="scoreHistoryTableBody">
-          <tr>
-            <td colspan="4" style="text-align:center;padding:20px;color:var(--text-muted);">Loading...</td>
-          </tr>
-        </tbody>
-      </table>
+    <div class="modal-body" style="padding:24px;">
+      <form id="editProfileForm">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px;">
+          <div class="form-group" style="margin:0;">
+            <label for="profileFirstName" style="display:block;font-weight:600;margin-bottom:6px;color:#1e293b;font-size:0.875rem;"><i class="fas fa-user" style="margin-right:6px;color:#2563eb;"></i>Họ</label>
+            <input type="text" id="profileFirstName" name="FirstName" class="form-control" style="border:1.5px solid #e2e8f0;border-radius:8px;padding:10px 12px;" required>
+          </div>
+          <div class="form-group" style="margin:0;">
+            <label for="profileLastName" style="display:block;font-weight:600;margin-bottom:6px;color:#1e293b;font-size:0.875rem;"><i class="fas fa-user" style="margin-right:6px;color:#2563eb;"></i>Tên</label>
+            <input type="text" id="profileLastName" name="LastName" class="form-control" style="border:1.5px solid #e2e8f0;border-radius:8px;padding:10px 12px;" required>
+          </div>
+        </div>
+        <div class="form-group" style="margin-bottom:16px;">
+          <label for="profileSpecialization" style="display:block;font-weight:600;margin-bottom:6px;color:#1e293b;font-size:0.875rem;"><i class="fas fa-book" style="margin-right:6px;color:#2563eb;"></i>Chuyên môn</label>
+          <input type="text" id="profileSpecialization" name="Specialization" class="form-control" placeholder="VD: Công nghệ thông tin" style="border:1.5px solid #e2e8f0;border-radius:8px;padding:10px 12px;">
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px;">
+          <div class="form-group" style="margin:0;">
+            <label for="profileEmail" style="display:block;font-weight:600;margin-bottom:6px;color:#1e293b;font-size:0.875rem;"><i class="fas fa-envelope" style="margin-right:6px;color:#2563eb;"></i>Email</label>
+            <input type="email" id="profileEmail" name="Email" class="form-control" style="border:1.5px solid #e2e8f0;border-radius:8px;padding:10px 12px;">
+          </div>
+          <div class="form-group" style="margin:0;">
+            <label for="profilePhone" style="display:block;font-weight:600;margin-bottom:6px;color:#1e293b;font-size:0.875rem;"><i class="fas fa-phone" style="margin-right:6px;color:#2563eb;"></i>Số điện thoại</label>
+            <input type="tel" id="profilePhone" name="PhoneNumber" class="form-control" style="border:1.5px solid #e2e8f0;border-radius:8px;padding:10px 12px;">
+          </div>
+        </div>
+        <div class="form-group" style="margin-bottom:16px;">
+          <label for="profileUsername" style="display:block;font-weight:600;margin-bottom:6px;color:#1e293b;font-size:0.875rem;"><i class="fas fa-user-circle" style="margin-right:6px;color:#2563eb;"></i>Tên đăng nhập</label>
+          <input type="text" id="profileUsername" name="Username" class="form-control" style="border:1.5px solid #e2e8f0;border-radius:8px;padding:10px 12px;" required>
+        </div>
+        <div class="form-group" style="margin:0;">
+          <label for="profilePassword" style="display:block;font-weight:600;margin-bottom:6px;color:#1e293b;font-size:0.875rem;"><i class="fas fa-lock" style="margin-right:6px;color:#2563eb;"></i>Mật khẩu mới</label>
+          <input type="password" id="profilePassword" name="Password" class="form-control" placeholder="Để trống nếu không đổi" style="border:1.5px solid #e2e8f0;border-radius:8px;padding:10px 12px;">
+          <small style="color:#64748b;font-size:0.75rem;margin-top:4px;display:block;">Để trống nếu không muốn thay đổi mật khẩu</small>
+        </div>
+      </form>
+    </div>
+    <div class="modal-footer" style="background:#f8fafc;padding:16px 24px;border-top:1px solid #e2e8f0;display:flex;justify-content:flex-end;gap:12px;border-radius:0 0 12px 12px;">
+      <button id="editProfileCancelBtn" class="btn btn-outline-secondary" style="padding:10px 20px;border-radius:8px;font-weight:600;border:1.5px solid #cbd5e1;color:#475569;">Hủy</button>
+      <button id="editProfileSaveBtn" class="btn btn-primary" style="padding:10px 20px;border-radius:8px;font-weight:600;background:linear-gradient(135deg, #1e40af 0%, #2563eb 100%);color:white;border:none;">
+        <i class="fas fa-save" style="margin-right:6px;"></i> Lưu thay đổi
+      </button>
     </div>
   </div>
 </div>
@@ -1081,10 +1086,11 @@
 {% else %}
 <div class="profile-warning">
   <i class="fas fa-exclamation-triangle"></i>
-  <h2>No Teacher Profile</h2>
+  <h2>Chưa có hồ sơ giảng viên</h2>
   <p>
-    Account <strong>{{ current_user.Username }}</strong> has logged in successfully but is not linked to a teacher
-    profile in the system. Please contact the administrator for support.
+    Tài khoản <strong>{{ current_user.Username }}</strong> đã đăng nhập thành
+    công nhưng chưa được liên kết với hồ sơ giảng viên trong hệ thống. Vui lòng
+    liên hệ quản trị viên để được hỗ trợ.
   </p>
 </div>
 {% endif %}
@@ -1092,8 +1098,6 @@
 {% endblock %}
 
 {% block extra_js %}
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script src="{{ url_for('static', filename='js/teacher_home.js') }}"></script>
 {% endblock %}
