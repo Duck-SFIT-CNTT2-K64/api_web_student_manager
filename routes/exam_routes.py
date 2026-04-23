@@ -13,6 +13,7 @@ from models.exam_model import (
     update_exam_status,
     update_submission_grade,
     update_exam,
+    auto_close_overdue_exams,
 )
 from utils.auth import current_session_user, role_required
 
@@ -30,17 +31,6 @@ def _is_allowed_pdf(filename: str) -> bool:
     return "." in filename and filename.rsplit(".", 1)[1].lower() in _ALLOWED_EXTENSIONS
 
 
-@exam_bp.get("")
-@role_required("Teacher", "Admin")
-def list_exams():
-    user_id, role = _get_session_user()
-    try:
-        exams = get_exams_by_user_id(int(user_id))
-        return jsonify({"success": True, "data": exams}), 200
-    except Exception as exc:
-        return jsonify({"success": False, "error": str(exc)}), 500
-
-
 @exam_bp.get("/user/<int:user_id>")
 @role_required("Teacher", "Admin")
 def list_exams_by_user(user_id: int):
@@ -48,11 +38,11 @@ def list_exams_by_user(user_id: int):
     session_user_id = session_user.get("UserId")
     role = str(session_user.get("RoleName") or "").lower()
 
-    # Chỉ admin hoặc chính giảng viên đó mới xem được
     if role != "admin" and int(session_user_id) != int(user_id):
         return jsonify({"success": False, "error": "Forbidden."}), 403
 
     try:
+        auto_close_overdue_exams(int(user_id))
         exams = get_exams_by_user_id(int(user_id))
         return jsonify({"success": True, "data": exams}), 200
     except Exception as exc:
@@ -94,7 +84,6 @@ def add_exam():
     except ValueError as exc:
         return jsonify({"success": False, "error": str(exc)}), 400
     except pyodbc.Error as exc:
-        # Gộp details vào error để frontend đọc được
         return jsonify({"success": False, "error": "Database error: " + str(exc)}), 500
     except Exception as exc:
         return jsonify({"success": False, "error": str(exc)}), 500

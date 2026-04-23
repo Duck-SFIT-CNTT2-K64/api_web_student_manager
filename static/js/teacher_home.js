@@ -1377,6 +1377,38 @@
                 event.stopPropagation();
                 var examIdToggle = btnToggleExam.getAttribute('data-id');
                 var nextStatus = btnToggleExam.getAttribute('data-next-status');
+                var isOverdue = btnToggleExam.getAttribute('data-overdue') === 'true';
+
+                // Nếu đang mở lại (Active) và bài đã quá hạn → yêu cầu chọn hạn mới
+                if (nextStatus === 'Active' && isOverdue) {
+                    var newDue = prompt(
+                        'Bài kiểm tra đã quá hạn. Nhập hạn nộp mới (VD: 2025-12-31T23:59):',
+                        new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
+                            .toISOString().slice(0, 16)
+                    );
+                    if (!newDue) return; // User cancel
+
+                    try {
+                        var parsed = new Date(newDue);
+                        if (isNaN(parsed.getTime()) || parsed <= new Date()) {
+                            alert('Hạn nộp mới phải là thời điểm trong tương lai!');
+                            return;
+                        }
+                    } catch (e) {
+                        alert('Định dạng thời gian không hợp lệ!');
+                        return;
+                    }
+
+                    putJson('/api/exams/' + examIdToggle + '/status', {
+                        Status: 'Active',
+                        DueDate: newDue
+                    })
+                        .then(function () { loadExams(); })
+                        .catch(function (err) { alert('Lỗi: ' + err.message); });
+                    return;
+                }
+
+                // Đóng bình thường
                 putJson('/api/exams/' + examIdToggle + '/status', { Status: nextStatus })
                     .then(function () { loadExams(); })
                     .catch(function (err) { alert('Lỗi: ' + err.message); });
@@ -1910,6 +1942,11 @@
                 var desc = document.getElementById('examDescription').value;
                 var editId = state.examEditingId;
 
+                if (!classId || !title) {
+                    alert('Vui lòng điền lớp học và tiêu đề!');
+                    return;
+                }
+
                 var btn = examForm.querySelector('button[type="submit"]');
                 btn.disabled = true;
                 btn.innerHTML = editId
@@ -1920,7 +1957,7 @@
                     ClassId: classId,
                     Title: title,
                     ExamType: examType,
-                    DueDate: dueDate,
+                    DueDate: dueDate || null,
                     Description: composeExamDescription(desc, state.examPdfFiles)
                 };
                 var req = editId ? putJson('/api/exams/' + editId, payload) : postJson('/api/exams', payload);
@@ -1995,7 +2032,7 @@
         getJson('/api/exams/user/' + userId).then(function (exams) {
             if (exams && exams.length > 0) {
                 tbody.innerHTML = exams.map(function (e) {
-                    var date = new Date(e.DueDate).toLocaleString('vi-VN');
+                    var date = new Date(e.DueDate) < new Date();
                     var isOpen = String(e.Status || '').toLowerCase() === 'active';
                     var isOverdue = new Date(e.DueDate) < new Date();
                     var badgeHtml = isOpen
@@ -2021,7 +2058,7 @@
                         '<td style="white-space:nowrap;">'
                         + '<button class="btn-ghost btn-view-submissions" style="color:#2563eb;" title="Xem bài nộp" data-id="' + e.ExamId + '" data-title="' + escapeHtml(e.Title) + '"><i class="fas fa-eye"></i></button>'
                         + '<button class="btn-ghost btn-edit-exam" style="color:#f59e0b;" title="Sửa bài kiểm tra" data-raw=\'' + encodeURIComponent(JSON.stringify(e)) + '\'><i class="fas fa-pen"></i></button>'
-                        + '<button class="btn-ghost btn-toggle-exam" style="color:#059669;" title="' + toggleTitle + '" data-id="' + e.ExamId + '" data-next-status="' + (isOpen ? 'Closed' : 'Active') + '"><i class="fas ' + toggleIcon + '"></i></button>'
+                        + '<button class="btn-ghost btn-toggle-exam" style="color:#059669;" title="' + toggleTitle + '" data-id="' + e.ExamId + '" data-next-status="' + (isOpen ? 'Closed' : 'Active') + '" data-overdue="' + (isOverdue ? 'true' : 'false') + '"><i class="fas ' + toggleIcon + '"></i></button>'
                         + '<span style="display:inline-block;width:24px;text-align:center;">' + pdfHtml + '</span>'
                         + '<button class="btn-ghost btn-del-exam" style="color:#ef4444;" title="Xóa bài kiểm tra" data-id="' + e.ExamId + '"><i class="fas fa-trash"></i></button>'
                         + '</td>' +
