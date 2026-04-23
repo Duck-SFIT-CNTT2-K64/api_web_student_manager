@@ -34,20 +34,20 @@
     };
 
     var weekdayMap = {
-        "Monday": "Day Hai",
-        "Tuesday": "Day Ba",
-        "Wednesday": "Day Tư",
-        "Thursday": "Day Năm",
-        "Friday": "Day Sáu",
-        "Saturday": "Day Bảy",
-        "Sunday": "Chủ Nhật",
-        "Day 2": "Day Hai",
-        "Day 3": "Day Ba",
-        "Day 4": "Day Tư",
-        "Day 5": "Day Năm",
-        "Day 6": "Day Sáu",
-        "Day 7": "Day Bảy",
-        "Chủ nhật": "Chủ Nhật"
+        "Monday": "Mon",
+        "Tuesday": "Tue",
+        "Wednesday": "Wed",
+        "Thursday": "Thu",
+        "Friday": "Fri",
+        "Saturday": "Sat",
+        "Sunday": "Sun",
+        "Day 2": "Mon",
+        "Day 3": "Tue",
+        "Day 4": "Wed",
+        "Day 5": "Thu",
+        "Day 6": "Fri",
+        "Day 7": "Sat",
+        "Chủ nhật": "Sun"
     };
 
     // Map tiếng Anh sang tiếng Việt cho calendar
@@ -68,6 +68,13 @@
             .replaceAll(">", "&gt;")
             .replaceAll('"', "&quot;")
             .replaceAll("'", "&#039;");
+    }
+
+    // Chuẩn hóa giá trị giới tính sang tiếng Anh
+    function normalizeGender(raw) {
+        var map = { 'Nam': 'Male', 'Nữ': 'Female', 'nu': 'Female', 'Khác': 'Other', 'khac': 'Other' };
+        var v = String(raw || '').trim();
+        return map[v] || v || '—';
     }
 
     function splitExamDescriptionAndPdf(rawDescription) {
@@ -327,8 +334,8 @@
             if (current && items.includes(current)) el.value = current;
         }
 
-        populate('scoreEntrySemesterFilter', semesters, 'All học kỳ');
-        populate('scoreEntrySubjectFilter', subjects, 'All môn học');
+        populate('scoreEntrySemesterFilter', semesters, 'All Semester ');
+        populate('scoreEntrySubjectFilter', subjects, 'All Subject');
         populate('scoreViewSemesterFilter', semesters, 'All');
         populate('scoreViewSubjectFilter', subjects, 'All');
     }
@@ -356,12 +363,12 @@
 
         var days = ["Day 2", "Day 3", "Day 4", "Day 5", "Day 6", "Day 7"];
         var dayLabels = {
-            "Day 2": "Day Hai",
-            "Day 3": "Day Ba",
-            "Day 4": "Day Tư",
-            "Day 5": "Day Năm",
-            "Day 6": "Day Sáu",
-            "Day 7": "Day Bảy"
+            "Day 2": "Mon",
+            "Day 3": "Tue",
+            "Day 4": "Wed",
+            "Day 5": "Thu",
+            "Day 6": "Fri",
+            "Day 7": "Sat"
         };
 
         var map = {};
@@ -472,46 +479,57 @@
                     return;
                 }
 
-                // Title theo mẫu: Teacher: [Tên], Class: [Tên]
+                var scoreTypes = state.scoreTypes || [];
+
+                // Metadata rows
                 var data = [
                     ["Teacher:", teacherName],
                     ["Class:", className],
-                    [] // Hàng trống
+                    []
                 ];
 
-                // Header cột theo mẫu ảnh Excel
-                data.push(["Date of Birth", "Gender", "Phone", "Email", "Địa chỉ", "", "Attendance", "Midterm", "Final", "Điểm TB"]);
+                // Header row: No. | Student ID | Full Name | DOB | Gender | Phone | Email | [ScoreType...] | Avg | Result
+                var header = ["No.", "Student ID", "Full Name", "Date of Birth", "Gender", "Phone", "Email"];
+                scoreTypes.forEach(function (t) { header.push(t.ScoreTypeName); });
+                header.push("Average", "Result");
+                data.push(header);
 
-                students.forEach(function (sv) {
-                    var cc = sv.ChuyenCan !== null && sv.ChuyenCan !== undefined ? Number(sv.ChuyenCan) : null;
-                    var gk = sv.GiuaKy !== null && sv.GiuaKy !== undefined ? Number(sv.GiuaKy) : null;
-                    var ck = sv.CuoiKy !== null && sv.CuoiKy !== undefined ? Number(sv.CuoiKy) : null;
+                // Data rows
+                students.forEach(function (sv, idx) {
+                    var scores = sv.Scores || [];
+                    var sum = 0, count = 0;
 
-                    var avg = "";
-                    if (cc !== null && gk !== null && ck !== null) {
-                        avg = ((cc + gk + ck) / 3).toFixed(2);
-                    }
+                    var scoreValues = scoreTypes.map(function (t) {
+                        var s = scores.find(function (sc) { return sc.ScoreTypeId === t.ScoreTypeId; });
+                        var val = s && s.ScoreValue !== null && s.ScoreValue !== undefined ? Number(s.ScoreValue) : null;
+                        if (val !== null) { sum += val; count++; }
+                        return val !== null ? val : "";
+                    });
 
-                    data.push([
-                        sv.DateOfBirth || "",
-                        sv.Gender || "",
+                    var avg = count > 0 ? parseFloat((sum / count).toFixed(2)) : "";
+                    var result = avg !== "" ? (avg >= 5 ? "Pass" : "Fail") : "";
+
+                    var row = [
+                        idx + 1,
+                        sv.StudentCode || "",
+                        sv.FullName || "",
+                        sv.DateOfBirth ? String(sv.DateOfBirth).slice(0, 10) : "",
+                        normalizeGender(sv.Gender),
                         sv.PhoneNumber || "",
-                        sv.Email || "",
-                        sv.Address || "",
-                        "", // Cột trống theo ảnh
-                        cc !== null ? cc : "",
-                        gk !== null ? gk : "",
-                        ck !== null ? ck : "",
-                        avg
-                    ]);
+                        sv.Email || ""
+                    ];
+                    scoreValues.forEach(function (v) { row.push(v); });
+                    row.push(avg, result);
+                    data.push(row);
                 });
 
                 var ws = XLSX.utils.aoa_to_sheet(data);
 
-                ws["!cols"] = [
-                    { wch: 15 }, { wch: 10 }, { wch: 15 }, { wch: 25 }, { wch: 30 },
-                    { wch: 5 }, { wch: 12 }, { wch: 12 }, { wch: 12 }, { wch: 10 }
-                ];
+                // Column widths: No | ID | Name | DOB | Gender | Phone | Email | scores... | Avg | Result
+                var cols = [{ wch: 5 }, { wch: 12 }, { wch: 25 }, { wch: 14 }, { wch: 10 }, { wch: 15 }, { wch: 28 }];
+                scoreTypes.forEach(function () { cols.push({ wch: 12 }); });
+                cols.push({ wch: 10 }, { wch: 10 });
+                ws["!cols"] = cols;
 
                 var wb = XLSX.utils.book_new();
                 XLSX.utils.book_append_sheet(wb, ws, "Danh sách & Điểm");
@@ -1335,7 +1353,7 @@
                     var sendBtn = document.getElementById('notificationSendBtn');
                     var cancelBtn = document.getElementById('notificationCancelBtn');
                     if (sendBtn) {
-                        sendBtn.innerHTML = '<i class="fas fa-save"></i> Cập nhật';
+                        sendBtn.innerHTML = '<i class="fas fa-save"></i> Update';
                         sendBtn.classList.remove('btn-primary');
                         sendBtn.style.background = '#f59e0b';
                         sendBtn.style.color = '#fff';
@@ -1720,32 +1738,38 @@
                     return;
                 }
 
-                body.innerHTML = '<tr><td colspan="7" class="empty">Loading...</td></tr>';
+                body.innerHTML = '<tr><td colspan="8" class="empty">Loading...</td></tr>';
                 getJson(endpoints.classStudents + Number(val))
                     .then(function (students) {
                         body.innerHTML = (students || []).map(function (sv, idx) {
-                            return "<tr class='student-row'>"
+                            return "<tr class='student-row' data-student-code='" + escapeHtml(sv.StudentCode) + "' data-enrollment-id='" + Number(sv.EnrollmentId || 0) + "'>"
+                                + "<td style='text-align:center;'><input type='checkbox' class='student-select-cb' style='cursor:pointer; width:16px; height:16px;'></td>"
                                 + "<td>" + (idx + 1) + "</td>"
                                 + "<td><strong>" + escapeHtml(sv.StudentCode) + "</strong></td>"
                                 + "<td>" + escapeHtml(sv.FullName) + "</td>"
                                 + "<td>" + escapeHtml(sv.DateOfBirth || "—") + "</td>"
-                                + "<td>" + escapeHtml(sv.Gender || "—") + "</td>"
+                                + "<td>" + escapeHtml(normalizeGender(sv.Gender)) + "</td>"
                                 + "<td>" + escapeHtml(sv.PhoneNumber || "—") + "</td>"
+                                + "<td>" + escapeHtml(sv.Email || "—") + "</td>"
                                 + "</tr>";
-                        }).join("") || '<tr><td colspan="7" class="empty">Lớp chưa có sinh viên.</td></tr>';
+                        }).join("") || '<tr><td colspan="8" class="empty">Lớp chưa có sinh viên.</td></tr>';
 
                         var exportBtn = document.getElementById("exportClassListBtn");
                         if (exportBtn) {
                             exportBtn.style.display = students && students.length ? "inline-flex" : "none";
                         }
+
+                        // Reset bulk selection UI sau mỗi lần load
+                        var selAllCb = document.getElementById('selectAllStudents');
+                        if (selAllCb) { selAllCb.checked = false; selAllCb.indeterminate = false; }
+                        updateBulkRemoveBar();
                     })
                     .catch(function (err) {
-                        body.innerHTML = '<tr><td colspan="7" class="empty">Lỗi: ' + escapeHtml(err.message) + '</td></tr>';
+                        body.innerHTML = '<tr><td colspan="8" class="empty">Lỗi: ' + escapeHtml(err.message) + '</td></tr>';
                     });
             });
         }
 
-        // Tìm kiếm sinh viên
         var searchInput = document.getElementById("studentSearchInput");
         if (searchInput) {
             searchInput.addEventListener("input", function () {
@@ -1755,6 +1779,83 @@
                     var text = row.textContent.toLowerCase();
                     row.style.display = text.includes(query) ? "" : "none";
                 });
+            });
+        }
+
+        // ---- Bulk Remove (Class Roster) ----
+        function updateBulkRemoveBar() {
+            var checkedCbs = document.querySelectorAll('#classListTableBody .student-select-cb:checked');
+            var bulkBtn = document.getElementById('bulkRemoveStudentsBtn');
+            var countSpan = document.getElementById('selectedStudentCount');
+            var count = checkedCbs.length;
+            if (countSpan) countSpan.textContent = count;
+            if (bulkBtn) bulkBtn.style.display = count > 0 ? 'inline-flex' : 'none';
+        }
+
+        var selectAllStudentsCb = document.getElementById('selectAllStudents');
+        if (selectAllStudentsCb) {
+            selectAllStudentsCb.addEventListener('change', function () {
+                var cbs = document.querySelectorAll('#classListTableBody .student-select-cb');
+                cbs.forEach(function (cb) { cb.checked = selectAllStudentsCb.checked; });
+                updateBulkRemoveBar();
+            });
+        }
+
+        var classListTBodyEl = document.getElementById('classListTableBody');
+        if (classListTBodyEl) {
+            classListTBodyEl.addEventListener('change', function (e) {
+                if (e.target.classList.contains('student-select-cb')) {
+                    updateBulkRemoveBar();
+                    var allCbs = document.querySelectorAll('#classListTableBody .student-select-cb');
+                    var checkedCbs = document.querySelectorAll('#classListTableBody .student-select-cb:checked');
+                    var selAll = document.getElementById('selectAllStudents');
+                    if (selAll) {
+                        selAll.checked = allCbs.length > 0 && checkedCbs.length === allCbs.length;
+                        selAll.indeterminate = checkedCbs.length > 0 && checkedCbs.length < allCbs.length;
+                    }
+                }
+            });
+        }
+
+        var bulkRemoveStudentsBtn = document.getElementById('bulkRemoveStudentsBtn');
+        if (bulkRemoveStudentsBtn) {
+            bulkRemoveStudentsBtn.addEventListener('click', function () {
+                var classId = Number((document.getElementById('classListSelect') || {}).value || 0);
+                if (!classId) { alert('Please select a class first.'); return; }
+
+                var allRows = document.querySelectorAll('#classListTableBody tr.student-row');
+                var selectedRows = Array.from(allRows).filter(function (row) {
+                    var cb = row.querySelector('.student-select-cb');
+                    return cb && cb.checked;
+                });
+                if (!selectedRows.length) { alert('No students selected.'); return; }
+
+                var codes = selectedRows.map(function (row) {
+                    return row.getAttribute('data-student-code');
+                }).filter(Boolean);
+                if (!codes.length) return;
+
+                if (!confirm('Remove ' + codes.length + ' student(s) from this class?\nThis action cannot be undone.')) return;
+
+                bulkRemoveStudentsBtn.disabled = true;
+                bulkRemoveStudentsBtn.innerHTML = "<i class='fas fa-spinner fa-spin'></i> Removing...";
+
+                Promise.all(codes.map(function (code) {
+                    return postJson('/api/teachers/unenroll', { ClassId: classId, StudentCode: code });
+                }))
+                    .then(function () {
+                        alert('Successfully removed ' + codes.length + ' student(s) from the class!');
+                        var reloadBtn = document.getElementById('classListBtn');
+                        if (reloadBtn) reloadBtn.click();
+                        loadDashboardData();
+                    })
+                    .catch(function (err) {
+                        alert('Error removing students: ' + err.message);
+                    })
+                    .finally(function () {
+                        bulkRemoveStudentsBtn.disabled = false;
+                        bulkRemoveStudentsBtn.innerHTML = "<i class='fas fa-trash-alt'></i> Remove Selected (<span id='selectedStudentCount'>0</span>)";
+                    });
             });
         }
 
@@ -1784,7 +1885,7 @@
                             if (actionEmail) actionEmail.value = sv.Email || "";
                             if (actionPhone) actionPhone.value = sv.PhoneNumber || "";
                             if (actionDob) actionDob.value = sv.DateOfBirth ? sv.DateOfBirth.split('T')[0] : "";
-                            if (actionGender) actionGender.value = sv.Gender || "";
+                            if (actionGender) actionGender.value = normalizeGender(sv.Gender) || "";
                             if (actionAddress) actionAddress.value = sv.Address || "";
                         }
                     })
@@ -1955,7 +2056,8 @@
                             .then(function () {
                                 alert('Thông báo đã được gửi thành công!');
                                 form.reset();
-                                document.getElementById('notifStudentSelectGroup').style.display = 'none';
+                                var studentGroup = document.getElementById('notifStudentSelectGroup');
+                                if (studentGroup) studentGroup.style.display = 'none';
                                 loadNotifications();
                             });
                     }
@@ -2023,7 +2125,7 @@
 
                         return '<article class="notice-card" style="position:relative;transition:transform 0.2s;box-shadow:0 2px 4px rgba(0,0,0,0.05);padding:16px;border-radius:12px;background:var(--surface);margin-bottom:12px;" onmouseover="this.style.transform=\'translateY(-2px)\';this.style.boxShadow=\'0 4px 8px rgba(0,0,0,0.1)\'" onmouseout="this.style.transform=\'translateY(0)\';this.style.boxShadow=\'0 2px 4px rgba(0,0,0,0.05)\'" data-notif=\'' + encodeURIComponent(JSON.stringify(n)) + '\'>' +
                             '<div style="position:absolute; top:12px; right:12px; display:flex; gap:6px;">' +
-                            '<button type="button" class="btn-ghost btn-edit-notif" style="padding:6px 10px; color:#f59e0b; border-radius:6px; background:var(--surface)7ed; border:1px solid #ffedd5; cursor:pointer; font-size:0.75rem; font-weight:600;" title="Chỉnh sửa"><i class="fas fa-edit"></i> Sửa</button>' +
+                            '<button type="button" class="btn-ghost btn-edit-notif" style="padding:6px 10px; color:#f59e0b; border-radius:6px; background:var(--surface)7ed; border:1px solid #ffedd5; cursor:pointer; font-size:0.75rem; font-weight:600;" title="Chỉnh sửa"><i class="fas fa-edit"></i> Edit</button>' +
                             '<button type="button" class="btn-ghost btn-del-notif" style="padding:6px 10px; color:#ef4444; border-radius:6px; background:#fef2f2; border:1px solid #fee2e2; cursor:pointer; font-size:0.75rem; font-weight:600;" title="Delete"><i class="fas fa-trash"></i> Delete</button>' +
                             '</div>' +
                             '<div style="padding-right: 120px;"><strong>' + escapeHtml(n.Title) + '</strong>' +
@@ -2296,7 +2398,7 @@
                 labels: labels,
                 datasets: [
                     {
-                        label: 'Avg Lớp',
+                        label: 'Avg Class Score',
                         data: dataValues,
                         backgroundColor: 'rgba(37, 99, 235, 0.7)',
                         borderColor: '#2563eb',
@@ -2304,7 +2406,7 @@
                         yAxisID: 'y'
                     },
                     {
-                        label: 'Tỷ lệ đạt (%)',
+                        label: 'Pass Rate (%)',
                         data: passRates,
                         type: 'line',
                         borderColor: '#10b981',
@@ -2323,14 +2425,14 @@
                     y: {
                         beginAtZero: true,
                         max: 10,
-                        title: { display: true, text: 'Điểm trung bình' }
+                        title: { display: true, text: 'Average Score' }
                     },
                     y1: {
                         beginAtZero: true,
                         max: 100,
                         position: 'right',
                         grid: { drawOnChartArea: false },
-                        title: { display: true, text: 'Phần trăm (%)' }
+                        title: { display: true, text: 'Percent (%)' }
                     }
                 },
                 plugins: {

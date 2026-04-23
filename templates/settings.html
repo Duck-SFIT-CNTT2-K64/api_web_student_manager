@@ -144,9 +144,9 @@
                             <span>Gender</span>
                             <select name="Gender">
                                 <option value="">— Select —</option>
-                                <option value="Nam" {% if profile.Gender=='Nam' %}selected{% endif %}>Male</option>
-                                <option value="Nữ" {% if profile.Gender=='Nữ' %}selected{% endif %}>Female</option>
-                                <option value="Khác" {% if profile.Gender=='Khác' %}selected{% endif %}>Other</option>
+                                <option value="Male" {% if profile.Gender in ['Male', 'Nam'] %}selected{% endif %}>Male</option>
+                                <option value="Female" {% if profile.Gender in ['Female', 'Nữ'] %}selected{% endif %}>Female</option>
+                                <option value="Other" {% if profile.Gender in ['Other', 'Khác'] %}selected{% endif %}>Other</option>
                             </select>
                         </label>
                         <label class="field field-wide">

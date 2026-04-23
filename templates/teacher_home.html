@@ -34,7 +34,7 @@
   <i class="fas fa-bell"></i><span>Notifications</span>
 </a>
 <a href="#reports-stats" class="nav-item">
-  <i class="fas fa-chart-line"></i><span>Reports & Statistics</span>
+  <i class="fas fa-chart-line"></i><span>Reports & Analytics</span>
 </a>
 {% endblock %}
 
@@ -541,11 +541,17 @@
           <span class="tct-icon" style="background:#e0e7ff;color:#3730a3;"><i class="fas fa-list-ul"></i></span>
           Class Roster
         </div>
-        <div class="search-box" style="position:relative; margin-left:auto;">
-          <i class="fas fa-search"
-            style="position:absolute; left:10px; top:50%; transform:translateY(-50%); color:var(--text-muted); font-size:0.9rem;"></i>
-          <input type="text" id="studentSearchInput" placeholder="Search name, ID..."
-            style="padding:8px 12px 8px 32px; border:1px solid var(--border); border-radius:8px; font-size:0.9rem; width:220px;">
+        <div style="display:flex; align-items:center; gap:10px; margin-left:auto;">
+          <button class="btn" id="bulkRemoveStudentsBtn"
+            style="display:none; background:#ef4444; border-color:#ef4444; color:#fff; padding:7px 14px; font-size:0.85rem; font-weight:600; border-radius:8px; cursor:pointer; align-items:center; gap:6px;">
+            <i class="fas fa-trash-alt"></i> Remove Selected (<span id="selectedStudentCount">0</span>)
+          </button>
+          <div class="search-box" style="position:relative;">
+            <i class="fas fa-search"
+              style="position:absolute; left:10px; top:50%; transform:translateY(-50%); color:var(--text-muted); font-size:0.9rem;"></i>
+            <input type="text" id="studentSearchInput" placeholder="Search name, ID..."
+              style="padding:8px 12px 8px 32px; border:1px solid var(--border); border-radius:8px; font-size:0.9rem; width:220px;">
+          </div>
         </div>
       </div>
       <div class="t-card-body-flush">
@@ -553,6 +559,9 @@
           <table class="t-table">
             <thead>
               <tr>
+                <th style="width:40px; text-align:center;">
+                  <input type="checkbox" id="selectAllStudents" title="Select all" style="cursor:pointer; width:16px; height:16px;">
+                </th>
                 <th style="width:50px;">No.</th>
                 <th>Student ID</th>
                 <th>Full Name</th>
@@ -564,7 +573,7 @@
             </thead>
             <tbody id="classListTableBody">
               <tr>
-                <td colspan="7" style="text-align:center;padding:48px;color:var(--text-muted);font-style:italic;">
+                <td colspan="8" style="text-align:center;padding:48px;color:var(--text-muted);font-style:italic;">
                   <i class="fas fa-info-circle"
                     style="display:block; font-size:2rem; margin-bottom:12px; opacity:0.3;"></i>
                   Please select a class above to display the list.
