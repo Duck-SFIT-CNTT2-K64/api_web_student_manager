@@ -301,52 +301,136 @@
 
         var days = ["Thứ 2", "Thứ 3", "Thứ 4", "Thứ 5", "Thứ 6", "Thứ 7"];
         var dayLabels = {
-            "Thứ 2": "Thứ Hai",
-            "Thứ 3": "Thứ Ba",
-            "Thứ 4": "Thứ Tư",
-            "Thứ 5": "Thứ Năm",
-            "Thứ 6": "Thứ Sáu",
-            "Thứ 7": "Thứ Bảy"
+            "Thứ 2": "Thứ Hai", "Thứ 3": "Thứ Ba", "Thứ 4": "Thứ Tư",
+            "Thứ 5": "Thứ Năm", "Thứ 6": "Thứ Sáu", "Thứ 7": "Thứ Bảy"
         };
 
-        var map = {};
-        days.forEach(function (d) { map[d] = []; });
+        // weekdayToJs: Thứ 2 = 1 (Mon), Thứ 7 = 6 (Sat)
+        var weekdayToJs = {
+            "Thứ 2": 1, "Thứ 3": 2, "Thứ 4": 3,
+            "Thứ 5": 4, "Thứ 6": 5, "Thứ 7": 6
+        };
 
-        (state.schedule || []).forEach(function (item) {
-            // Chuyển đổi weekday từ tiếng Anh sang tiếng Việt
-            var weekdayVi = weekdayToVietnamese[item.Weekday] || item.Weekday;
-            if (!map[weekdayVi]) return;
-            var start = item.StartTime ? item.StartTime.slice(0, 5) : "--";
-            var end = item.EndTime ? item.EndTime.slice(0, 5) : "--";
-            map[weekdayVi].push(
-                "<div class='calendar-item'>"
-                + "<strong>" + escapeHtml(item.ClassCode || "") + "</strong><br>"
-                + start + " – " + end + "<br>"
-                + "<small>" + escapeHtml(item.RoomName || "") + "</small><br>"
-                + "<div class='calendar-item-actions'>"
-                + "<button class='btn-cal' data-cal-detail='" + Number(item.ClassId) + "'"
-                + " data-cal-weekday='" + escapeHtml(weekdayVi) + "'>"
-                + "<i class='fas fa-eye'></i> Xem chi tiết"
-                + "</button>"
-                + "<button class='btn-cal' style='background:#fef3c7;color:#b45309;border:1px solid #fde68a;margin-top:4px;'"
-                + " data-cal-exam='" + Number(item.ClassId) + "'>"
-                + "<i class='fas fa-file-alt'></i> Bài tập"
-                + "</button>"
-                + "</div>"
-                + "</div>"
-            );
-        });
+        // State tuần hiện tại (offset tính từ tuần này, 0 = tuần này)
+        if (typeof renderCalendar._weekOffset === "undefined") {
+            renderCalendar._weekOffset = 0;
+        }
 
-        container.innerHTML = "<div class='calendar-grid'>"
-            + days.map(function (day) {
-                return "<div class='calendar-col'>"
-                    + "<div class='calendar-day-header'>" + dayLabels[day] + "</div>"
-                    + (map[day].length
-                        ? map[day].join("")
-                        : "<div class='calendar-empty'>Không có lịch</div>")
-                    + "</div>";
-            }).join("")
-            + "</div>";
+        // Tính ngày đầu tuần (Thứ 2) theo offset
+        function getWeekStart(offset) {
+            var today = new Date();
+            var day = today.getDay(); // 0=Sun, 1=Mon...
+            var diffToMon = (day === 0 ? -6 : 1 - day);
+            var mon = new Date(today);
+            mon.setDate(today.getDate() + diffToMon + offset * 7);
+            mon.setHours(0, 0, 0, 0);
+            return mon;
+        }
+
+        function getDateOfWeekday(weekStart, weekdayStr) {
+            var jsDay = weekdayToJs[weekdayStr]; // 1-6
+            var result = new Date(weekStart);
+            result.setDate(weekStart.getDate() + (jsDay - 1)); // Mon=+0, Tue=+1...
+            return result;
+        }
+
+        function formatDate(date) {
+            return date.getDate() + "/" + (date.getMonth() + 1);
+        }
+
+        function renderWeek() {
+            var offset = renderCalendar._weekOffset;
+            var weekStart = getWeekStart(offset);
+            var weekEnd = new Date(weekStart);
+            weekEnd.setDate(weekStart.getDate() + 5); // Thứ 7
+
+            // Label tuần
+            var weekLabel = offset === 0
+                ? "Tuần này"
+                : offset === -1 ? "Tuần trước"
+                : offset === 1 ? "Tuần sau"
+                : "Tuần " + (offset > 0 ? "+" : "") + offset;
+
+            var weekRange = formatDate(weekStart) + " – " + formatDate(weekEnd);
+            var today = new Date();
+            today.setHours(0, 0, 0, 0);
+
+            var map = {};
+            days.forEach(function (d) { map[d] = []; });
+
+            (state.schedule || []).forEach(function (item) {
+                var weekdayVi = weekdayToVietnamese[item.Weekday] || item.Weekday;
+                if (!map[weekdayVi]) return;
+
+                var sessionDate = getDateOfWeekday(weekStart, weekdayVi);
+                var isToday = sessionDate.getTime() === today.getTime();
+                var isPast  = sessionDate < today;
+
+                var start = item.StartTime ? item.StartTime.slice(0, 5) : "--";
+                var end   = item.EndTime   ? item.EndTime.slice(0, 5)   : "--";
+
+                map[weekdayVi].push(
+                    "<div class='calendar-item" + (isPast ? " cal-past" : "") + (isToday ? " cal-today" : "") + "'>"
+                    + "<strong style='color:#1e293b;'>" + escapeHtml(item.ClassCode || "") + "</strong><br>"
+                    + "<span style='color:#475569;font-size:0.8rem;'>" + start + " – " + end + "</span><br>"
+                    + "<small style='color:#64748b;'>" + escapeHtml(item.RoomName || "") + "</small><br>"
+                    + "<div class='calendar-item-actions'>"
+                    + "<button class='btn-cal' data-cal-detail='" + Number(item.ClassId) + "'"
+                    + " data-cal-weekday='" + escapeHtml(weekdayVi) + "'"
+                    + " data-cal-date='" + sessionDate.toISOString().slice(0, 10) + "'>"
+                    + "<i class='fas fa-eye'></i> Xem chi tiết"
+                    + "</button>"
+                    + "</div>"
+                    + "</div>"
+                );
+            });
+
+            container.innerHTML =
+                // Header điều hướng tuần
+                "<div class='calendar-nav'>"
+                + "<button class='btn-cal-nav' id='calPrevWeek'><i class='fas fa-chevron-left'></i> Tuần trước</button>"
+                + "<div class='calendar-nav-label'>"
+                +   "<span class='calendar-week-label'>" + weekLabel + "</span>"
+                +   "<span class='calendar-week-range'>" + weekRange + "</span>"
+                + "</div>"
+                + "<button class='btn-cal-nav' id='calNextWeek'>Tuần sau <i class='fas fa-chevron-right'></i></button>"
+                + "</div>"
+                // Grid lịch
+                + "<div class='calendar-grid'>"
+                + days.map(function (day) {
+                    var sessionDate = getDateOfWeekday(weekStart, day);
+                    var isToday = sessionDate.getTime() === today.getTime();
+                    var dateStr = formatDate(sessionDate);
+                    return "<div class='calendar-col" + (isToday ? " cal-col-today" : "") + "'>"
+                        + "<div class='calendar-day-header'>"
+                        +   dayLabels[day]
+                        +   "<span class='calendar-day-date'>" + dateStr + "</span>"
+                        + "</div>"
+                        + (map[day].length
+                            ? map[day].join("")
+                            : "<div class='calendar-empty'>Không có lịch</div>")
+                        + "</div>";
+                }).join("")
+                + "</div>";
+
+            // Bind nút prev/next
+            var prevBtn = document.getElementById("calPrevWeek");
+            var nextBtn = document.getElementById("calNextWeek");
+            if (prevBtn) {
+                prevBtn.addEventListener("click", function () {
+                    renderCalendar._weekOffset--;
+                    renderWeek();
+                });
+            }
+            if (nextBtn) {
+                nextBtn.addEventListener("click", function () {
+                    renderCalendar._weekOffset++;
+                    renderWeek();
+                });
+            }
+        }
+
+        renderWeek();
     }
 
     function renderScoreStudents() {
@@ -1138,9 +1222,12 @@
                         modal.style.display = "none";
                         var sel = document.getElementById("attendanceClassSelect");
                         if (sel) sel.value = String(classId);
-                        // Tính đúng ngày theo thứ đang hiển thị
                         var dateInput = document.getElementById("attendanceDateInput");
-                        if (dateInput) dateInput.value = getLastOccurrence(weekdayVi);
+                        if (dateInput) {
+                            // Ưu tiên dùng data-cal-date nếu có, fallback getLastOccurrence
+                            var calDate = calDetailBtn.getAttribute("data-cal-date");
+                            dateInput.value = calDate || getLastOccurrence(weekdayVi);
+                        }
                         window.location.hash = "#attendance";
                         var searchBtn = document.getElementById("attendanceSearchBtn");
                         if (searchBtn) searchBtn.click();
@@ -1839,6 +1926,7 @@
                     }).join('') || '<div style="text-align:center;padding:40px;color:#94a3b8;"><i class="fas fa-inbox" style="font-size:2rem;margin-bottom:10px;display:block;"></i>Bạn chưa gửi thông báo nào.</div>';
                 })
                 .catch(function () {
+                    console.error("Lỗi load notifications:", err);
                     list.innerHTML = '<div style="text-align:center;padding:40px;color:#94a3b8;">Lỗi tải dữ liệu.</div>';
                 });
         }

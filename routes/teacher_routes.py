@@ -1,5 +1,6 @@
 import pyodbc
 from flask import Blueprint, jsonify, request
+from models.helpers import rows_to_list
 from models.teacher_model import (
     create_teacher,
     delete_teacher,
@@ -28,6 +29,7 @@ from models.teacher_model import (
     remove_student_from_class_by_code,
     get_student_by_code,
     save_student_and_enroll,
+    get_db_connection,
 )
 from utils.auth import current_session_user, role_required
 
@@ -325,6 +327,38 @@ def save_attendance():
     except Exception as exc:
         return jsonify({"success": False, "error": str(exc)}), 500
     
+# @teacher_bp.get("/notifications/<int:user_id>")
+# @role_required("Teacher", "Admin")
+# def get_notifications(user_id: int):
+#     try:
+#         with get_db_connection() as connection:
+#             cursor = connection.cursor()
+#             cursor.execute("""
+#                 SELECT
+#                     n.NotificationId,
+#                     n.Title,
+#                     n.Content,
+#                     n.CreatedDate,
+#                     n.CreatorId,
+#                     u.FullName AS CreatorName,
+#                     COUNT(nr.RecipientId)            AS RecipientCount,
+#                     SUM(CASE WHEN nr.IsRead = 1 THEN 1 ELSE 0 END) AS ReadCount,
+#                     MAX(nr.IsRead)                   AS IsRead
+#                 FROM Notifications n
+#                 LEFT JOIN NotificationRecipients nr ON n.NotificationId = nr.NotificationId
+#                 LEFT JOIN Users u ON n.CreatorId = u.UserId
+#                 WHERE n.CreatorId = ?
+#                 GROUP BY
+#                     n.NotificationId, n.Title, n.Content,
+#                     n.CreatedDate, n.CreatorId, u.FullName
+#                 ORDER BY n.CreatedDate DESC
+#             """, int(user_id))
+#             rows = cursor.fetchall()
+#             result = rows_to_list(cursor, rows)
+#         return jsonify({"success": True, "data": result}), 200
+#     except Exception as exc:
+#         return jsonify({"success": False, "error": str(exc)}), 500
+
 @teacher_bp.get("/notifications/<int:user_id>")
 @role_required("Teacher", "Admin")
 def get_notifications(user_id: int):
@@ -437,4 +471,4 @@ def get_teacher_report(user_id: int):
         data = get_teacher_report_by_user_id(user_id)
         return jsonify({"success": True, "data": data}), 200
     except Exception as exc:
-        return jsonify({"success": False, "error": str(exc)}), 500
+        return jsonify({"success": False, "error": str(exc)}), 500

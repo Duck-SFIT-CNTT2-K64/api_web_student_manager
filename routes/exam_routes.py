@@ -49,6 +49,24 @@ def list_exams_by_user(user_id: int):
         return jsonify({"success": False, "error": str(exc)}), 500
 
 
+# @exam_bp.get("/user/<int:user_id>")
+# @role_required("Teacher", "Admin")
+# def list_exams_by_user(user_id: int):
+#     session_user = current_session_user()
+#     session_user_id = session_user.get("UserId")
+#     role = str(session_user.get("RoleName") or "").lower()
+
+#     # Chỉ admin hoặc chính giảng viên đó mới xem được
+#     if role != "admin" and int(session_user_id) != int(user_id):
+#         return jsonify({"success": False, "error": "Forbidden."}), 403
+
+#     try:
+#         exams = get_exams_by_user_id(int(user_id))
+#         return jsonify({"success": True, "data": exams}), 200
+#     except Exception as exc:
+#         return jsonify({"success": False, "error": str(exc)}), 500
+
+
 @exam_bp.post("/upload-pdf")
 @role_required("Teacher", "Admin")
 def upload_exam_pdf():
