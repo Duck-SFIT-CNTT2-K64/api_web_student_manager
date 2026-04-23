@@ -38,12 +38,26 @@ services:
       MSSQL_SA_PASSWORD: ${MSSQL_SA_PASSWORD:-YourStrong!Passw0rd}
       SCHEMA_FILE: /scripts/QLSV_TrungTamTinHoc.sql
       BULK_SEED_FILE: /scripts/seed_bulk_data.sql
-      # auto | always | never (xem docker/db-init/init-db.sh)
       RUN_BULK_SEED: ${RUN_BULK_SEED:-auto}
     volumes:
       - ./database:/scripts:ro
       - ./docker/db-init/init-db.sh:/init-db.sh:ro
-    entrypoint: ["/bin/bash", "/init-db.sh"]
+    entrypoint: /bin/bash
+    command:
+      - -c
+      - |
+        SQLCMD_BIN="/opt/mssql-tools18/bin/sqlcmd"
+        if [ ! -x "$${SQLCMD_BIN}" ]; then
+          SQLCMD_BIN="/opt/mssql-tools/bin/sqlcmd"
+        fi
+        echo "[db-init] Waiting for SQL Server at $${DB_SERVER}..."
+        until "$${SQLCMD_BIN}" -S "$${DB_SERVER}" -U "$${DB_ADMIN_USER}" -P "$${MSSQL_SA_PASSWORD}" -C -Q "SELECT 1" >/dev/null 2>&1; do
+          sleep 2
+        done
+        echo "[db-init] SQL Server is ready."
+        echo "[db-init] Importing schema..."
+        "$${SQLCMD_BIN}" -S "$${DB_SERVER}" -U "$${DB_ADMIN_USER}" -P "$${MSSQL_SA_PASSWORD}" -C -b -d master -i /scripts/QLSV_TrungTamTinHoc.sql
+        echo "[db-init] Database initialization completed."
     restart: "no"
 
   web:

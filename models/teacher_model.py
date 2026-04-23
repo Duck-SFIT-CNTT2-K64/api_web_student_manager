@@ -428,14 +428,17 @@ def save_score_entry(enrollment_id: int, score_type_id: int, score_value: Any, c
             score_id = cursor.fetchone()[0]
             action = "INSERT"
 
-        # 3. Ghi log audit
-        cursor.execute(
-            """
-            INSERT INTO ScoreAuditLogs (ScoreId, EnrollmentId, ScoreTypeId, OldValue, NewValue, ChangedBy, Action)
-            VALUES (?, ?, ?, ?, ?, ?, ?)
-            """,
-            (score_id, int(enrollment_id), int(score_type_id), old_value, value, int(changed_by), action)
-        )
+        # 3. Ghi log audit (bỏ qua nếu bảng chưa tồn tại)
+        try:
+            cursor.execute(
+                """
+                INSERT INTO ScoreAuditLogs (ScoreId, EnrollmentId, ScoreTypeId, OldValue, NewValue, ChangedBy, Action)
+                VALUES (?, ?, ?, ?, ?, ?, ?)
+                """,
+                (score_id, int(enrollment_id), int(score_type_id), old_value, value, int(changed_by), action)
+            )
+        except Exception:
+            pass  # Bảng ScoreAuditLogs chưa tồn tại — bỏ qua
         
         connection.commit()
         return True
@@ -597,18 +600,6 @@ def save_student_and_enroll(class_id: int, user_id: int, payload: Dict[str, Any]
                 student_id = cursor.fetchone()[0]
             except Exception as e:
                 return {"success": False, "error": "Error creating new student account: " + str(e)}
-
-                cursor.execute("""
-                    INSERT INTO Students (UserId, StudentCode, FullName, Email, PhoneNumber, DateOfBirth, Gender, Address)
-                    OUTPUT INSERTED.StudentId
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-                """, (
-                    new_user_id, student_code.strip(), payload.get("FullName"), payload.get("Email"),
-                    payload.get("PhoneNumber"), payload.get("DateOfBirth"), payload.get("Gender"), payload.get("Address")
-                ))
-                student_id = cursor.fetchone()[0]
-            except Exception as e:
-                return {"success": False, "error": "Lỗi tạo tài khoản sinh viên mới: " + str(e)}
 
         # 3. Ghi danh vào lớp (nếu chưa có)
         cursor.execute("SELECT 1 FROM Enrollments WHERE StudentId = ? AND ClassId = ?", (student_id, class_id))
@@ -987,3 +978,50 @@ def delete_exam(exam_id: int, user_id: int) -> bool:
         cursor.execute("DELETE FROM Exams WHERE ExamId = ?", int(exam_id))
         connection.commit()
         return True
+    
+def get_attendance_summary_by_class(class_id: int) -> Dict[str, Any]:
+    with get_db_connection() as connection:
+        cursor = connection.cursor()
+
+        # Lấy danh sách sinh viên
+        cursor.execute("""
+            SELECT e.EnrollmentId, s.StudentCode, s.FullName
+            FROM Enrollments e
+            INNER JOIN Students s ON e.StudentId = s.StudentId
+            WHERE e.ClassId = ?
+            ORDER BY s.StudentCode
+        """, int(class_id))
+        students = rows_to_list(cursor, cursor.fetchall())
+
+        # Lấy tất cả ngày điểm danh của lớp này
+        cursor.execute("""
+            SELECT DISTINCT a.SessionDate
+            FROM Attendances a
+            INNER JOIN Enrollments e ON a.EnrollmentId = e.EnrollmentId
+            WHERE e.ClassId = ?
+            ORDER BY a.SessionDate
+        """, int(class_id))
+        dates = [str(row[0])[:10] for row in cursor.fetchall()]
+
+        # Lấy tất cả bản ghi điểm danh
+        cursor.execute("""
+            SELECT a.EnrollmentId, CONVERT(VARCHAR(10), a.SessionDate, 23) AS SessionDate, a.Status
+            FROM Attendances a
+            INNER JOIN Enrollments e ON a.EnrollmentId = e.EnrollmentId
+            WHERE e.ClassId = ?
+        """, int(class_id))
+        records = rows_to_list(cursor, cursor.fetchall())
+
+        # Build map: enrollmentId -> date -> status
+        record_map = {}
+        for r in records:
+            eid = r["EnrollmentId"]
+            if eid not in record_map:
+                record_map[eid] = {}
+            record_map[eid][r["SessionDate"]] = r["Status"]
+
+        return {
+            "students": students,
+            "dates": dates,
+            "record_map": {str(k): v for k, v in record_map.items()}
+        }
