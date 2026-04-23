@@ -881,3 +881,50 @@
     border: 2px solid #6d28d9 !important;
     background: #faf5ff !important;
 }
+
+/* Attendance Summary Table */
+.att-cell {
+    width: 56px;
+    text-align: center;
+    padding: 6px 4px !important;
+    font-size: 0.85rem;
+    cursor: pointer;
+    user-select: none;
+    transition: background 0.15s;
+}
+
+.att-cell.att-present {
+    background: #f0fdf4;
+    color: #15803d;
+}
+
+.att-cell.att-absent {
+    background: #fef2f2;
+    color: #ef4444;
+    font-weight: 700;
+}
+
+.att-cell.att-late {
+    background: #fefce8;
+    color: #d97706;
+    font-weight: 700;
+}
+
+.att-cell.att-empty {
+    background: #f8fafc;
+    color: #cbd5e1;
+}
+
+.att-date-header {
+    text-align: center;
+    font-size: 0.78rem;
+    padding: 6px 4px !important;
+    white-space: nowrap;
+    background: #f8fafc;
+}
+
+.att-date-header.att-today-col {
+    background: #dbeafe;
+    color: #1d4ed8;
+    font-weight: 700;
+}

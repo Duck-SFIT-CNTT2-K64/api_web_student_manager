@@ -355,16 +355,21 @@
   </div>
 
   <div class="t-filter-bar">
-    <label><i class="fas fa-filter" style="color:#0f766e;"></i> Chọn lớp</label>
-    <select id="scoreViewClassSelect" style="flex:1;min-width:200px;">
-      <option value="">Chọn lớp để xem điểm...</option>
-    </select>
-    <button class="btn btn-primary" id="scoreViewLoadBtn">
-      <i class="fas fa-search"></i> Xem điểm
-    </button>
-    <button class="btn" id="exportScoreBtn" style="display:none;background:#10b981;border-color:#10b981;color:#fff;">
-      <i class="fas fa-file-excel"></i> Xuất Excel
-    </button>
+      <label><i class="fas fa-chalkboard" style="color:#854d0e;"></i> Chọn lớp</label>
+      <select id="attendanceClassSelect">
+          <option value="">Chọn lớp...</option>
+      </select>
+      <button class="btn btn-primary" type="button" id="attendanceSearchBtn">
+          <i class="fas fa-search"></i> Tải điểm danh
+      </button>
+      <div style="margin-left:auto;display:flex;align-items:center;gap:8px;">
+          <select id="attendanceDateSelect" disabled style="min-width:180px;">
+              <option value="">-- Chọn buổi học --</option>
+          </select>
+          <button class="btn btn-primary" type="button" id="attendanceAddSessionBtn" disabled>
+              <i class="fas fa-plus"></i> Thêm buổi
+          </button>
+      </div>
   </div>
 
   <!-- Summary badges -->
@@ -681,55 +686,62 @@
 <section class="section" id="attendance">
   <div class="section-heading">
     <div>
-      <h2><span class="sh-icon" style="background:#fef9c3;color:#854d0e;"><i
-            class="fas fa-clipboard-check"></i></span>Điểm danh</h2>
+      <h2><span class="sh-icon" style="background:#fef9c3;color:#854d0e;">
+        <i class="fas fa-clipboard-check"></i></span>Điểm danh</h2>
       <p>Quản lý điểm danh sinh viên trong từng buổi học.</p>
     </div>
   </div>
 
-  <!-- Filter -->
+  <!-- Filter chỉ cần chọn lớp -->
   <div class="t-filter-bar">
     <label><i class="fas fa-chalkboard" style="color:#854d0e;"></i> Chọn lớp</label>
     <select id="attendanceClassSelect">
       <option value="">Chọn lớp...</option>
     </select>
-    <label><i class="fas fa-calendar" style="color:#854d0e;"></i> Ngày học</label>
-    <input type="date" id="attendanceDateInput" />
     <button class="btn btn-primary" type="button" id="attendanceSearchBtn">
-      <i class="fas fa-search"></i> Tải danh sách
+      <i class="fas fa-search"></i> Tải điểm danh
     </button>
+    <!-- Thêm ngày để điểm danh buổi cụ thể -->
+    <div style="margin-left:auto;display:flex;align-items:center;gap:8px;">
+      <input type="date" id="attendanceDateInput" placeholder="Chọn ngày để điểm danh buổi mới"/>
+      <button class="btn btn-primary" type="button" id="attendanceAddSessionBtn">
+        <i class="fas fa-plus"></i> Thêm buổi
+      </button>
+    </div>
   </div>
 
+  <!-- Bảng điểm danh tổng hợp -->
   <div class="t-card">
     <div class="t-card-header">
       <div class="t-card-title">
-        <span class="tct-icon" style="background:#fef9c3;color:#854d0e;"><i class="fas fa-users"></i></span>
-        Danh sách sinh viên
+        <span class="tct-icon" style="background:#fef9c3;color:#854d0e;">
+          <i class="fas fa-table"></i></span>
+        Bảng điểm danh
       </div>
-      <button class="btn btn-primary" id="attendanceSaveBtn">
+      <button class="btn btn-primary" id="attendanceSaveBtn" style="display:none;">
         <i class="fas fa-save"></i> Lưu điểm danh
       </button>
     </div>
     <div class="t-card-body-flush">
-      <div class="t-table-wrap">
-        <table class="t-table">
-          <thead>
+      <div class="t-table-wrap" style="overflow-x:auto;">
+        <table class="t-table" id="attendanceSummaryTable">
+          <thead id="attendanceSummaryHead">
             <tr>
-              <th>Mã SV</th>
-              <th>Họ tên</th>
-              <th style="text-align:center;width:100px;">Có mặt</th>
-              <th style="text-align:center;width:80px;">Vắng</th>
-              <th style="text-align:center;width:80px;">Trễ</th>
+              <td colspan="3" style="text-align:center;padding:32px;color:#94a3b8;">
+                Chọn lớp để xem bảng điểm danh.
+              </td>
             </tr>
           </thead>
           <tbody id="attendanceTableBody">
-            <tr>
-              <td colspan="5" style="text-align:center;padding:32px;color:#94a3b8;font-style:italic;">Chọn lớp và ngày
-                để điểm danh.</td>
-            </tr>
           </tbody>
         </table>
       </div>
+    </div>
+    <!-- Legend -->
+    <div style="padding:12px 16px;border-top:1px solid #f1f5f9;display:flex;gap:16px;font-size:0.8rem;color:#64748b;">
+      <span><span style="display:inline-block;width:20px;height:20px;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:4px;vertical-align:middle;margin-right:4px;"></span>Có mặt (để trống)</span>
+      <span><span style="display:inline-block;width:20px;height:20px;background:#fef2f2;border:1px solid #fecaca;border-radius:4px;text-align:center;color:#ef4444;font-weight:700;vertical-align:middle;margin-right:4px;">X</span>Vắng</span>
+      <span><span style="display:inline-block;width:20px;height:20px;background:#fefce8;border:1px solid #fde68a;border-radius:4px;text-align:center;color:#d97706;font-weight:700;vertical-align:middle;margin-right:4px;">M</span>Muộn</span>
     </div>
   </div>
 </section>

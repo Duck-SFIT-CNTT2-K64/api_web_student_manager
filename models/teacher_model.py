@@ -980,3 +980,50 @@ def delete_exam(exam_id: int, user_id: int) -> bool:
         cursor.execute("DELETE FROM Exams WHERE ExamId = ?", int(exam_id))
         connection.commit()
         return True
+    
+def get_attendance_summary_by_class(class_id: int) -> Dict[str, Any]:
+    with get_db_connection() as connection:
+        cursor = connection.cursor()
+
+        # Lấy danh sách sinh viên
+        cursor.execute("""
+            SELECT e.EnrollmentId, s.StudentCode, s.FullName
+            FROM Enrollments e
+            INNER JOIN Students s ON e.StudentId = s.StudentId
+            WHERE e.ClassId = ?
+            ORDER BY s.StudentCode
+        """, int(class_id))
+        students = rows_to_list(cursor, cursor.fetchall())
+
+        # Lấy tất cả ngày điểm danh của lớp này
+        cursor.execute("""
+            SELECT DISTINCT a.SessionDate
+            FROM Attendances a
+            INNER JOIN Enrollments e ON a.EnrollmentId = e.EnrollmentId
+            WHERE e.ClassId = ?
+            ORDER BY a.SessionDate
+        """, int(class_id))
+        dates = [str(row[0])[:10] for row in cursor.fetchall()]
+
+        # Lấy tất cả bản ghi điểm danh
+        cursor.execute("""
+            SELECT a.EnrollmentId, CONVERT(VARCHAR(10), a.SessionDate, 23) AS SessionDate, a.Status
+            FROM Attendances a
+            INNER JOIN Enrollments e ON a.EnrollmentId = e.EnrollmentId
+            WHERE e.ClassId = ?
+        """, int(class_id))
+        records = rows_to_list(cursor, cursor.fetchall())
+
+        # Build map: enrollmentId -> date -> status
+        record_map = {}
+        for r in records:
+            eid = r["EnrollmentId"]
+            if eid not in record_map:
+                record_map[eid] = {}
+            record_map[eid][r["SessionDate"]] = r["Status"]
+
+        return {
+            "students": students,
+            "dates": dates,
+            "record_map": {str(k): v for k, v in record_map.items()}
+        }

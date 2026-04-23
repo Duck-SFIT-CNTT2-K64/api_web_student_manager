@@ -57,6 +57,14 @@
         "Sunday": "Chủ nhật"
     };
 
+    var attendanceState = {
+        classId: null,
+        students: [],
+        dates: [],
+        recordMap: {}, 
+        dirty: {}       
+    };
+
     function escapeHtml(value) {
         return String(value ?? "")
             .replaceAll("&", "&amp;")
@@ -859,6 +867,139 @@
         applyActiveState();
     }
 
+    function loadAttendanceSummary(classId) {
+        var head = document.getElementById("attendanceSummaryHead");
+        var body = document.getElementById("attendanceTableBody");
+        var saveBtn = document.getElementById("attendanceSaveBtn");
+        if (!classId) return;
+
+        attendanceState.classId = classId;
+        attendanceState.dirty = {};
+
+        if (head) head.innerHTML = '<tr><th colspan="3" style="text-align:center;padding:24px;color:#94a3b8;"><i class="fas fa-spinner fa-spin"></i> Đang tải...</th></tr>';
+        if (body) body.innerHTML = "";
+        if (saveBtn) saveBtn.style.display = "none";
+
+        getJson('/api/teachers/attendance/class/' + classId + '/summary')
+            .then(function(data) {
+                attendanceState.students  = data.students  || [];
+                attendanceState.dates     = data.dates     || [];
+                attendanceState.recordMap = data.record_map || {};
+                renderAttendanceSummary();
+            })
+            .catch(function(err) {
+                if (head) head.innerHTML = '<tr><th colspan="3" style="text-align:center;color:#ef4444;">Lỗi: ' + escapeHtml(err.message) + '</th></tr>';
+            });
+    }
+
+    function renderAttendanceSummary() {
+        var head    = document.getElementById("attendanceSummaryHead");
+        var body    = document.getElementById("attendanceTableBody");
+        var saveBtn = document.getElementById("attendanceSaveBtn");
+        if (!head || !body) return;
+
+        var students  = attendanceState.students;
+        var dates     = attendanceState.dates;
+        var recordMap = attendanceState.recordMap;
+        var dirty     = attendanceState.dirty;
+
+        var today = new Date().toISOString().slice(0, 10);
+
+        if (!students.length) {
+            head.innerHTML = '<tr><th colspan="3" style="text-align:center;padding:32px;color:#94a3b8;">Lớp chưa có sinh viên.</th></tr>';
+            body.innerHTML = "";
+            return;
+        }
+
+        // Header: STT | Mã SV | Họ tên | [date1] | [date2] ...
+        var headerHtml = '<tr>'
+            + '<th style="width:40px;text-align:center;">STT</th>'
+            + '<th style="min-width:90px;">Mã SV</th>'
+            + '<th style="min-width:160px;">Họ tên</th>';
+
+        dates.forEach(function(d) {
+            // Format dd/MM
+            var parts = d.split("-");
+            var label = parts[2] + "/" + parts[1];
+            var isToday = d === today;
+            headerHtml += '<th class="att-date-header' + (isToday ? ' att-today-col' : '') + '">' + label + '</th>';
+        });
+        headerHtml += '</tr>';
+        head.innerHTML = headerHtml;
+
+        // Body rows
+        body.innerHTML = students.map(function(sv, idx) {
+            var eid = String(sv.EnrollmentId);
+            var svRecord = recordMap[eid] || {};
+            var svDirty  = dirty[eid] || {};
+
+            var cells = '<td style="text-align:center;color:#94a3b8;">' + (idx + 1) + '</td>'
+                + '<td><strong>' + escapeHtml(sv.StudentCode) + '</strong></td>'
+                + '<td>' + escapeHtml(sv.FullName) + '</td>';
+
+            dates.forEach(function(d) {
+                // dirty > saved
+                var status = svDirty.hasOwnProperty(d) ? svDirty[d] : (svRecord[d] || null);
+                var cellClass, cellText;
+
+                if (status === "Absent") {
+                    cellClass = "att-absent"; cellText = "X";
+                } else if (status === "Late") {
+                    cellClass = "att-late";   cellText = "M";
+                } else if (status === "Present") {
+                    cellClass = "att-present"; cellText = "";
+                } else {
+                    cellClass = "att-empty";  cellText = "";
+                }
+
+                cells += '<td class="att-cell ' + cellClass + '"'
+                    + ' data-eid="' + eid + '"'
+                    + ' data-date="' + d + '"'
+                    + ' data-status="' + (status || "") + '"'
+                    + ' title="' + escapeHtml(sv.FullName) + ' - ' + d + '">'
+                    + cellText
+                    + '</td>';
+            });
+
+            return '<tr>' + cells + '</tr>';
+        }).join("");
+
+        // Click vào cell để toggle: trống → Absent(X) → Late(M) → Present(trống) → ...
+        body.querySelectorAll(".att-cell").forEach(function(cell) {
+            cell.addEventListener("click", function() {
+                var eid    = this.dataset.eid;
+                var date   = this.dataset.date;
+                var cur    = this.dataset.status || "";
+
+                // Cycle: "" / Present → Absent → Late → Present
+                var next;
+                if (cur === "" || cur === "Present") next = "Absent";
+                else if (cur === "Absent") next = "Late";
+                else next = "Present";
+
+                // Cập nhật dirty state
+                if (!attendanceState.dirty[eid]) attendanceState.dirty[eid] = {};
+                attendanceState.dirty[eid][date] = next;
+
+                // Cập nhật cell UI trực tiếp
+                this.dataset.status = next;
+                if (next === "Absent") {
+                    this.className = "att-cell att-absent";
+                    this.textContent = "X";
+                } else if (next === "Late") {
+                    this.className = "att-cell att-late";
+                    this.textContent = "M";
+                } else {
+                    this.className = "att-cell att-present";
+                    this.textContent = "";
+                }
+
+                // Hiện nút lưu
+                if (saveBtn) saveBtn.style.display = "inline-flex";
+            });
+        });
+    }
+
     function getLastOccurrence(weekdayStr) {
         var weekdayToJs = {
             "Thứ 2": 1, "Thứ 3": 2, "Thứ 4": 3,
@@ -1097,47 +1238,163 @@
         }
 
         // 4. Attendance
+        var addSessionBtn = document.getElementById("attendanceAddSessionBtn");
+    if (addSessionBtn) {
+        addSessionBtn.addEventListener("click", function() {
+            var classId    = document.getElementById("attendanceClassSelect").value;
+            var dateSelect = document.getElementById("attendanceDateSelect");
+            var date       = dateSelect ? dateSelect.value : "";
+
+            if (!classId) { alert("Vui lòng chọn lớp!"); return; }
+            if (!date)    { alert("Vui lòng chọn buổi học!"); return; }
+
+            // Nếu ngày chưa có trong danh sách → thêm vào và re-render
+            if (!attendanceState.dates.includes(date)) {
+                attendanceState.dates.push(date);
+                attendanceState.dates.sort();
+            }
+
+            // Mặc định tất cả sinh viên là Present cho ngày mới
+            attendanceState.students.forEach(function(sv) {
+                var eid = String(sv.EnrollmentId);
+                if (!attendanceState.dirty[eid]) attendanceState.dirty[eid] = {};
+                if (!attendanceState.dirty[eid][date]) {
+                    attendanceState.dirty[eid][date] = "Present";
+                }
+            });
+
+            renderAttendanceSummary();
+
+            // Cập nhật option trong select → thêm dấu ✓
+            if (dateSelect) {
+                Array.from(dateSelect.options).forEach(function(opt) {
+                    if (opt.value === date && !opt.text.includes("✓")) {
+                        opt.text += " ✓";
+                    }
+                });
+            }
+
+            var saveBtn = document.getElementById("attendanceSaveBtn");
+            if (saveBtn) saveBtn.style.display = "inline-flex";
+        });
+    }
+
+        // Sửa attendanceSearchBtn — chỉ cần chọn lớp
         var attSearchBtn = document.getElementById("attendanceSearchBtn");
         if (attSearchBtn) {
-            attSearchBtn.addEventListener('click', function () {
+            attSearchBtn.addEventListener('click', function() {
                 var classId = document.getElementById('attendanceClassSelect').value;
-                var date = document.getElementById('attendanceDateInput').value;
-                var body = document.getElementById('attendanceTableBody');
-
-                if (!classId || !date) {
-                    alert('Vui lòng chọn lớp và ngày học!');
-                    return;
-                }
+                if (!classId) { alert('Vui lòng chọn lớp!'); return; }
 
                 attSearchBtn.disabled = true;
                 attSearchBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Đang tải...';
-                body.innerHTML = '<tr><td colspan="5" style="text-align:center;padding:32px;color:#94a3b8;"><i class="fas fa-spinner fa-spin"></i> Đang tải...</td></tr>';
 
-                getJson('/api/teachers/attendance/' + classId + '?date=' + date)
-                    .then(function (students) {
-                        if (!students || students.length === 0) {
-                            body.innerHTML = '<tr><td colspan="5" style="text-align:center;padding:32px;color:#94a3b8;"><i class="fas fa-users-slash" style="font-size:1.5rem;margin-bottom:8px;display:block;"></i>Lớp chưa có sinh viên.</td></tr>';
-                        } else {
-                            body.innerHTML = students.map(function (sv) {
-                                var present = sv.AttendanceStatus === 'Present' ? 'checked' : '';
-                                var absent = sv.AttendanceStatus === 'Absent' ? 'checked' : '';
-                                var late = sv.AttendanceStatus === 'Late' ? 'checked' : '';
-                                return "<tr data-enrollment-id='" + sv.EnrollmentId + "' style='hover:background:#f8fafc;'>"
-                                    + "<td><strong>" + escapeHtml(sv.StudentCode) + "</strong></td>"
-                                    + "<td>" + escapeHtml(sv.FullName) + "</td>"
-                                    + "<td style='text-align:center'><label style='cursor:pointer;display:inline-flex;align-items:center;'><input type='radio' name='att_" + sv.EnrollmentId + "' value='Present' " + present + " style='margin-right:6px;'><span style='color:#15803d;font-weight:500;'>Có</span></label></td>"
-                                    + "<td style='text-align:center'><label style='cursor:pointer;display:inline-flex;align-items:center;'><input type='radio' name='att_" + sv.EnrollmentId + "' value='Absent' " + absent + " style='margin-right:6px;'><span style='color:#b91c1c;font-weight:500;'>Vắng</span></label></td>"
-                                    + "<td style='text-align:center'><label style='cursor:pointer;display:inline-flex;align-items:center;'><input type='radio' name='att_" + sv.EnrollmentId + "' value='Late' " + late + " style='margin-right:6px;'><span style='color:#ea580c;font-weight:500;'>Trễ</span></label></td>"
-                                    + "</tr>";
-                            }).join('');
-                        }
+                // Reset date select
+                var dateSelect = document.getElementById("attendanceDateSelect");
+                var addBtn     = document.getElementById("attendanceAddSessionBtn");
+                if (dateSelect) {
+                    dateSelect.innerHTML = '<option value="">Đang tải ngày học...</option>';
+                    dateSelect.disabled = true;
+                }
+                if (addBtn) addBtn.disabled = true;
+
+                // Load summary và valid dates song song
+                Promise.all([
+                    new Promise(function(resolve) {
+                        loadAttendanceSummary(Number(classId));
+                        resolve();
+                    }),
+                    getJson('/api/teachers/attendance/class/' + classId + '/valid-dates')
+                ])
+                .then(function(results) {
+                    var validDates = results[1] || [];
+                    if (!dateSelect) return;
+
+                    if (!validDates.length) {
+                        dateSelect.innerHTML = '<option value="">Lớp chưa có lịch học</option>';
+                        return;
+                    }
+
+                    var today = new Date().toISOString().slice(0, 10);
+
+                    dateSelect.innerHTML = '<option value="">-- Chọn buổi học --</option>'
+                        + validDates.map(function(d) {
+                            // Format hiển thị: Thứ X, dd/MM/YYYY
+                            var dt = new Date(d + "T00:00:00");
+                            var dayNames = ["Chủ Nhật","Thứ Hai","Thứ Ba","Thứ Tư","Thứ Năm","Thứ Sáu","Thứ Bảy"];
+                            var dayName = dayNames[dt.getDay()];
+                            var parts = d.split("-");
+                            var label = dayName + ", " + parts[2] + "/" + parts[1] + "/" + parts[0];
+
+                            // Highlight hôm nay
+                            var extra = d === today ? " ★ Hôm nay" : "";
+
+                            // Đã có dữ liệu điểm danh chưa → check trong attendanceState
+                            var hasData = attendanceState.dates && attendanceState.dates.includes(d);
+                            var suffix = hasData ? " ✓" : "";
+
+                            return '<option value="' + d + '"' + (d === today ? ' selected' : '') + '>'
+                                + label + extra + suffix
+                                + '</option>';
+                        }).join('');
+
+                    dateSelect.disabled = false;
+                    if (addBtn) addBtn.disabled = false;
+                })
+                .catch(function(err) {
+                    if (dateSelect) dateSelect.innerHTML = '<option value="">Lỗi tải ngày học</option>';
+                    console.error(err);
+                })
+                .finally(function() {
+                    attSearchBtn.disabled = false;
+                    attSearchBtn.innerHTML = '<i class="fas fa-search"></i> Tải điểm danh';
+                });
+            });
+        }
+
+        // Lưu tất cả dirty records
+        var attSaveBtn = document.getElementById("attendanceSaveBtn");
+        if (attSaveBtn) {
+            attSaveBtn.addEventListener('click', function() {
+                var dirty = attendanceState.dirty;
+                var records = [];
+
+                Object.keys(dirty).forEach(function(eid) {
+                    Object.keys(dirty[eid]).forEach(function(date) {
+                        records.push({
+                            EnrollmentId: Number(eid),
+                            SessionDate:  date,
+                            Status:       dirty[eid][date]
+                        });
+                    });
+                });
+
+                if (!records.length) {
+                    alert('Không có thay đổi nào để lưu!');
+                    return;
+                }
+
+                attSaveBtn.disabled = true;
+                attSaveBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Đang lưu...';
+
+                postJson('/api/teachers/attendance/save', { records: records })
+                    .then(function() {
+                        alert('Đã lưu ' + records.length + ' bản ghi điểm danh!');
+                        attendanceState.dirty = {};
+                        // Merge dirty vào recordMap
+                        records.forEach(function(r) {
+                            var eid = String(r.EnrollmentId);
+                            if (!attendanceState.recordMap[eid]) attendanceState.recordMap[eid] = {};
+                            attendanceState.recordMap[eid][r.SessionDate] = r.Status;
+                        });
+                        attSaveBtn.style.display = "none";
                     })
-                    .catch(function (err) {
-                        body.innerHTML = '<tr><td colspan="5" style="text-align:center;padding:32px;color:#ef4444;"><i class="fas fa-exclamation-circle" style="font-size:1.5rem;margin-bottom:8px;display:block;"></i>Lỗi: ' + escapeHtml(err.message) + '</td></tr>';
+                    .catch(function(err) {
+                        alert('Lỗi: ' + err.message);
                     })
-                    .finally(function () {
-                        attSearchBtn.disabled = false;
-                        attSearchBtn.innerHTML = '<i class="fas fa-search"></i> Tải danh sách';
+                    .finally(function() {
+                        attSaveBtn.disabled = false;
+                        attSaveBtn.innerHTML = '<i class="fas fa-save"></i> Lưu điểm danh';
                     });
             });
         }
@@ -1232,15 +1489,21 @@
                         modal.style.display = "none";
                         var sel = document.getElementById("attendanceClassSelect");
                         if (sel) sel.value = String(classId);
-                        var dateInput = document.getElementById("attendanceDateInput");
-                        if (dateInput) {
-                            // Ưu tiên dùng data-cal-date nếu có, fallback getLastOccurrence
-                            var calDate = calDetailBtn.getAttribute("data-cal-date");
-                            dateInput.value = calDate || getLastOccurrence(weekdayVi);
-                        }
                         window.location.hash = "#attendance";
+
+                        // Tự động load lịch và chọn đúng ngày
                         var searchBtn = document.getElementById("attendanceSearchBtn");
-                        if (searchBtn) searchBtn.click();
+                        if (searchBtn) {
+                            searchBtn.click();
+                            // Sau khi load xong, select đúng ngày từ cal-date
+                            var calDate = calDetailBtn.getAttribute("data-cal-date");
+                            if (calDate) {
+                                setTimeout(function() {
+                                    var dateSelect = document.getElementById("attendanceDateSelect");
+                                    if (dateSelect) dateSelect.value = calDate;
+                                }, 800); // Đợi load valid-dates xong
+                            }
+                        }
                     };
                 }
 
@@ -1807,56 +2070,6 @@
                         .catch(function (err) { alert("Lỗi: " + err.message); })
                         .finally(function () { quickRemoveBtn.disabled = false; });
                 }
-            });
-        }
-
-        // Lưu điểm danh
-        var attSaveBtn = document.getElementById("attendanceSaveBtn");
-        if (attSaveBtn) {
-            attSaveBtn.addEventListener('click', function () {
-                var date = document.getElementById('attendanceDateInput').value;
-                var rows = document.querySelectorAll('#attendanceTableBody tr[data-enrollment-id]');
-
-                if (!rows.length || !date) {
-                    alert('Chưa có dữ liệu điểm danh!');
-                    return;
-                }
-
-                var records = [];
-                var selectedCount = 0;
-                rows.forEach(function (row) {
-                    var enrollmentId = Number(row.dataset.enrollmentId);
-                    var checked = row.querySelector('input[type="radio"]:checked');
-                    if (checked) {
-                        selectedCount++;
-                        records.push({
-                            EnrollmentId: enrollmentId,
-                            SessionDate: date,
-                            Status: checked.value
-                        });
-                    }
-                });
-
-                if (!records.length) {
-                    alert('Vui lòng chọn trạng thái điểm danh cho ít nhất một sinh viên!');
-                    return;
-                }
-
-                attSaveBtn.disabled = true;
-                attSaveBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Đang lưu...';
-
-                postJson('/api/teachers/attendance/save', { records: records })
-                    .then(function () {
-                        alert('Đã lưu điểm danh cho ' + selectedCount + ' sinh viên thành công!');
-                        document.getElementById('attendanceSearchBtn').click(); // Reload
-                    })
-                    .catch(function (err) {
-                        alert('Lỗi: ' + err.message);
-                    })
-                    .finally(function () {
-                        attSaveBtn.disabled = false;
-                        attSaveBtn.innerHTML = '<i class="fas fa-save"></i> Lưu điểm danh';
-                    });
             });
         }
 
