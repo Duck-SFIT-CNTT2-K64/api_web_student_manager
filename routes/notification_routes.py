@@ -2,6 +2,7 @@ import pyodbc
 from flask import Blueprint, jsonify, request
 
 from models.notification_model import create_notification, get_all_notifications, get_notification_by_id
+from utils.auth import role_required
 
 notification_bp = Blueprint("notifications", __name__)
 
@@ -49,6 +50,7 @@ def get_notification(notification_id: int):
 
 
 @notification_bp.post("")
+@role_required("Admin")
 def add_notification():
     try:
         payload = request.get_json(silent=True) or {}
@@ -65,6 +67,7 @@ def add_notification():
 
 
 @notification_bp.put("/<int:notification_id>")
+@role_required("Admin")
 def edit_notification(notification_id: int):
     try:
         payload = request.get_json(silent=True) or {}
@@ -103,6 +106,7 @@ def read_notification(notification_id: int):
 
 
 @notification_bp.delete("/<int:notification_id>")
+@role_required("Admin")
 def remove_notification(notification_id: int):
     try:
         from models.notification_model import delete_notification

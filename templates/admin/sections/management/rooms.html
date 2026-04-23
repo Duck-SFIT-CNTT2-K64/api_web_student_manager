@@ -29,12 +29,19 @@
         <div class="panel table-panel">
             <div class="table-header">
                 <h3>Rooms list</h3>
-                <input id="roomSearch" class="search-input" placeholder="Search rooms...">
+                <div style="display:flex;gap:8px">
+                    <button id="btnBulkDeleteRooms" class="btn btn-outline" style="color:var(--danger);display:none">
+                        <i class="fas fa-trash-alt"></i> Delete Selected
+                    </button>
+                    <input id="roomSearch" class="search-input" placeholder="Search rooms...">
+                </div>
             </div>
             <div class="table-wrap">
                 <table>
                     <thead>
                         <tr>
+                            <th style="width:50px">STT</th>
+                            <th style="width:40px"><input type="checkbox" id="selectAllRooms"></th>
                             <th>Room name</th>
                             <th>Capacity</th>
                             <th style="width:60px"></th>

@@ -2,6 +2,7 @@ import pyodbc
 from flask import Blueprint, jsonify, request
 
 from models.course_model import create_course, delete_course_by_id, get_all_courses, get_course_by_id, update_course
+from utils.auth import role_required
 
 course_bp = Blueprint("courses", __name__)
 
@@ -31,6 +32,7 @@ def get_course(course_id: int):
 
 
 @course_bp.post("")
+@role_required("Admin")
 def add_course():
     try:
         payload = request.get_json(silent=True) or {}
@@ -47,6 +49,7 @@ def add_course():
 
 
 @course_bp.put("/<int:course_id>")
+@role_required("Admin")
 def edit_course(course_id: int):
     try:
         payload = request.get_json(silent=True) or {}
@@ -65,6 +68,7 @@ def edit_course(course_id: int):
 
 
 @course_bp.delete("/<int:course_id>")
+@role_required("Admin")
 def remove_course(course_id: int):
     try:
         deleted = delete_course_by_id(course_id)

@@ -60,6 +60,7 @@ def get_student(student_id: int):
 
 
 @student_bp.post("")
+@role_required("Admin")
 def add_student():
     try:
         payload = request.get_json(silent=True) or {}
@@ -82,6 +83,7 @@ def add_student():
 
 
 @student_bp.put("/<int:student_id>")
+@role_required("Admin")
 def edit_student(student_id: int):
     try:
         payload = request.get_json(silent=True) or {}
@@ -106,6 +108,7 @@ def edit_student(student_id: int):
 
 
 @student_bp.delete("/<int:student_id>")
+@role_required("Admin")
 def remove_student(student_id: int):
     try:
         deleted = delete_student_by_id(student_id)
