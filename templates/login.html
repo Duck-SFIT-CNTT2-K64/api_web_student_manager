@@ -4,29 +4,27 @@
 
 {% block content %}
 <div class="auth-container">
-    {# ===== Left: illustration + intro ===== #}
     <section class="auth-illustration">
         <a class="auth-back-link" href="/">
-            <i class="fas fa-arrow-left"></i> Back to homepage
+            <i class="fas fa-arrow-left"></i> <span data-i18n="auth.back_home">Back to homepage</span>
         </a>
 
-        <h2>Open the door to <span class="accent">knowledge</span><br>for your learning journey</h2>
-        <p class="auth-lead">
+        <h2><span data-i18n="auth.login_hero_a">Open the door to</span> <span class="accent" data-i18n="auth.login_hero_b">knowledge</span><br><span data-i18n="auth.login_hero_c">for your learning journey</span></h2>
+        <p class="auth-lead" data-i18n="auth.login_lead">
             A digital classroom &amp; workspace for students, instructors and administrators of
             CLASSES369 &mdash; connecting classes, courses, grades and tuition in one place.
         </p>
 
         <ul class="auth-features">
-            <li><i class="fas fa-shield-halved"></i> Role-based: Admin &middot; Teacher &middot; Student</li>
-            <li><i class="fas fa-database"></i> Live data from SQL Server</li>
-            <li><i class="fas fa-chart-line"></i> Real-time analytics &amp; reports</li>
-            <li><i class="fas fa-bell"></i> Integrated notifications</li>
+            <li><i class="fas fa-shield-halved"></i> <span data-i18n="auth.feat_roles">Role-based: Admin &middot; Teacher &middot; Student</span></li>
+            <li><i class="fas fa-database"></i> <span data-i18n="auth.feat_db">Live data from SQL Server</span></li>
+            <li><i class="fas fa-chart-line"></i> <span data-i18n="auth.feat_analytics">Real-time analytics &amp; reports</span></li>
+            <li><i class="fas fa-bell"></i> <span data-i18n="auth.feat_notif">Integrated notifications</span></li>
         </ul>
 
         {% include 'layouts/_auth_scene.html' %}
     </section>
 
-    {# ===== Right: sign-in form ===== #}
     <section class="auth-form-panel">
         <div class="auth-form-panel-head">
             <div class="auth-form-logo">
@@ -34,12 +32,12 @@
             </div>
             <div class="auth-form-title">
                 <strong>CLASSES369</strong>
-                <small>Sign in to the platform</small>
+                <small data-i18n="auth.signin_platform">Sign in to the platform</small>
             </div>
         </div>
 
-        <h2>Sign in</h2>
-        <p class="auth-subtitle">Enter your credentials to continue your session.</p>
+        <h2 data-i18n="auth.signin">Sign in</h2>
+        <p class="auth-subtitle" data-i18n="auth.signin_sub">Enter your credentials to continue your session.</p>
 
         {% if error %}
         <div class="auth-alert error">
@@ -61,38 +59,38 @@
             {% endif %}
 
             <div class="form-group">
-                <label for="username">Username or email</label>
+                <label for="username" data-i18n="auth.label_user">Username or email</label>
                 <div class="input-wrapper">
                     <i class="fas fa-user"></i>
-                    <input type="text" id="username" name="username" placeholder="Enter username or email" required autofocus>
+                    <input type="text" id="username" name="username" data-i18n-attr="placeholder" data-i18n="auth.ph_user" placeholder="Enter username or email" required autofocus>
                 </div>
             </div>
 
             <div class="form-group">
-                <label for="password">Password</label>
+                <label for="password" data-i18n="common.password">Password</label>
                 <div class="input-wrapper">
                     <i class="fas fa-lock"></i>
-                    <input type="password" id="password" name="password" placeholder="Enter your password" required>
+                    <input type="password" id="password" name="password" data-i18n-attr="placeholder" data-i18n="auth.ph_pass" placeholder="Enter your password" required>
                 </div>
             </div>
 
             <div class="form-options">
                 <label>
-                    <input type="checkbox" name="remember"> Remember me
+                    <input type="checkbox" name="remember"> <span data-i18n="auth.remember">Remember me</span>
                 </label>
-                <a href="#">Forgot password?</a>
+                <a href="#" data-i18n="auth.forgot">Forgot password?</a>
             </div>
 
             <button type="submit" class="btn-login">
                 <i class="fas fa-right-to-bracket"></i>
-                Sign in
+                <span data-i18n="auth.signin">Sign in</span>
             </button>
         </form>
 
-        <div class="auth-divider">Or</div>
+        <div class="auth-divider" data-i18n="auth.or">Or</div>
 
         <div class="auth-footer">
-            Don't have an account? <a href="/register">Register now</a>
+            <span data-i18n="auth.no_account">Don't have an account?</span> <a href="/register" data-i18n="auth.register_now">Register now</a>
         </div>
     </section>
 </div>

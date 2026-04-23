@@ -272,75 +272,99 @@ def update_class(class_id: int, payload: Dict[str, Any]) -> Optional[Dict[str, A
 
 
 def delete_class_by_id(class_id: int, user_role: str = "Admin") -> bool:
+    """
+    Safe delete:
+    - Chỉ cho xóa khi lớp không còn dữ liệu nghiệp vụ quan trọng (enrollments/exams/financial).
+    - Trả về lỗi rõ ràng thay vì cố xóa rồi vướng FK.
+    """
     with get_db_connection() as connection:
         cursor = connection.cursor()
-        
-        # 1. Kiểm tra sĩ số thực tế đang học trong lớp này (Enrollment Status)
-        cursor.execute("""
+
+        cursor.execute("SELECT TOP 1 ClassId FROM Classes WHERE ClassId = ?", int(class_id))
+        if not cursor.fetchone():
+            return False
+
+        # 1) Enrollment status breakdown
+        cursor.execute(
+            """
             SELECT Status, COUNT(*) as Count
             FROM Enrollments
             WHERE ClassId = ?
             GROUP BY Status
-        """, class_id)
-        
-        enroll_results = cursor.fetchall()
-        enroll_status_counts = {row[0]: row[1] for row in enroll_results}
-        
-        active_enrolled = enroll_status_counts.get("Enrolled", 0)
-        
-        # Ngăn chặn xóa nếu vẫn còn sinh viên đang học (áp dụng cho cả Admin)
-        if active_enrolled > 0:
-            raise ValueError(f"Không thể xóa lớp: Vẫn còn {active_enrolled} sinh viên đang theo học (Enrolled). Hãy chuyển lớp hoặc đổi trạng thái ghi danh cho sinh viên trước khi xóa.")
+            """,
+            int(class_id),
+        )
+        enroll_results = cursor.fetchall() or []
+        enroll_counts = {str(r[0]): int(r[1]) for r in enroll_results}
+        total_enroll = sum(enroll_counts.values())
+        active_enrolled = enroll_counts.get("Enrolled", 0)
 
-        # 3. Thực hiện xóa các dữ liệu liên quan
-        # 1. Xóa bài làm của sinh viên (ExamSubmissions) - Phải xóa trước Exams
-        cursor.execute("""
-            DELETE FROM ExamSubmissions WHERE ExamId IN (SELECT ExamId FROM Exams WHERE ClassId = ?)
-        """, class_id)
+        # 2) Exams & submissions counts
+        cursor.execute("SELECT COUNT(*) FROM Exams WHERE ClassId = ?", int(class_id))
+        exam_count = int(cursor.fetchone()[0] or 0)
+        cursor.execute(
+            "SELECT COUNT(*) FROM ExamSubmissions WHERE ExamId IN (SELECT ExamId FROM Exams WHERE ClassId = ?)",
+            int(class_id),
+        )
+        submission_count = int(cursor.fetchone()[0] or 0)
 
-        # 2. Xóa thông báo liên quan đến lớp (nếu có cột ClassId)
-        # Lưu ý: Phải xóa NotificationRecipients trước do FK NO ACTION
-        try:
-            cursor.execute("""
-                DELETE FROM NotificationRecipients WHERE NotificationId IN (
-                    SELECT NotificationId FROM Notifications WHERE ClassId = ?
-                )
-            """, class_id)
-            cursor.execute("DELETE FROM Notifications WHERE ClassId = ?", class_id)
-        except Exception:
-            # Nếu cột ClassId không tồn tại trong Notifications thì bỏ qua
-            pass
-
-        # 3. Xóa biên lai (Receipts) - Phải xóa trước Tuitions/Enrollments (do ON DELETE NO ACTION)
-        cursor.execute("""
-            DELETE FROM Receipts WHERE TuitionId IN (
-                SELECT t.TuitionId FROM Tuitions t 
-                INNER JOIN Enrollments e ON t.EnrollmentId = e.EnrollmentId 
+        # 3) Finance / receipts counts
+        cursor.execute(
+            """
+            SELECT COUNT(*)
+            FROM Receipts r
+            WHERE r.TuitionId IN (
+                SELECT t.TuitionId
+                FROM Tuitions t
+                INNER JOIN Enrollments e ON t.EnrollmentId = e.EnrollmentId
                 WHERE e.ClassId = ?
             )
-        """, class_id)
+            """,
+            int(class_id),
+        )
+        receipt_count = int(cursor.fetchone()[0] or 0)
 
-        # 4. Xóa điểm danh (Attendances) - Phải xóa trước ClassSchedules/Enrollments
-        cursor.execute("""
-            DELETE FROM Attendances WHERE EnrollmentId IN (SELECT EnrollmentId FROM Enrollments WHERE ClassId = ?)
-        """, class_id)
-        cursor.execute("""
-            DELETE FROM Attendances WHERE ScheduleId IN (SELECT ScheduleId FROM ClassSchedules WHERE ClassId = ?)
-        """, class_id)
+        # 4) Attendance / score counts
+        cursor.execute(
+            "SELECT COUNT(*) FROM Attendances WHERE EnrollmentId IN (SELECT EnrollmentId FROM Enrollments WHERE ClassId = ?)",
+            int(class_id),
+        )
+        attendance_count = int(cursor.fetchone()[0] or 0)
+        cursor.execute(
+            "SELECT COUNT(*) FROM Scores WHERE EnrollmentId IN (SELECT EnrollmentId FROM Enrollments WHERE ClassId = ?)",
+            int(class_id),
+        )
+        score_count = int(cursor.fetchone()[0] or 0)
 
-        # 5. Xóa bài tập/kiểm tra (Exams)
-        cursor.execute("DELETE FROM Exams WHERE ClassId = ?", class_id)
+        # --- Deletion rules (strict) ---
+        if active_enrolled > 0:
+            raise ValueError(
+                f"Không thể xóa lớp vì còn {active_enrolled} sinh viên đang theo học (Enrolled). "
+                f"Hãy chuyển lớp hoặc cập nhật trạng thái ghi danh trước."
+            )
+        if total_enroll > 0:
+            raise ValueError(
+                f"Không thể xóa lớp vì đã có ghi danh ({total_enroll}). "
+                f"Để đảm bảo lịch sử học tập/tài chính, hãy tạo lớp mới hoặc lưu trữ lớp thay vì xóa."
+            )
+        if exam_count > 0 or submission_count > 0:
+            raise ValueError(
+                f"Không thể xóa lớp vì đã có bài kiểm tra/bài nộp (exams={exam_count}, submissions={submission_count}). "
+                f"Hãy lưu trữ lớp hoặc xóa nghiệp vụ liên quan trước."
+            )
+        if receipt_count > 0:
+            raise ValueError(
+                f"Không thể xóa lớp vì có biên lai thanh toán liên quan (receipts={receipt_count}). "
+                f"Biên lai là dữ liệu kế toán bắt buộc lưu, không nên xóa."
+            )
+        if attendance_count > 0 or score_count > 0:
+            raise ValueError(
+                f"Không thể xóa lớp vì đã có điểm danh/điểm số (attendances={attendance_count}, scores={score_count}). "
+                f"Hãy lưu trữ lớp thay vì xóa."
+            )
 
-        # 6. Xóa danh sách ghi danh (Enrollments)
-        # Lưu ý: Bảng Scores và Tuitions có ON DELETE CASCADE từ Enrollments nên sẽ tự động xóa theo
-        cursor.execute("DELETE FROM Enrollments WHERE ClassId = ?", class_id)
-        
-        # 7. Xóa lịch học (ClassSchedules)
-        cursor.execute("DELETE FROM ClassSchedules WHERE ClassId = ?", class_id)
-        
-        # 8. Cuối cùng mới xóa lớp (Classes)
-        cursor.execute("DELETE FROM Classes WHERE ClassId = ?", class_id)
-        
+        # Safe to delete: ClassSchedules will CASCADE, Notifications.ClassId will SET NULL.
+        cursor.execute("DELETE FROM Classes WHERE ClassId = ?", int(class_id))
         deleted = cursor.rowcount > 0
         connection.commit()
         return deleted

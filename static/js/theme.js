@@ -42,23 +42,40 @@
         window.dispatchEvent(new CustomEvent('classes369:themechange', { detail: { theme: normalized } }));
     }
 
+    function tTheme(isDark) {
+        if (window.i18n && typeof window.i18n.t === 'function') {
+            return isDark ? window.i18n.t('theme.to_light') : window.i18n.t('theme.to_dark');
+        }
+        return isDark ? 'Switch to light mode' : 'Switch to dark mode';
+    }
+
     function updateToggleButtons(theme) {
         var isDark = theme === DARK;
-        document.querySelectorAll('[data-theme-toggle]').forEach(function (btn) {
+        var titleText = tTheme(isDark);
+        var nl = document.querySelectorAll('[data-theme-toggle]');
+        for (var i = 0; i < nl.length; i++) {
+            var btn = nl[i];
             btn.setAttribute('aria-pressed', String(isDark));
-            btn.setAttribute('title', isDark ? 'Switch to light mode' : 'Switch to dark mode');
+            btn.setAttribute('title', titleText);
+            btn.setAttribute('aria-label', titleText);
             var icon = btn.querySelector('[data-theme-icon]');
             if (icon) {
                 icon.className = isDark ? 'fas fa-sun' : 'fas fa-moon';
             }
             var label = btn.querySelector('[data-theme-label]');
             if (label) {
-                label.textContent = isDark ? 'Light mode' : 'Dark mode';
+                if (window.i18n && window.i18n.t) {
+                    label.textContent = isDark ? window.i18n.t('theme.label_light') : window.i18n.t('theme.label_dark');
+                } else {
+                    label.textContent = isDark ? 'Light mode' : 'Dark mode';
+                }
             }
-        });
-        document.querySelectorAll('[data-theme-toggle-checkbox]').forEach(function (cb) {
+        }
+        var cbs = document.querySelectorAll('[data-theme-toggle-checkbox]');
+        for (var j = 0; j < cbs.length; j++) {
+            var cb = cbs[j];
             if (cb.checked !== isDark) cb.checked = isDark;
-        });
+        }
     }
 
     function toggleTheme() {
@@ -99,6 +116,11 @@
                 else if (typeof mq.addListener === 'function') mq.addListener(onChange);
             } catch (e) { /* ignore */ }
         }
+
+        window.addEventListener('classes369:langchange', function () {
+            var current = document.documentElement.getAttribute(ATTR) === DARK ? DARK : LIGHT;
+            updateToggleButtons(current === DARK);
+        });
     }
 
     window.toggleTheme = toggleTheme;

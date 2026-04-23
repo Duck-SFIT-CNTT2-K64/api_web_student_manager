@@ -1,12 +1,11 @@
 {#
     Management > Classes
-    CRUD form + classes list table (dashboard.js → renderClasses).
 #}
 <section id="classes" class="section">
     <div class="section-heading">
         <div>
-            <h2>Classes</h2>
-            <p>Organize classes by course, instructor and capacity.</p>
+            <h2 data-i18n="sec.classes.title">Classes</h2>
+            <p data-i18n="sec.classes.subtitle">Organize classes by course, instructor and capacity.</p>
         </div>
     </div>
     <div class="grid form-and-table">
@@ -15,43 +14,42 @@
             <h3 id="classFormTitle">Create class</h3>
             <form id="classForm" class="form-grid">
                 <input type="hidden" name="EditId" value="">
-                <label>Class code <input name="ClassCode" required></label>
-                <label>Class name <input name="ClassName" required></label>
-                <label>Course <select name="CourseId" id="classCourseSelect" required></select></label>
-                <label>Instructor <select name="TeacherId" id="classTeacherSelect"></select></label>
-                <label>Max students <input name="MaxStudents" type="number" min="1" value="30"></label>
+                <label><span data-i18n="sec.classes.lbl_code">Class code</span> <input name="ClassCode" required></label>
+                <label><span data-i18n="sec.classes.lbl_name">Class name</span> <input name="ClassName" required></label>
+                <label><span data-i18n="sec.classes.lbl_course">Course</span> <select name="CourseId" id="classCourseSelect" required></select></label>
+                <label><span data-i18n="sec.classes.lbl_instructor">Instructor</span> <select name="TeacherId" id="classTeacherSelect"></select></label>
+                <label><span data-i18n="sec.classes.lbl_max">Max students</span> <input name="MaxStudents" type="number" min="1" value="30"></label>
                 <div style="display:flex;gap:8px">
-                    <button class="btn btn-primary submit-btn" type="submit"><i class="fas fa-save"></i> <span>Save
-                            class</span></button>
+                    <button class="btn btn-primary submit-btn" type="submit"><i class="fas fa-save"></i> <span data-i18n="sec.classes.save_btn">Save class</span></button>
                     <button class="btn btn-outline cancel-btn" type="button" style="display:none"><i
-                            class="fas fa-times"></i> Cancel</button>
+                            class="fas fa-times"></i> <span data-i18n="common.cancel">Cancel</span></button>
                 </div>
             </form>
             <p id="classMessage" class="message"></p>
         </div>
         <div class="panel table-panel">
             <div class="table-header">
-                <h3>Classes list</h3>
+                <h3 data-i18n="sec.classes.list">Classes list</h3>
                 <div style="display:flex;gap:8px">
                     <button id="btnBulkDeleteClasses" class="btn btn-outline" style="color:var(--danger);display:none">
-                        <i class="fas fa-trash-alt"></i> Delete Selected
+                        <i class="fas fa-trash-alt"></i> <span data-i18n="sec.classes.bulk_delete">Delete Selected</span>
                     </button>
-                    <input id="classSearch" class="search-input" placeholder="Search code, name, instructor...">
+                    <input id="classSearch" class="search-input" data-i18n-attr="placeholder" data-i18n="sec.classes.search_ph" placeholder="Search code, name, instructor...">
                 </div>
             </div>
             <div class="table-wrap">
                 <table>
                     <thead>
                         <tr>
-                            <th style="width:50px">STT</th>
+                            <th style="width:50px" data-i18n="common.stt">STT</th>
                             <th style="width:40px"><input type="checkbox" id="selectAllClasses"></th>
-                            <th>Class code</th>
-                            <th>Class name</th>
-                            <th>Course</th>
-                            <th>Instructor</th>
-                            <th>Schedule</th>
-                            <th>Enrolled</th>
-                            <th style="width:120px">Actions</th>
+                            <th data-i18n="sec.classes.th_code">Class code</th>
+                            <th data-i18n="sec.classes.th_name">Class name</th>
+                            <th data-i18n="sec.classes.th_course">Course</th>
+                            <th data-i18n="sec.classes.th_instructor">Instructor</th>
+                            <th data-i18n="sec.classes.th_schedule">Schedule</th>
+                            <th data-i18n="sec.classes.th_enrolled">Enrolled</th>
+                            <th style="width:120px" data-i18n="sec.classes.th_actions">Actions</th>
                         </tr>
                     </thead>
                     <tbody id="classesTableBody"></tbody>

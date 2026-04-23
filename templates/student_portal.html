@@ -12,6 +12,7 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='css/landing.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/student_portal.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/login_notification_modal.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/app_modal.css') }}">
     <script>
         (function () {
             try {
@@ -34,28 +35,48 @@
         {%- else %}{{ g or '—' }}
         {%- endif -%}
     {%- endmacro -%}
+    {%- macro gender_i18n_key(g) -%}
+        {%- if g in ['Nam', 'nam', 'Male', 'MALE', 'male'] -%}set.gender_male
+        {%- elif g in ['Nữ', 'Nu', 'nu', 'Female', 'FEMALE', 'female'] -%}set.gender_female
+        {%- elif g in ['Khác', 'khac', 'Other', 'OTHER', 'other'] -%}set.gender_other
+        {%- else -%}common.none
+        {%- endif -%}
+    {%- endmacro -%}
 
     <header class="site-header">
         <div class="header-inner">
-            <a class="brand" href="/" aria-label="Home">
+            <a class="brand" href="/" data-i18n-attrs="aria-label" data-i18n-aria-label="portal.brand_aria"
+                aria-label="Home">
                 <img class="brand-logo" src="{{ url_for('static', filename='image/logo.png') }}" alt="CLASSES369">
             </a>
 
             <nav class="main-nav portal-top-nav">
-                <a href="/"><i class="fas fa-house"></i> Home</a>
-                <a href="/#programs">Programs</a>
-                <a href="/#schedules">Upcoming classes</a>
-                <a href="/#payment-guide">Payment guide</a>
-                <a href="/#contact">Contact</a>
+                <a href="/"><i class="fas fa-house"></i> <span data-i18n="portal.nav_home">Home</span></a>
+                <a href="/#programs"><span data-i18n="portal.nav_programs">Programs</span></a>
+                <a href="/#schedules"><span data-i18n="portal.nav_upcoming">Upcoming classes</span></a>
+                <a href="/#payment-guide"><span data-i18n="portal.nav_payment">Payment guide</span></a>
+                <a href="/#contact"><span data-i18n="portal.nav_contact">Contact</span></a>
             </nav>
 
             <div class="header-tools">
-                <a href="/student/notifications" class="notif-bell" id="studentNotifBell" title="Notifications" aria-label="Notifications">
+                <a href="/student/notifications" class="notif-bell" id="studentNotifBell"
+                   data-i18n-attrs="title,aria-label"
+                   data-i18n-title="common.notifications"
+                   data-i18n-aria-label="common.notifications"
+                   title="Notifications" aria-label="Notifications">
                     <i class="fas fa-bell"></i>
                     <span class="notif-bell-badge" id="studentNotifBellBadge" hidden>0</span>
                 </a>
+                <button type="button" class="lang-toggle" data-lang-toggle
+                        data-i18n-attrs="title,aria-label"
+                        data-i18n-title="common.toggle_language"
+                        data-i18n-aria-label="common.toggle_language"
+                        aria-pressed="false" style="margin-right:10px;">
+                    <span data-lang-label>EN</span>
+                </button>
                 <button type="button" class="theme-toggle" data-theme-toggle
-                        title="Toggle theme" aria-label="Toggle theme" aria-pressed="false">
+                        data-i18n-attrs="title,aria-label" data-i18n-title="common.toggle_theme"
+                        data-i18n-aria-label="common.toggle_theme" aria-pressed="false">
                     <i class="fas fa-moon" data-theme-icon></i>
                 </button>
                 <div class="user-menu" data-user-menu>
@@ -63,7 +84,7 @@
                         <span class="user-menu-avatar" aria-hidden="true">{{ user_initial }}</span>
                         <span class="user-menu-copy">
                             <strong>{{ full_name or 'Student' }}</strong>
-                            <small>Student</small>
+                            <small data-i18n="portal.role_student">Student</small>
                         </span>
                         <i class="fas fa-chevron-down user-menu-chevron" aria-hidden="true"></i>
                     </button>
@@ -73,22 +94,23 @@
                             <span class="user-menu-header-avatar">{{ user_initial }}</span>
                             <div class="user-menu-header-copy">
                                 <strong>{{ full_name or 'Student' }}</strong>
-                                <small>Student</small>
+                                <small data-i18n="portal.role_student">Student</small>
                             </div>
                         </div>
                         <div class="user-menu-section">
-                            <p class="user-menu-section-title">Account</p>
+                            <p class="user-menu-section-title" data-i18n="common.account">Account</p>
                             <a href="/student/home" role="menuitem">
-                                <i class="fas fa-user-circle"></i><span>My profile</span>
+                                <i class="fas fa-user-circle"></i><span data-i18n="portal.user_my_profile">My profile</span>
                             </a>
                             <a href="/settings" role="menuitem">
-                                <i class="fas fa-gear"></i><span>Account settings</span>
+                                <i class="fas fa-gear"></i><span data-i18n="set.crumb_settings">Account settings</span>
                             </a>
                         </div>
                         <div class="user-menu-section user-menu-footer">
                             <form method="post" action="/logout" class="header-logout-form user-menu-logout">
                                 <button type="submit" role="menuitem">
-                                    <i class="fas fa-right-from-bracket"></i><span>Sign out</span>
+                                    <i class="fas fa-right-from-bracket"></i><span
+                                        data-i18n="common.sign_out">Sign out</span>
                                 </button>
                             </form>
                         </div>
@@ -103,30 +125,37 @@
             <div class="portal-hero-text">
                 <span class="portal-hero-badge">
                     <i class="fas fa-user-graduate"></i>
-                    Student portal &middot; Personal workspace
+                    <span data-i18n="portal.hero_badge">Student portal &middot; Personal workspace</span>
                 </span>
-                <h1>Hello, {{ full_name or 'there' }}</h1>
-                <p>Track your transcripts, class schedule, exams, enrollments and tuition &mdash; all in one tidy place.</p>
+                <h1>{% if full_name %}<span data-i18n="portal.hero_hello">Hello,</span> {{ full_name }}{% else %}<span
+                        data-i18n="portal.hero_hello">Hello,</span> <span
+                        data-i18n="portal.hero_there">there</span>{% endif %}</h1>
+                <p data-i18n="portal.hero_sub">Track your transcripts, class schedule, exams, enrollments and tuition
+                    &mdash; all in one tidy place.</p>
                 <div class="portal-hero-meta">
                     {% if home_data and home_data.Profile %}
-                        {% if home_data.Profile.StudentCode %}<span><i class="fas fa-id-badge"></i> Student ID: <strong>{{ home_data.Profile.StudentCode }}</strong></span>{% endif %}
-                        {% if home_data.Profile.StatusName %}<span><i class="fas fa-circle-check"></i> {{ home_data.Profile.StatusName }}</span>{% endif %}
+                        {% if home_data.Profile.StudentCode %}<span><i class="fas fa-id-badge"></i> <span
+                                data-i18n="portal.meta_stu_id">Student ID</span>: <strong>{{
+                                home_data.Profile.StudentCode }}</strong></span>{% endif %}
+                        {% if home_data.Profile.StatusName %}<span><i class="fas fa-circle-check"></i> {{
+                                home_data.Profile.StatusName }}</span>{% endif %}
                     {% endif %}
-                    <span><i class="fas fa-shield-halved"></i> Read-only &amp; personal actions</span>
+                    <span><i class="fas fa-shield-halved"></i> <span data-i18n="portal.meta_readonly">Read-only &amp;
+                            personal actions</span></span>
                 </div>
             </div>
             <div class="portal-hero-stats">
                 <article class="stat-card stat-blue">
                     <i class="fas fa-book-open"></i>
                     <div>
-                        <p>Enrolled classes</p>
+                        <p data-i18n="portal.stat_enrolled">Enrolled classes</p>
                         <strong id="enrollmentCountValue">{{ home_data.Totals.TotalEnrollments if home_data and home_data.Totals else 0 }}</strong>
                     </div>
                 </article>
                 <article class="stat-card stat-orange">
                     <i class="fas fa-file-invoice-dollar"></i>
                     <div>
-                        <p>Outstanding balance</p>
+                        <p data-i18n="portal.stat_balance">Outstanding balance</p>
                         <strong id="debtValue">
                             {% if home_data and home_data.Totals %}
                                 {{ "{:,.0f}".format((home_data.Totals.OutstandingTuition or 0)|float) }}
@@ -145,40 +174,40 @@
 
         <section class="portal-layout section-shell">
             <aside class="portal-sidebar">
-                <p class="portal-sidebar-title">Your tools</p>
+                <p class="portal-sidebar-title" data-i18n="portal.tools_title">Your tools</p>
                 <nav class="portal-nav" id="portalNav">
                     <a href="/student/home" data-section="overview" class="{{ 'is-active' if active == 'overview' else '' }}">
-                        <i class="fas fa-id-card"></i><span>Overview</span>
+                        <i class="fas fa-id-card"></i><span data-i18n="portal.aside_overview">Overview</span>
                     </a>
                     <a href="/student/scores" data-section="scores" class="{{ 'is-active' if active == 'scores' else '' }}">
-                        <i class="fas fa-magnifying-glass-chart"></i><span>Grades</span>
+                        <i class="fas fa-magnifying-glass-chart"></i><span data-i18n="portal.aside_grades">Grades</span>
                     </a>
                     <a href="/student/register" data-section="register" class="{{ 'is-active' if active == 'register' else '' }}">
-                        <i class="fas fa-pen-to-square"></i><span>Course registration</span>
+                        <i class="fas fa-pen-to-square"></i><span data-i18n="portal.aside_register">Course registration</span>
                     </a>
                     <a href="/student/enrollments" data-section="enrollments" class="{{ 'is-active' if active == 'enrollments' else '' }}">
-                        <i class="fas fa-list-check"></i><span>My enrollments</span>
+                        <i class="fas fa-list-check"></i><span data-i18n="portal.aside_enroll">My enrollments</span>
                     </a>
                     <a href="/student/schedule" data-section="schedule" class="{{ 'is-active' if active == 'schedule' else '' }}">
-                        <i class="fas fa-calendar-days"></i><span>Class schedule</span>
+                        <i class="fas fa-calendar-days"></i><span data-i18n="portal.aside_schedule">Class schedule</span>
                     </a>
                     <a href="/student/exams" data-section="exams" class="{{ 'is-active' if active == 'exams' else '' }}">
-                        <i class="fas fa-calendar-check"></i><span>Exam schedule</span>
+                        <i class="fas fa-calendar-check"></i><span data-i18n="portal.aside_exams">Exam schedule</span>
                     </a>
                     <a href="/student/assignments" data-section="assignments" class="{{ 'is-active' if active == 'assignments' else '' }}">
-                        <i class="fas fa-file-circle-check"></i><span>Assignments</span>
+                        <i class="fas fa-file-circle-check"></i><span data-i18n="portal.aside_assign">Assignments</span>
                     </a>
                     <a href="/student/attendance" data-section="attendance" class="{{ 'is-active' if active == 'attendance' else '' }}">
-                        <i class="fas fa-clipboard-check"></i><span>Attendance</span>
+                        <i class="fas fa-clipboard-check"></i><span data-i18n="portal.aside_attend">Attendance</span>
                     </a>
                     <a href="/student/tuition" data-section="tuition" class="{{ 'is-active' if active == 'tuition' else '' }}">
-                        <i class="fas fa-file-invoice-dollar"></i><span>Tuition</span>
+                        <i class="fas fa-file-invoice-dollar"></i><span data-i18n="portal.aside_tuition">Tuition</span>
                     </a>
                     <a href="/student/payment" data-section="payment" class="{{ 'is-active' if active == 'payment' else '' }}">
-                        <i class="fas fa-credit-card"></i><span>Online payment</span>
+                        <i class="fas fa-credit-card"></i><span data-i18n="portal.aside_pay">Online payment</span>
                     </a>
                     <a href="/student/notifications" data-section="notifications" class="{{ 'is-active' if active == 'notifications' else '' }}">
-                        <i class="fas fa-bell"></i><span>Notifications</span>
+                        <i class="fas fa-bell"></i><span data-i18n="portal.aside_notif">Notifications</span>
                         {% if home_data.Totals.UnreadNotifications > 0 %}
                             <span class="portal-nav-badge">{{ home_data.Totals.UnreadNotifications }}</span>
                         {% endif %}
@@ -188,8 +217,8 @@
                 <div class="portal-sidebar-help">
                     <i class="fas fa-headset"></i>
                     <div>
-                        <strong>Need help?</strong>
-                        <p>Hotline <span>0901 234 369</span></p>
+                        <strong data-i18n="portal.help_title">Need help?</strong>
+                        <p><span data-i18n="portal.help_hotline">Hotline</span> <span>0901 234 369</span></p>
                     </div>
                 </div>
             </aside>
@@ -199,25 +228,28 @@
                 <article class="portal-panel {{ 'is-active' if active == 'overview' else '' }}" data-panel="overview">
                     <header class="portal-panel-head">
                         <div>
-                            <p class="eyebrow">Overview</p>
-                            <h2>Profile &amp; learning progress</h2>
+                            <p class="eyebrow" data-i18n="portal.ov_eyebrow">Overview</p>
+                            <h2 data-i18n="portal.ov_h2">Profile &amp; learning progress</h2>
                         </div>
                     </header>
 
                     <div class="portal-cards portal-cards-2">
                         <div class="portal-card">
                             <div class="portal-card-head">
-                                <h3><i class="fas fa-id-card"></i> Student profile</h3>
+                                <h3><i class="fas fa-id-card"></i> <span data-i18n="stu.card_profile">Student profile</span>
+                                </h3>
                             </div>
                             <ul class="info-list">
-                                <li><span>Full name</span><strong>{{ home_data.Profile.FullName }}</strong></li>
-                                <li><span>Student ID</span><strong>{{ home_data.Profile.StudentCode }}</strong></li>
-                                <li><span>Email</span><strong>{{ home_data.Profile.Email or '—' }}</strong></li>
-                                <li><span>Phone number</span><strong>{{ home_data.Profile.PhoneNumber or '—' }}</strong></li>
-                                <li><span>Gender</span><strong>{{ gender_en(home_data.Profile.Gender) }}</strong></li>
-                                <li><span>Date of birth</span><strong>{{ home_data.Profile.DateOfBirth[:10] if home_data.Profile.DateOfBirth else '—' }}</strong></li>
-                                <li><span>Address</span><strong>{{ home_data.Profile.Address or '—' }}</strong></li>
-                                <li><span>Status</span>
+                                <li><span data-i18n="stu.lbl_name">Full name</span><strong>{{ home_data.Profile.FullName }}</strong></li>
+                                <li><span data-i18n="stu.lbl_code">Student ID</span><strong>{{ home_data.Profile.StudentCode }}</strong></li>
+                                <li><span data-i18n="common.email">Email</span><strong>{{ home_data.Profile.Email or '—' }}</strong></li>
+                                <li><span data-i18n="set.field_phone">Phone number</span><strong>{{ home_data.Profile.PhoneNumber or '—' }}</strong></li>
+                                <li><span data-i18n="stu.lbl_gender">Gender</span><strong
+                                        data-i18n="{{ gender_i18n_key(home_data.Profile.Gender) }}">{{
+                                        gender_en(home_data.Profile.Gender) }}</strong></li>
+                                <li><span data-i18n="stu.lbl_dob">Date of birth</span><strong>{{ home_data.Profile.DateOfBirth[:10] if home_data.Profile.DateOfBirth else '—' }}</strong></li>
+                                <li><span data-i18n="stu.lbl_addr">Address</span><strong>{{ home_data.Profile.Address or '—' }}</strong></li>
+                                <li><span data-i18n="stu.lbl_status">Status</span>
                                     <strong>
                                         {% set status_name = home_data.Profile.StatusName or 'N/A' %}
                                         <span class="portal-chip {{ 'chip-green' if status_name in ['Đang học', 'Active'] else 'chip-yellow' if status_name == 'Bảo lưu' else 'chip-red' if status_name == 'Đã nghỉ học' else '' }}">{{ status_name }}</span>
@@ -226,27 +258,28 @@
                             </ul>
                             <div class="portal-card-footer">
                                 <a href="/settings" class="portal-link">
-                                    <i class="fas fa-pen"></i> Update your info in Account settings
+                                    <i class="fas fa-pen"></i> <span data-i18n="portal.ov_footer_link">Update your info in
+                                        Account settings</span>
                                 </a>
                             </div>
                         </div>
 
                         <div class="portal-card">
                             <div class="portal-card-head">
-                                <h3><i class="fas fa-bolt"></i> Quick access</h3>
+                                <h3><i class="fas fa-bolt"></i> <span data-i18n="portal.ov_quick">Quick access</span></h3>
                             </div>
                             <div class="portal-grid">
-                                <a href="/student/scores" class="portal-tile tile-blue"><i class="fas fa-magnifying-glass-chart"></i><span>Grades</span></a>
-                                <a href="/student/register" class="portal-tile tile-green"><i class="fas fa-pen-to-square"></i><span>Register</span></a>
-                                <a href="/student/enrollments" class="portal-tile tile-teal"><i class="fas fa-list-check"></i><span>Enrollments</span></a>
-                                <a href="/student/schedule" class="portal-tile tile-indigo"><i class="fas fa-calendar-days"></i><span>Schedule</span></a>
-                                <a href="/student/exams" class="portal-tile tile-purple"><i class="fas fa-calendar-check"></i><span>Exams</span></a>
-                                <a href="/student/assignments" class="portal-tile tile-indigo"><i class="fas fa-file-circle-check"></i><span>Assignments</span></a>
-                                <a href="/student/attendance" class="portal-tile tile-teal"><i class="fas fa-clipboard-check"></i><span>Attendance</span></a>
-                                <a href="/student/tuition" class="portal-tile tile-orange"><i class="fas fa-file-invoice-dollar"></i><span>Tuition</span></a>
-                                <a href="/student/payment" class="portal-tile tile-red"><i class="fas fa-credit-card"></i><span>Pay online</span></a>
-                                <a href="/settings" class="portal-tile tile-gray"><i class="fas fa-gear"></i><span>Settings</span></a>
-                                <a href="/student/notifications" class="portal-tile tile-rose"><i class="fas fa-bell"></i><span>Notifications</span></a>
+                                <a href="/student/scores" class="portal-tile tile-blue"><i class="fas fa-magnifying-glass-chart"></i><span data-i18n="portal.tile_grades">Grades</span></a>
+                                <a href="/student/register" class="portal-tile tile-green"><i class="fas fa-pen-to-square"></i><span data-i18n="portal.tile_register">Register</span></a>
+                                <a href="/student/enrollments" class="portal-tile tile-teal"><i class="fas fa-list-check"></i><span data-i18n="portal.tile_enroll">Enrollments</span></a>
+                                <a href="/student/schedule" class="portal-tile tile-indigo"><i class="fas fa-calendar-days"></i><span data-i18n="portal.tile_schedule">Schedule</span></a>
+                                <a href="/student/exams" class="portal-tile tile-purple"><i class="fas fa-calendar-check"></i><span data-i18n="portal.tile_exams">Exams</span></a>
+                                <a href="/student/assignments" class="portal-tile tile-indigo"><i class="fas fa-file-circle-check"></i><span data-i18n="portal.tile_assign">Assignments</span></a>
+                                <a href="/student/attendance" class="portal-tile tile-teal"><i class="fas fa-clipboard-check"></i><span data-i18n="portal.tile_attend">Attendance</span></a>
+                                <a href="/student/tuition" class="portal-tile tile-orange"><i class="fas fa-file-invoice-dollar"></i><span data-i18n="portal.tile_tuition">Tuition</span></a>
+                                <a href="/student/payment" class="portal-tile tile-red"><i class="fas fa-credit-card"></i><span data-i18n="portal.tile_pay">Pay online</span></a>
+                                <a href="/settings" class="portal-tile tile-gray"><i class="fas fa-gear"></i><span data-i18n="portal.tile_settings">Settings</span></a>
+                                <a href="/student/notifications" class="portal-tile tile-rose"><i class="fas fa-bell"></i><span data-i18n="portal.tile_notif">Notifications</span></a>
                             </div>
                         </div>
                     </div>
@@ -255,28 +288,28 @@
                         <article class="kpi-card kpi-blue">
                             <i class="fas fa-book"></i>
                             <div>
-                                <p>Courses taken</p>
+                                <p data-i18n="portal.kpi_courses">Courses taken</p>
                                 <strong id="kpiTotalCourses">—</strong>
                             </div>
                         </article>
                         <article class="kpi-card kpi-green">
                             <i class="fas fa-award"></i>
                             <div>
-                                <p>Accumulated credits</p>
+                                <p data-i18n="portal.kpi_credits">Accumulated credits</p>
                                 <strong id="kpiTotalCredits">—</strong>
                             </div>
                         </article>
                         <article class="kpi-card kpi-purple">
                             <i class="fas fa-chart-line"></i>
                             <div>
-                                <p>Cumulative GPA (4.0)</p>
+                                <p data-i18n="portal.kpi_gpa">Cumulative GPA (4.0)</p>
                                 <strong id="kpiGpa4">—</strong>
                             </div>
                         </article>
                         <article class="kpi-card kpi-orange">
                             <i class="fas fa-calendar-week"></i>
                             <div>
-                                <p>Sessions this week</p>
+                                <p data-i18n="portal.kpi_week">Sessions this week</p>
                                 <strong id="kpiWeekSessions">—</strong>
                             </div>
                         </article>
@@ -288,17 +321,23 @@
                     <header class="portal-panel-head">
                         <div class="panel-head-row">
                             <div>
-                                <p class="eyebrow">Grades</p>
-                                <h2>Personal transcript</h2>
-                                <small class="portal-readonly-note"><i class="fas fa-eye"></i> Grades are updated by instructors &mdash; read-only view.</small>
+                                <p class="eyebrow" data-i18n="portal.sc_eyebrow">Grades</p>
+                                <h2 data-i18n="portal.sc_h2">Personal transcript</h2>
+                                <small class="portal-readonly-note"><i class="fas fa-eye"></i> <span
+                                        data-i18n="portal.sc_readonly">Grades are updated by instructors &mdash;
+                                        read-only view.</span></small>
                             </div>
                         </div>
 
                         <nav class="portal-subtabs" id="scoreSubtabs" role="tablist">
-                            <button class="is-active" data-score-tab="transcript"><i class="fas fa-file-lines"></i> Transcript</button>
-                            <button data-score-tab="debt"><i class="fas fa-triangle-exclamation"></i> Failed courses</button>
-                            <button data-score-tab="knowledge"><i class="fas fa-cubes"></i> Knowledge blocks</button>
-                            <button data-score-tab="warning"><i class="fas fa-bell"></i> Academic alerts</button>
+                            <button class="is-active" data-score-tab="transcript"><i class="fas fa-file-lines"></i> <span
+                                    data-i18n="portal.sc_tab_transcript">Transcript</span></button>
+                            <button data-score-tab="debt"><i class="fas fa-triangle-exclamation"></i> <span
+                                    data-i18n="portal.sc_tab_failed">Failed courses</span></button>
+                            <button data-score-tab="knowledge"><i class="fas fa-cubes"></i> <span
+                                    data-i18n="portal.sc_tab_blocks">Knowledge blocks</span></button>
+                            <button data-score-tab="warning"><i class="fas fa-bell"></i> <span
+                                    data-i18n="portal.sc_tab_alerts">Academic alerts</span></button>
                         </nav>
                     </header>
 
@@ -314,7 +353,9 @@
                                 </div>
                                 <ul class="score-profile-list">
                                     <li><i class="fas fa-cake-candles"></i> {{ home_data.Profile.DateOfBirth[:10] if home_data.Profile.DateOfBirth else '—' }}</li>
-                                    <li><i class="fas fa-venus-mars"></i> {{ gender_en(home_data.Profile.Gender) }}</li>
+                                    <li><i class="fas fa-venus-mars"></i> <span
+                                            data-i18n="{{ gender_i18n_key(home_data.Profile.Gender) }}">{{
+                                            gender_en(home_data.Profile.Gender) }}</span></li>
                                     <li><i class="fas fa-circle-check"></i> {{ home_data.Profile.StatusName or '—' }}</li>
                                 </ul>
                             </div>
@@ -322,25 +363,25 @@
                             <div class="portal-card score-recent-card">
                                 <div class="score-recent-head">
                                     <i class="fas fa-bolt"></i>
-                                    <span>Recently updated</span>
+                                    <span data-i18n="portal.sc_recent">Recently updated</span>
                                 </div>
                                 <ul class="score-recent-list" id="scoreRecentList">
-                                    <li class="empty">Loading…</li>
+                                    <li class="empty" data-i18n="portal.sc_loading">Loading…</li>
                                 </ul>
                             </div>
 
                             <div class="portal-card score-total-card">
                                 <div class="score-total-head">
                                     <i class="fas fa-square-poll-vertical"></i>
-                                    <span>Totals</span>
+                                    <span data-i18n="portal.sc_totals">Totals</span>
                                 </div>
                                 <dl class="score-total-list">
-                                    <div><dt>Total credits</dt><dd id="scoreTotalCredits">0</dd></div>
-                                    <div><dt>Accumulated credits</dt><dd id="scoreCumulatedCredits">0</dd></div>
-                                    <div><dt>Average (10)</dt><dd id="scoreAvg10">—</dd></div>
-                                    <div><dt>Average (4.0)</dt><dd id="scoreAvg4">—</dd></div>
-                                    <div><dt>Cumulative (10)</dt><dd id="scoreCumulated10">—</dd></div>
-                                    <div><dt>Cumulative (4.0)</dt><dd id="scoreCumulated4">—</dd></div>
+                                    <div><dt data-i18n="portal.sc_dt_credits">Total credits</dt><dd id="scoreTotalCredits">0</dd></div>
+                                    <div><dt data-i18n="portal.sc_dt_acc_credits">Accumulated credits</dt><dd id="scoreCumulatedCredits">0</dd></div>
+                                    <div><dt data-i18n="portal.sc_dt_avg10">Average (10)</dt><dd id="scoreAvg10">—</dd></div>
+                                    <div><dt data-i18n="portal.sc_dt_avg4">Average (4.0)</dt><dd id="scoreAvg4">—</dd></div>
+                                    <div><dt data-i18n="portal.sc_dt_cum10">Cumulative (10)</dt><dd id="scoreCumulated10">—</dd></div>
+                                    <div><dt data-i18n="portal.sc_dt_cum4">Cumulative (4.0)</dt><dd id="scoreCumulated4">—</dd></div>
                                 </dl>
                             </div>
                         </aside>
@@ -348,30 +389,36 @@
                         <div class="score-main">
                             <div class="score-view" data-score-view="transcript">
                                 <div id="scoreSemesterList">
-                                    <div class="portal-card"><p class="empty">Loading transcript…</p></div>
+                                    <div class="portal-card">
+                                        <p class="empty" data-i18n="portal.sc_load_tr">Loading transcript…</p>
+                                    </div>
                                 </div>
                             </div>
 
                             <div class="score-view" data-score-view="debt" hidden>
                                 <div class="portal-card">
                                     <div class="portal-card-head">
-                                        <h3><i class="fas fa-triangle-exclamation"></i> Failed / outstanding courses</h3>
+                                        <h3><i class="fas fa-triangle-exclamation"></i> <span
+                                                data-i18n="portal.sc_fail_h3">Failed / outstanding courses</span></h3>
                                     </div>
                                     <div class="table-wrap">
                                         <table class="portal-table">
                                             <thead>
                                                 <tr>
                                                     <th>#</th>
-                                                    <th>Code</th>
-                                                    <th>Course name</th>
-                                                    <th>Class</th>
-                                                    <th>Credits</th>
-                                                    <th>Score (10)</th>
-                                                    <th>Result</th>
+                                                    <th data-i18n="portal.sc_th_code">Code</th>
+                                                    <th data-i18n="portal.sc_th_name">Course name</th>
+                                                    <th data-i18n="portal.sc_th_class">Class</th>
+                                                    <th data-i18n="portal.sc_th_credits">Credits</th>
+                                                    <th data-i18n="portal.sc_th_s10">Score (10)</th>
+                                                    <th data-i18n="portal.sc_th_result">Result</th>
                                                 </tr>
                                             </thead>
                                             <tbody id="scoreDebtBody">
-                                                <tr><td colspan="7" class="empty">No outstanding courses.</td></tr>
+                                                <tr>
+                                                    <td colspan="7" class="empty" data-i18n="portal.sc_no_debt">No
+                                                        outstanding courses.</td>
+                                                </tr>
                                             </tbody>
                                         </table>
                                     </div>
@@ -381,10 +428,12 @@
                             <div class="score-view" data-score-view="knowledge" hidden>
                                 <div class="portal-card">
                                     <div class="portal-card-head">
-                                        <h3><i class="fas fa-cubes"></i> Grades by knowledge block</h3>
+                                        <h3><i class="fas fa-cubes"></i> <span
+                                                data-i18n="portal.sc_blocks_h3">Grades by knowledge block</span></h3>
                                     </div>
                                     <div id="scoreKnowledgeBody">
-                                        <p class="empty">Summarizing by knowledge block…</p>
+                                        <p class="empty" data-i18n="portal.sc_sum_blocks">Summarizing by knowledge
+                                            block…</p>
                                     </div>
                                 </div>
                             </div>
@@ -392,10 +441,11 @@
                             <div class="score-view" data-score-view="warning" hidden>
                                 <div class="portal-card">
                                     <div class="portal-card-head">
-                                        <h3><i class="fas fa-bell"></i> Academic alerts</h3>
+                                        <h3><i class="fas fa-bell"></i> <span
+                                                data-i18n="portal.sc_alerts_h3">Academic alerts</span></h3>
                                     </div>
                                     <div id="scoreWarningBody">
-                                        <p class="empty">Summarizing alerts…</p>
+                                        <p class="empty" data-i18n="portal.sc_sum_alerts">Summarizing alerts…</p>
                                     </div>
                                 </div>
                             </div>
@@ -407,32 +457,36 @@
                 <article class="portal-panel {{ 'is-active' if active == 'register' else '' }}" data-panel="register">
                     <header class="portal-panel-head">
                         <div>
-                            <p class="eyebrow">Course registration</p>
-                            <h2>Pick an available class to register</h2>
-                            <small class="portal-readonly-note"><i class="fas fa-circle-info"></i> You can only register courses for your own account.</small>
+                            <p class="eyebrow" data-i18n="portal.reg_eyebrow">Course registration</p>
+                            <h2 data-i18n="portal.reg_h2">Pick an available class to register</h2>
+                            <small class="portal-readonly-note"><i class="fas fa-circle-info"></i> <span
+                                    data-i18n="portal.reg_note">You can only register courses for your own
+                                    account.</span></small>
                         </div>
                     </header>
 
                     <div class="register-toolbar portal-card">
                         <div class="register-toolbar-filters">
                             <label>
-                                <span>Search by subject / class code</span>
-                                <input type="search" id="registerKeyword" placeholder="e.g. Python, API, SQL…">
+                                <span data-i18n="portal.reg_search">Search by subject / class code</span>
+                                <input type="search" id="registerKeyword" data-i18n-attr="placeholder"
+                                    data-i18n="portal.reg_ph" placeholder="e.g. Python, API, SQL…">
                             </label>
                             <label>
-                                <span>Course</span>
+                                <span data-i18n="portal.reg_course">Course</span>
                                 <select id="registerCourseFilter">
-                                    <option value="">All courses</option>
+                                    <option value="" data-i18n="portal.reg_all_courses">All courses</option>
                                 </select>
                             </label>
                         </div>
                         <div class="register-toolbar-count">
-                            <span>Classes available: <strong id="registerCount">—</strong></span>
+                            <span><span data-i18n="portal.reg_count">Classes available:</span> <strong
+                                    id="registerCount">—</strong></span>
                         </div>
                     </div>
 
                     <div class="subject-grid" id="registerSubjectGrid">
-                        <p class="empty">Loading available classes…</p>
+                        <p class="empty" data-i18n="portal.reg_load">Loading available classes…</p>
                     </div>
 
                     <p id="registrationMessage" class="portal-message"></p>
@@ -919,11 +973,13 @@
             <div class="login-notif-dialog" role="dialog" aria-modal="true" aria-labelledby="loginNotifTitle" aria-describedby="loginNotifContent">
                 <header class="login-notif-head">
                     <div>
-                        <p class="login-notif-kicker" id="loginNotifKicker">Notification</p>
+                        <p class="login-notif-kicker" id="loginNotifKicker" data-i18n="ln.title">Notification</p>
                         <h3 class="login-notif-title" id="loginNotifTitle">—</h3>
-                        <p class="login-notif-sub" id="loginNotifSub">You have an unread announcement. Admin notifications are shown first.</p>
+                        <p class="login-notif-sub" id="loginNotifSub" data-i18n="ln.sub">You have an unread announcement. Admin
+                            notifications are shown first.</p>
                     </div>
-                    <button type="button" class="login-notif-close" data-login-notif-close aria-label="Close">
+                    <button type="button" class="login-notif-close" data-login-notif-close
+                        data-i18n-attrs="aria-label" data-i18n-aria-label="ln.close_aria" aria-label="Close">
                         <i class="fas fa-xmark"></i>
                     </button>
                 </header>
@@ -935,9 +991,10 @@
                     </div>
                     <div class="login-notif-content" id="loginNotifContent">—</div>
                     <footer class="login-notif-foot">
-                        <button type="button" class="login-notif-btn" data-login-notif-close>Đóng</button>
+                        <button type="button" class="login-notif-btn" data-login-notif-close
+                            data-i18n="ln.btn_close">Close</button>
                         <button type="button" class="login-notif-btn primary" id="loginNotifReadBtn">
-                            <i class="fas fa-check"></i> Đã đọc
+                            <i class="fas fa-check"></i> <span data-i18n="ln.btn_read">Mark as read</span>
                         </button>
                     </footer>
                 </div>
@@ -950,19 +1007,27 @@
         <section class="section-shell">
             <div class="portal-card portal-warning">
                 <i class="fas fa-exclamation-triangle"></i>
-                <h2>No student profile found</h2>
-                <p>The account <strong>{{ current_user.Username }}</strong> signed in successfully, but it isn't linked to a student profile yet. Please contact an administrator to set one up.</p>
+                <h2 data-i18n="portal.no_profile_h2">No student profile found</h2>
+                <p>
+                    <span data-i18n="portal.no_profile_intro">The account</span>
+                    <strong>{{ current_user.Username }}</strong>
+                    <span data-i18n="portal.no_profile_outro"> is signed in, but is not yet linked to a student profile. Please
+                        contact an administrator to set one up.</span>
+                </p>
             </div>
         </section>
         {% endif %}
     </main>
 
     <footer class="site-footer">
-        <p>&copy; 2026 CLASSES369 &mdash; Student portal.</p>
+        <p data-i18n="portal.footer">&copy; 2026 CLASSES369 &mdash; Student portal.</p>
     </footer>
 
+    <script src="{{ url_for('static', filename='js/i18n-locales.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/i18n.js') }}"></script>
     <script src="{{ url_for('static', filename='js/theme.js') }}"></script>
     <script src="{{ url_for('static', filename='js/landing.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/app_modal.js') }}"></script>
     <script src="{{ url_for('static', filename='js/student_portal.js') }}"></script>
     <script src="{{ url_for('static', filename='js/login_notification_modal.js') }}"></script>
 </body>

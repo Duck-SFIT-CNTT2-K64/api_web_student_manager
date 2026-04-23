@@ -2,6 +2,7 @@ from typing import Any, Dict, List, Optional
 
 from db import get_db_connection
 from models.helpers import row_to_dict, rows_to_list
+from models.class_model import delete_class_by_id
 
 
 def get_all_courses() -> List[Dict[str, Any]]:
@@ -113,9 +114,20 @@ def update_course(course_id: int, payload: Dict[str, Any]) -> Optional[Dict[str,
 
 
 def delete_course_by_id(course_id: int) -> bool:
+    # Strict delete rules: do not delete a course that already has classes.
     with get_db_connection() as connection:
         cursor = connection.cursor()
-        cursor.execute("DELETE FROM Courses WHERE CourseId = ?", course_id)
+        cursor.execute("SELECT COUNT(*) FROM Classes WHERE CourseId = ?", int(course_id))
+        class_count = int(cursor.fetchone()[0] or 0)
+        if class_count > 0:
+            raise ValueError(
+                f"Không thể xóa khóa học vì đang có {class_count} lớp thuộc khóa học này. "
+                f"Hãy xóa/lưu trữ các lớp trước."
+            )
+
+    with get_db_connection() as connection:
+        cursor = connection.cursor()
+        cursor.execute("DELETE FROM Courses WHERE CourseId = ?", int(course_id))
         deleted = cursor.rowcount > 0
         connection.commit()
         return deleted

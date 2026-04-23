@@ -5,29 +5,27 @@
 {% block content %}
 {% set data = form_data or {} %}
 <div class="auth-container">
-    {# ===== Left: illustration + intro ===== #}
     <section class="auth-illustration">
         <a class="auth-back-link" href="/">
-            <i class="fas fa-arrow-left"></i> Back to homepage
+            <i class="fas fa-arrow-left"></i> <span data-i18n="auth.back_home">Back to homepage</span>
         </a>
 
-        <h2>Join the <span class="accent">CLASSES369</span> community<br>in just a few simple steps</h2>
-        <p class="auth-lead">
+        <h2><span data-i18n="auth.reg_hero_1">Join the</span> <span class="accent">CLASSES369</span> <span data-i18n="auth.reg_hero_2">community</span><br><span data-i18n="auth.reg_hero_3">in just a few simple steps</span></h2>
+        <p class="auth-lead" data-i18n="auth.reg_lead">
             Register a student account to unlock your personal learning space &mdash; from schedules
             and grades to tuition and notifications, all managed online.
         </p>
 
         <ul class="auth-features">
-            <li><i class="fas fa-circle-check"></i> Student role assigned automatically</li>
-            <li><i class="fas fa-lock"></i> Passwords encrypted with bcrypt</li>
-            <li><i class="fas fa-id-card"></i> Student profile created instantly</li>
-            <li><i class="fas fa-arrow-right-to-bracket"></i> Sign in &amp; learn right away</li>
+            <li><i class="fas fa-circle-check"></i> <span data-i18n="auth.reg_feat1">Student role assigned automatically</span></li>
+            <li><i class="fas fa-lock"></i> <span data-i18n="auth.reg_feat2">Passwords encrypted with bcrypt</span></li>
+            <li><i class="fas fa-id-card"></i> <span data-i18n="auth.reg_feat3">Student profile created instantly</span></li>
+            <li><i class="fas fa-arrow-right-to-bracket"></i> <span data-i18n="auth.reg_feat4">Sign in &amp; learn right away</span></li>
         </ul>
 
         {% include 'layouts/_auth_scene.html' %}
     </section>
 
-    {# ===== Right: registration form ===== #}
     <section class="auth-form-panel">
         <div class="auth-form-panel-head">
             <div class="auth-form-logo">
@@ -35,12 +33,12 @@
             </div>
             <div class="auth-form-title">
                 <strong>CLASSES369</strong>
-                <small>Student registration</small>
+                <small data-i18n="auth.reg_panel">Student registration</small>
             </div>
         </div>
 
-        <h2>Create a new account</h2>
-        <p class="auth-subtitle">Fill in the details below &mdash; takes less than a minute.</p>
+        <h2 data-i18n="auth.reg_title">Create a new account</h2>
+        <p class="auth-subtitle" data-i18n="auth.reg_sub">Fill in the details below &mdash; takes less than a minute.</p>
 
         {% if error %}
         <div class="auth-alert error">
@@ -51,15 +49,15 @@
 
         <form method="post" action="/register" class="auth-form">
             <div class="form-group">
-                <label for="full_name">Full name</label>
+                <label for="full_name" data-i18n="auth.label_fullname">Full name</label>
                 <div class="input-wrapper">
                     <i class="fas fa-user"></i>
-                    <input type="text" id="full_name" name="full_name" placeholder="Enter your full name" value="{{ data.get('full_name', '') }}" required autofocus>
+                    <input type="text" id="full_name" name="full_name" data-i18n-attr="placeholder" data-i18n="auth.ph_fullname" placeholder="Enter your full name" value="{{ data.get('full_name', '') }}" required autofocus>
                 </div>
             </div>
 
             <div class="form-group">
-                <label for="email">Email</label>
+                <label for="email" data-i18n="common.email">Email</label>
                 <div class="input-wrapper">
                     <i class="fas fa-envelope"></i>
                     <input type="email" id="email" name="email" placeholder="you@example.com" value="{{ data.get('email', '') }}" required>
@@ -67,47 +65,47 @@
             </div>
 
             <div class="form-group">
-                <label for="phone">Phone number</label>
+                <label for="phone" data-i18n="auth.label_phone">Phone number</label>
                 <div class="input-wrapper">
                     <i class="fas fa-phone"></i>
-                    <input type="text" id="phone" name="phone" placeholder="Enter phone number" value="{{ data.get('phone', '') }}">
+                    <input type="text" id="phone" name="phone" data-i18n-attr="placeholder" data-i18n="auth.ph_phone" placeholder="Enter phone number" value="{{ data.get('phone', '') }}">
                 </div>
             </div>
 
             <div class="form-group">
-                <label for="username">Username <span style="color:var(--auth-muted);font-weight:500">(optional)</span></label>
+                <label for="username"><span data-i18n="auth.label_user_opt">Username (optional)</span></label>
                 <div class="input-wrapper">
                     <i class="fas fa-at"></i>
-                    <input type="text" id="username" name="username" placeholder="Leave blank to auto-generate" value="{{ data.get('username', '') }}">
+                    <input type="text" id="username" name="username" data-i18n-attr="placeholder" data-i18n="auth.ph_user_auto" placeholder="Leave blank to auto-generate" value="{{ data.get('username', '') }}">
                 </div>
             </div>
 
             <div class="form-group">
-                <label for="password">Password</label>
+                <label for="password" data-i18n="common.password">Password</label>
                 <div class="input-wrapper">
                     <i class="fas fa-lock"></i>
-                    <input type="password" id="password" name="password" placeholder="At least 6 characters" required>
+                    <input type="password" id="password" name="password" data-i18n-attr="placeholder" data-i18n="auth.ph_pass_len" placeholder="At least 6 characters" required>
                 </div>
             </div>
 
             <div class="form-group">
-                <label for="confirm_password">Confirm password</label>
+                <label for="confirm_password" data-i18n="auth.label_confirm">Confirm password</label>
                 <div class="input-wrapper">
                     <i class="fas fa-shield-halved"></i>
-                    <input type="password" id="confirm_password" name="confirm_password" placeholder="Re-enter your password" required>
+                    <input type="password" id="confirm_password" name="confirm_password" data-i18n-attr="placeholder" data-i18n="auth.ph_confirm" placeholder="Re-enter your password" required>
                 </div>
             </div>
 
             <button type="submit" class="btn-login">
                 <i class="fas fa-user-plus"></i>
-                Register now
+                <span data-i18n="auth.btn_register">Register now</span>
             </button>
         </form>
 
-        <div class="auth-divider">Or</div>
+        <div class="auth-divider" data-i18n="auth.or">Or</div>
 
         <div class="auth-footer">
-            Already have an account? <a href="/login">Sign in</a>
+            <span data-i18n="auth.has_account">Already have an account?</span> <a href="/login" data-i18n="auth.signin">Sign in</a>
         </div>
     </section>
 </div>

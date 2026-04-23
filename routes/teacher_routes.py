@@ -99,10 +99,14 @@ def edit_teacher(teacher_id: int):
 @teacher_bp.delete("/<int:teacher_id>")
 def remove_teacher(teacher_id: int):
     try:
-        deleted = delete_teacher(teacher_id)
+        session_user = current_session_user()
+        acting_user_id = session_user.get("UserId")
+        deleted = delete_teacher(teacher_id, acting_user_id=int(acting_user_id) if acting_user_id else None)
         if not deleted:
             return jsonify({"success": False, "error": "Teacher not found."}), 404
         return jsonify({"success": True, "message": "Teacher deleted."}), 200
+    except ValueError as exc:
+        return jsonify({"success": False, "error": str(exc)}), 400
     except pyodbc.Error as exc:
         return jsonify({"success": False, "error": "Database error.", "details": str(exc)}), 500
     except Exception as exc:

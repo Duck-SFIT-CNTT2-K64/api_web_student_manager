@@ -13,6 +13,7 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/landing.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/login_notification_modal.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/app_modal.css') }}">
     {# Student assistant widget CSS comes from partial include below #}
     <script>
         (function () {
@@ -60,7 +61,8 @@
 
     <header class="site-header" id="introduction">
         <div class="header-inner">
-            <a class="brand" href="#hero" aria-label="Home">
+            <a class="brand" href="#hero" aria-label="Home"
+               data-i18n-attrs="aria-label" data-i18n-aria-label="landing.nav_home">
                 <img
                     class="brand-logo"
                     src="{{ url_for('static', filename='image/logo.png') }}"
@@ -69,18 +71,22 @@
                 >
             </a>
 
-            <button class="nav-toggle" id="navToggle" aria-label="Open navigation menu">
+            <button class="nav-toggle" id="navToggle" type="button"
+                data-i18n-attrs="aria-label" data-i18n-aria-label="landing.nav_open"
+                aria-label="Open navigation menu">
                 <i class="fas fa-bars"></i>
             </button>
 
             <nav class="main-nav" id="navLinks">
-                <a href="#hero" data-section="hero"><i class="fas fa-house"></i></a>
-                <a href="#schedules" data-section="schedules">Schedule</a>
-                <a href="#programs" data-section="programs">Programs</a>
-                <a href="#services" data-section="services">Services</a>
-                <a href="#news" data-section="news">News</a>
-                <a href="#payment-guide" data-section="payment-guide">Payment guide</a>
-                <a href="#contact" data-section="contact">Contact</a>
+                <a href="#hero" data-section="hero"
+                   data-i18n-attrs="aria-label,title" data-i18n-aria-label="landing.nav_home" data-i18n-title="landing.nav_home"
+                   aria-label="Home" title="Home"><i class="fas fa-house"></i></a>
+                <a href="#schedules" data-section="schedules"><span data-i18n="landing.nav_schedule">Schedule</span></a>
+                <a href="#programs" data-section="programs"><span data-i18n="landing.nav_programs">Programs</span></a>
+                <a href="#services" data-section="services"><span data-i18n="landing.nav_services">Services</span></a>
+                <a href="#news" data-section="news"><span data-i18n="landing.nav_news">News</span></a>
+                <a href="#payment-guide" data-section="payment-guide"><span data-i18n="landing.nav_payment">Payment guide</span></a>
+                <a href="#contact" data-section="contact"><span data-i18n="landing.nav_contact">Contact</span></a>
             </nav>
 
             <div class="header-tools">
@@ -90,11 +96,19 @@
                         id="programSearchInput"
                         placeholder="Search courses"
                         aria-label="Search courses"
+                        data-i18n-attrs="placeholder,aria-label"
+                        data-i18n-placeholder="landing.search_placeholder"
+                        data-i18n-aria-label="landing.search_placeholder"
                     >
                     <button type="submit" aria-label="Search"><i class="fas fa-magnifying-glass"></i></button>
                 </form>
 
                 <div class="header-auth-actions">
+                    <button type="button" class="lang-toggle" data-lang-toggle
+                            title="Switch language" aria-label="Switch language" aria-pressed="false"
+                            style="margin-right:10px;">
+                        <span data-lang-label>EN</span>
+                    </button>
                     <button type="button" class="theme-toggle" data-theme-toggle
                             title="Toggle theme" aria-label="Toggle theme" aria-pressed="false">
                         <i class="fas fa-moon" data-theme-icon></i>
@@ -449,11 +463,12 @@
 
         <section class="teacher-band section-shell" id="teachers">
             <div class="section-head section-head-light">
-                <p class="eyebrow">Our faculty</p>
-                <h2>Connect with battle-tested mentors</h2>
+                <p class="eyebrow" data-i18n="landing.mentor_eyebrow">Our faculty</p>
+                <h2 data-i18n="landing.mentor_title">Connect with battle-tested mentors</h2>
             </div>
             <div class="teacher-track">
                 {% for teacher in landing_data.FeaturedTeachers %}
+                {% set mentor_fallback = url_for('static', filename='image/mentors/mentor-' ~ ((loop.index0 % 3) + 1) ~ '.png') %}
                 <article class="teacher-node">
                     <div class="teacher-avatar" data-initial="{{ (teacher.DisplayName or teacher.Title or 'T')[:1] }}">
                         {% if teacher.ImagePath %}
@@ -462,9 +477,16 @@
                             alt="{{ teacher.DisplayName or teacher.Title }}"
                             loading="lazy"
                             data-initial="{{ (teacher.DisplayName or teacher.Title or 'T')[:1] }}"
+                            data-fallback="{{ mentor_fallback }}"
                         >
                         {% else %}
-                        <span>{{ (teacher.DisplayName or teacher.Title or 'T')[:1] }}</span>
+                        <img
+                            src="{{ mentor_fallback }}"
+                            alt="{{ teacher.DisplayName or teacher.Title }}"
+                            loading="lazy"
+                            data-initial="{{ (teacher.DisplayName or teacher.Title or 'T')[:1] }}"
+                            data-fallback="{{ mentor_fallback }}"
+                        >
                         {% endif %}
                     </div>
                     <h3>{{ teacher.DisplayName or teacher.Title }}</h3>
@@ -472,8 +494,11 @@
                 </article>
                 {% else %}
                 {% for name in ['Nguyen Minh An', 'Tran Bao Phuc', 'Le Quang Huy', 'Pham Ha Vy'] %}
+                {% set mentor_fallback = url_for('static', filename='image/mentors/mentor-' ~ ((loop.index0 % 3) + 1) ~ '.png') %}
                 <article class="teacher-node">
-                    <div class="teacher-avatar" data-initial="{{ name[:1] }}"><span>{{ name[:1] }}</span></div>
+                    <div class="teacher-avatar" data-initial="{{ name[:1] }}">
+                        <img src="{{ mentor_fallback }}" alt="{{ name }}" loading="lazy" data-initial="{{ name[:1] }}" data-fallback="{{ mentor_fallback }}">
+                    </div>
                     <h3>{{ name }}</h3>
                     <p>Instructor mentoring learners through the full project lifecycle.</p>
                 </article>
@@ -697,8 +722,11 @@
         {% include 'partials/_student_assistant_widget.html' %}
     {% endif %}
 
+    <script src="{{ url_for('static', filename='js/i18n-locales.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/i18n.js') }}"></script>
     <script src="{{ url_for('static', filename='js/theme.js') }}"></script>
     <script src="{{ url_for('static', filename='js/landing.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/app_modal.js') }}"></script>
     <script src="{{ url_for('static', filename='js/login_notification_modal.js') }}"></script>
     {# student assistant widget JS comes from partial include above #}
 

@@ -1,12 +1,11 @@
 {#
     Management > Rooms
-    CRUD form + rooms list table (dashboard.js → renderRooms).
 #}
 <section id="rooms" class="section">
     <div class="section-heading">
         <div>
-            <h2>Rooms</h2>
-            <p>Manage the list and capacity of rooms on campus.</p>
+            <h2 data-i18n="sec.rooms.title">Rooms</h2>
+            <p data-i18n="sec.rooms.subtitle">Manage the list and capacity of rooms on campus.</p>
         </div>
     </div>
     <div class="grid form-and-table">
@@ -14,36 +13,35 @@
             <h3 id="roomFormTitle">Add room</h3>
             <form id="roomForm" class="form-grid">
                 <input type="hidden" name="EditId" value="">
-                <label>Room name * <input name="RoomName" required maxlength="100"
+                <label><span data-i18n="sec.rooms.lbl_name">Room name *</span> <input name="RoomName" required maxlength="100"
                         placeholder="e.g. Lab Room 101"></label>
-                <label>Capacity * <input name="Capacity" type="number" required min="1" value="30"></label>
+                <label><span data-i18n="sec.rooms.lbl_capacity">Capacity *</span> <input name="Capacity" type="number" required min="1" value="30"></label>
                 <div style="display:flex;gap:8px">
-                    <button class="btn btn-primary submit-btn" type="submit"><i class="fas fa-save"></i> <span>Save
-                            room</span></button>
+                    <button class="btn btn-primary submit-btn" type="submit"><i class="fas fa-save"></i> <span data-i18n="sec.rooms.save_btn">Save room</span></button>
                     <button class="btn btn-outline cancel-btn" type="button" style="display:none"><i
-                            class="fas fa-times"></i> Cancel</button>
+                            class="fas fa-times"></i> <span data-i18n="common.cancel">Cancel</span></button>
                 </div>
             </form>
             <p id="roomMessage" class="message"></p>
         </div>
         <div class="panel table-panel">
             <div class="table-header">
-                <h3>Rooms list</h3>
+                <h3 data-i18n="sec.rooms.list">Rooms list</h3>
                 <div style="display:flex;gap:8px">
                     <button id="btnBulkDeleteRooms" class="btn btn-outline" style="color:var(--danger);display:none">
-                        <i class="fas fa-trash-alt"></i> Delete Selected
+                        <i class="fas fa-trash-alt"></i> <span data-i18n="sec.rooms.bulk_delete">Delete Selected</span>
                     </button>
-                    <input id="roomSearch" class="search-input" placeholder="Search rooms...">
+                    <input id="roomSearch" class="search-input" data-i18n-attr="placeholder" data-i18n="sec.rooms.search_ph" placeholder="Search rooms...">
                 </div>
             </div>
             <div class="table-wrap">
                 <table>
                     <thead>
                         <tr>
-                            <th style="width:50px">STT</th>
+                            <th style="width:50px" data-i18n="common.stt">STT</th>
                             <th style="width:40px"><input type="checkbox" id="selectAllRooms"></th>
-                            <th>Room name</th>
-                            <th>Capacity</th>
+                            <th data-i18n="sec.rooms.th_name">Room name</th>
+                            <th data-i18n="sec.rooms.th_capacity">Capacity</th>
                             <th style="width:60px"></th>
                         </tr>
                     </thead>

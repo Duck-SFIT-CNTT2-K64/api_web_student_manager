@@ -96,7 +96,17 @@ studentsTableBody.addEventListener("click", async (event) => {
     }
 
     const studentId = button.dataset.id;
-    const isConfirmed = window.confirm("Delete this student?");
+    const isConfirmed = await window.AppModal.confirm({
+        kicker: "Delete",
+        title: "Confirm deletion",
+        desc: "Review the action below before continuing.",
+        details: [
+            { label: "Type", value: "student" },
+            { label: "Student ID", value: String(studentId) },
+        ],
+        okText: "Delete",
+        cancelText: "Cancel",
+    });
     if (!isConfirmed) {
         return;
     }

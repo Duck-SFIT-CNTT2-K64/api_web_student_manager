@@ -6,6 +6,8 @@ from flask import Blueprint, jsonify, request
 from db import get_db_connection
 from models.auth_model import get_user_by_id
 from models.helpers import row_to_dict, rows_to_list
+from models.student_model import delete_student_by_id
+from models.teacher_model import delete_teacher
 from utils.auth import current_session_user, login_required, role_required
 
 user_bp = Blueprint("users", __name__)
@@ -250,11 +252,60 @@ def handle_user_by_id(user_id: int):
     # ----------------------------------------
     if request.method == "DELETE":
         try:
+            current = current_session_user()
+            if current.get("UserId") and int(current["UserId"]) == int(user_id):
+                return jsonify({"success": False, "error": "Không thể xóa tài khoản đang đăng nhập."}), 400
+
             with get_db_connection() as conn:
                 cursor = conn.cursor()
-                cursor.execute("DELETE FROM Users WHERE UserId = ?", user_id)
+
+                # If this user is linked to a Student/Teacher entity, delete that entity first
+                cursor.execute("SELECT TOP 1 StudentId FROM Students WHERE UserId = ?", (int(user_id),))
+                srow = cursor.fetchone()
+                cursor.execute("SELECT TOP 1 TeacherId FROM Teachers WHERE UserId = ?", (int(user_id),))
+                trow = cursor.fetchone()
+
+            # Student deletion handles most dependent rows (enrollments, tuitions, receipts...)
+            if srow and srow[0] is not None:
+                delete_student_by_id(int(srow[0]))
+
+            # Teacher deletion must also deal with notifications/exams/receipts constraints
+            if trow and trow[0] is not None:
+                acting_user_id = int(current.get("UserId")) if current.get("UserId") else None
+                delete_teacher(int(trow[0]), acting_user_id=acting_user_id)
+
+            # Finally delete the User itself (and cleanup remaining FK-linked rows)
+            with get_db_connection() as conn:
+                cursor = conn.cursor()
+
+                # Exams / Notifications / ActionLogs / Recipients cleanup for any remaining role
+                cursor.execute(
+                    "DELETE FROM ExamSubmissions WHERE ExamId IN (SELECT ExamId FROM Exams WHERE UserId = ?)",
+                    (int(user_id),),
+                )
+                cursor.execute("DELETE FROM Exams WHERE UserId = ?", (int(user_id),))
+
+                cursor.execute(
+                    "DELETE FROM NotificationRecipients WHERE NotificationId IN (SELECT NotificationId FROM Notifications WHERE CreatorId = ?)",
+                    (int(user_id),),
+                )
+                cursor.execute("DELETE FROM Notifications WHERE CreatorId = ?", (int(user_id),))
+                cursor.execute("DELETE FROM NotificationRecipients WHERE RecipientId = ?", (int(user_id),))
+                cursor.execute("DELETE FROM ActionLogs WHERE UserId = ?", (int(user_id),))
+
+                # Receipts.CashierId is NOT NULL -> reassign to current admin to keep history
+                cursor.execute("SELECT TOP 1 ReceiptId FROM Receipts WHERE CashierId = ?", (int(user_id),))
+                if cursor.fetchone():
+                    acting_user_id = int(current.get("UserId")) if current.get("UserId") else None
+                    if acting_user_id is None:
+                        return jsonify({"success": False, "error": "Không thể xóa user vì có biên lai thanh toán đang tham chiếu (Receipts)."}), 400
+                    cursor.execute("UPDATE Receipts SET CashierId = ? WHERE CashierId = ?", (acting_user_id, int(user_id)))
+
+                cursor.execute("DELETE FROM Users WHERE UserId = ?", (int(user_id),))
                 conn.commit()
             return jsonify({"success": True, "message": "User deleted."}), 200
+        except ValueError as exc:
+            return jsonify({"success": False, "error": str(exc)}), 400
         except Exception as exc:
             return jsonify({"success": False, "error": str(exc)}), 500
 

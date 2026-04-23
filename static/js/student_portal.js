@@ -716,7 +716,21 @@
         return new Promise(function (resolve) {
             var modal = document.getElementById("registerConfirmModal");
             if (!modal) {
-                resolve(confirm("Confirm registration?"));
+                // app_modal.js is loaded globally for the portal; if modal is missing, use the shared AppModal.
+                window.AppModal.confirm({
+                    kicker: "Course registration",
+                    title: "Confirm registration",
+                    desc: "Review the details below before submitting.",
+                    details: [
+                        { label: "Course", value: (info && info.Course) || "—" },
+                        { label: "Class", value: (info && info.Class) || "—" },
+                        { label: "Teacher", value: (info && info.Teacher) || "—" },
+                        { label: "Tuition", value: (info && info.Fee) || "—" },
+                        { label: "Seats", value: (info && info.Seats) || "—" },
+                    ],
+                    okText: "Confirm registration",
+                    cancelText: "Cancel",
+                }).then(resolve);
                 return;
             }
 
@@ -843,17 +857,41 @@
                 btn.addEventListener("click", function () {
                     var eid = Number(btn.dataset.enrollmentId || 0);
                     if (!eid) return;
-                    if (!confirm("Bạn chắc chắn muốn huỷ ghi danh lớp này? (Chỉ được huỷ khi chưa phát sinh thanh toán)")) {
-                        return;
-                    }
+                    var confirmPromise = window.AppModal.confirm({
+                        kicker: "Drop enrollment",
+                        title: "Confirm cancellation",
+                        desc: "This action cancels your enrollment if there is no payment generated.",
+                        message: "Bạn chắc chắn muốn huỷ ghi danh lớp này? (Chỉ được huỷ khi chưa phát sinh thanh toán)",
+                        okText: "Confirm",
+                        cancelText: "Cancel",
+                    });
+
                     btn.disabled = true;
-                    postJson(endpoints.dropEnrollment, { EnrollmentId: eid })
-                        .then(function (res) {
-                            alert(res.message || "Đã huỷ ghi danh.");
-                            return reloadData();
-                        })
-                        .catch(function (err) {
-                            alert(err.message || "Không huỷ được ghi danh.");
+                    confirmPromise
+                        .then(function (ok) {
+                            if (!ok) return;
+                            return postJson(endpoints.dropEnrollment, { EnrollmentId: eid })
+                                .then(function (res) {
+                                    return window.AppModal.alert({
+                                        kicker: "Success",
+                                        title: "Enrollment cancelled",
+                                        desc: "Your enrollment has been cancelled.",
+                                        message: (res && res.message) || "Đã huỷ ghi danh.",
+                                        okText: "OK",
+                                    });
+                                })
+                                .then(function () {
+                                    return reloadData();
+                                })
+                                .catch(function (err) {
+                                    return window.AppModal.alert({
+                                        kicker: "Error",
+                                        title: "Could not cancel enrollment",
+                                        desc: "Please review the message below.",
+                                        message: err.message || "Không huỷ được ghi danh.",
+                                        okText: "OK",
+                                    });
+                                });
                         })
                         .finally(function () {
                             btn.disabled = false;
@@ -1164,7 +1202,13 @@
     function exportExamsCSV() {
         var rows = state.exams || [];
         if (!rows.length) {
-            alert("Chưa có dữ liệu lịch thi để xuất.");
+            window.AppModal.alert({
+                kicker: "Export",
+                title: "No data",
+                desc: "There is no exam schedule data to export.",
+                message: "Chưa có dữ liệu lịch thi để xuất.",
+                okText: "OK",
+            });
             return;
         }
         var header = ["STT", "Mã HP", "Tên học phần", "Ngày thi", "Phòng"];
@@ -1565,4 +1609,12 @@
     if (activePanel === "notifications") {
         loadNotificationInbox();
     }
+
+    document.addEventListener("classes369:langchange", function () {
+        try {
+            if (window.i18n && typeof window.i18n.apply === "function") {
+                window.i18n.apply(document);
+            }
+        } catch (e) {}
+    });
 })();

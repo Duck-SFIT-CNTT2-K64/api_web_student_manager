@@ -1,35 +1,35 @@
 {# Student Assistant widget (role=student). Keep it lightweight and safe to include on any student page. #}
 <link rel="stylesheet" href="{{ url_for('static', filename='css/student_assistant_widget.css') }}">
 
-<button type="button" class="sa-trigger" id="saTrigger" aria-label="Need help?">
+<button type="button" class="sa-trigger" id="saTrigger" data-i18n-attrs="aria-label" data-i18n-aria-label="portal.sa_aria" aria-label="Need help?">
   <span class="sa-trigger-dot" aria-hidden="true"></span>
-  <span>Need help?</span>
+  <span data-i18n="portal.help_title">Need help?</span>
 </button>
 
 <div class="sa-backdrop" id="saBackdrop" hidden></div>
 
-<aside class="sa-widget" id="saWidget" aria-hidden="true" role="dialog" aria-modal="true" aria-label="Student assistant">
+<aside class="sa-widget" id="saWidget" aria-hidden="true" role="dialog" aria-modal="true" data-i18n-attrs="aria-label" data-i18n-aria-label="portal.sa_title" aria-label="Student assistant">
   <header class="sa-header">
     <div style="min-width:0;">
       <div style="display:flex;align-items:center;gap:10px;">
-        <h3 class="sa-title" style="margin-right:6px;">Trợ lý sinh viên</h3>
-        <span class="sa-pill ok" id="saStatus">Online</span>
+        <h3 class="sa-title" style="margin-right:6px;" data-i18n="portal.sa_title">Student assistant</h3>
+        <span class="sa-pill ok" id="saStatus" data-i18n="portal.sa_status_online">Online</span>
       </div>
-      <p class="sa-sub">Hỏi lịch học · học phí · điểm · hồ sơ</p>
+      <p class="sa-sub" data-i18n="portal.sa_sub">Schedules, tuition, grades, profile</p>
     </div>
-    <button type="button" class="sa-icon-btn" id="saClose" aria-label="Close">✕</button>
+    <button type="button" class="sa-icon-btn" id="saClose" data-i18n-attrs="aria-label" data-i18n-aria-label="portal.sa_close_aria" aria-label="Close">✕</button>
   </header>
   <div class="sa-quick" id="saQuickWrap" aria-label="Quick questions">
-    <button type="button" class="sa-quick-btn" data-quick="Hồ sơ của tôi">Hồ sơ của tôi</button>
-    <button type="button" class="sa-quick-btn" data-quick="Lịch học hôm nay">Lịch học hôm nay</button>
-    <button type="button" class="sa-quick-btn" data-quick="Công nợ học phí của tôi">Công nợ học phí</button>
-    <button type="button" class="sa-quick-btn" data-quick="Điểm của tôi (nhập mã môn nếu cần)">Tra cứu điểm</button>
+    <button type="button" class="sa-quick-btn" data-quick="Hồ sơ của tôi" data-i18n="portal.sa_q_profile">My profile</button>
+    <button type="button" class="sa-quick-btn" data-quick="Lịch học hôm nay" data-i18n="portal.sa_q_today">Today's class schedule</button>
+    <button type="button" class="sa-quick-btn" data-quick="Công nợ học phí của tôi" data-i18n="portal.sa_q_tuition">My tuition balance</button>
+    <button type="button" class="sa-quick-btn" data-quick="Điểm của tôi (nhập mã môn nếu cần)" data-i18n="portal.sa_q_grades">Look up my grades</button>
   </div>
   <section class="sa-body" id="saBody"></section>
   <footer class="sa-footer">
     <div class="sa-input-wrap">
-      <textarea class="sa-input" id="saInput" placeholder="Nhập câu hỏi… (Enter để gửi, Shift+Enter xuống dòng)" rows="1"></textarea>
-      <button type="button" class="sa-send" id="saSend" aria-label="Send message">Send</button>
+      <textarea class="sa-input" id="saInput" data-i18n-attr="placeholder" data-i18n="portal.sa_input_ph" placeholder="Type a question…" rows="1"></textarea>
+      <button type="button" class="sa-send" id="saSend" data-i18n-attrs="aria-label" data-i18n-aria-label="portal.sa_send_aria" aria-label="Send message"><span data-i18n="portal.sa_send">Send</span></button>
     </div>
   </footer>
 </aside>

@@ -5,13 +5,13 @@
 <section id="tuitions" class="section">
     <div class="section-heading">
         <div>
-            <h2>Tuition</h2>
-            <p>Track outstanding balances and record payment receipts.</p>
+            <h2 data-i18n="sec.tuition.title">Tuition</h2>
+            <p data-i18n="sec.tuition.subtitle">Track outstanding balances and record payment receipts.</p>
         </div>
     </div>
     <div class="grid form-and-table">
         <div class="panel">
-            <h3>Record payment</h3>
+            <h3 data-i18n="sec.tuition.record_h3">Record payment</h3>
             <form id="paymentForm" class="form-grid">
                 <label>Tuition item <select name="TuitionId" id="paymentTuitionSelect" required></select></label>
                 <label>Amount <input name="Amount" type="number" min="1" step="1000" required></label>
@@ -22,17 +22,17 @@
             <p id="paymentMessage" class="message"></p>
         </div>
         <div class="panel table-panel">
-            <h3>Tuition list</h3>
+            <h3 data-i18n="sec.tuition.list">Tuition list</h3>
             <div class="table-wrap">
                 <table>
                     <thead>
                         <tr>
-                            <th>Student</th>
-                            <th>Class</th>
-                            <th>Total fee</th>
-                            <th>Paid</th>
-                            <th>Remaining</th>
-                            <th>Status</th>
+                            <th data-i18n="sec.enroll.th_student">Student</th>
+                            <th data-i18n="sec.enroll.th_class">Class</th>
+                            <th data-i18n="sec.tuition.th_total">Total fee</th>
+                            <th data-i18n="sec.tuition.th_paid">Paid</th>
+                            <th data-i18n="sec.tuition.th_remain">Remaining</th>
+                            <th data-i18n="common.status">Status</th>
                         </tr>
                     </thead>
                     <tbody id="tuitionsTableBody"></tbody>
@@ -41,17 +41,17 @@
         </div>
     </div>
     <div class="panel table-panel" style="margin-top:16px">
-        <h3>Receipts history</h3>
-        <div class="table-wrap">
-            <table>
-                <thead>
-                    <tr>
-                        <th>Code</th>
-                        <th>Tuition ID</th>
-                        <th>Amount</th>
-                        <th>Payment date</th>
-                        <th>Cashier</th>
-                        <th>Note</th>
+        <h3 data-i18n="sec.tuition.receipts">Receipts history</h3>
+            <div class="table-wrap">
+                <table>
+                    <thead>
+                        <tr>
+                            <th data-i18n="sec.tuition.th_code">Code</th>
+                            <th data-i18n="sec.tuition.th_tid">Tuition ID</th>
+                            <th data-i18n="common.amount">Amount</th>
+                            <th data-i18n="common.date">Payment date</th>
+                            <th data-i18n="sec.tuition.th_cashier">Cashier</th>
+                            <th data-i18n="common.note">Note</th>
                     </tr>
                 </thead>
                 <tbody id="receiptsTableBody"></tbody>

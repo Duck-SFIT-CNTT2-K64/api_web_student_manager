@@ -1,12 +1,11 @@
 {#
     Management > Courses
-    CRUD form + courses list table (dashboard.js → renderCourses).
 #}
 <section id="courses" class="section">
     <div class="section-heading">
         <div>
-            <h2>Courses</h2>
-            <p>Manage course catalog, tuition and credits.</p>
+            <h2 data-i18n="sec.courses.title">Courses</h2>
+            <p data-i18n="sec.courses.subtitle">Manage course catalog, tuition and credits.</p>
         </div>
     </div>
     <div class="grid form-and-table">
@@ -14,35 +13,34 @@
             <h3 id="courseFormTitle">Add course</h3>
             <form id="courseForm" class="form-grid">
                 <input type="hidden" name="EditId" value="">
-                <label>Course code <input name="CourseCode" required></label>
-                <label>Course name <input name="CourseName" required></label>
-                <label>Duration <input name="Duration" placeholder="e.g. 3 months"></label>
-                <label>Tuition <input name="TuitionFee" type="number" min="0" step="1000" value="0"></label>
-                <label>Credits <input name="Credits" type="number" min="0"></label>
-                <label>Description <textarea name="Description" rows="3"></textarea></label>
+                <label><span data-i18n="sec.courses.lbl_code">Course code</span> <input name="CourseCode" required></label>
+                <label><span data-i18n="sec.courses.lbl_name">Course name</span> <input name="CourseName" required></label>
+                <label><span data-i18n="sec.courses.lbl_duration">Duration</span> <input name="Duration" placeholder="e.g. 3 months"></label>
+                <label><span data-i18n="sec.courses.lbl_tuition">Tuition</span> <input name="TuitionFee" type="number" min="0" step="1000" value="0"></label>
+                <label><span data-i18n="sec.courses.lbl_credits">Credits</span> <input name="Credits" type="number" min="0"></label>
+                <label><span data-i18n="sec.courses.lbl_desc">Description</span> <textarea name="Description" rows="3"></textarea></label>
                 <div style="display:flex;gap:8px">
-                    <button class="btn btn-primary submit-btn" type="submit"><i class="fas fa-save"></i> <span>Save
-                            course</span></button>
+                    <button class="btn btn-primary submit-btn" type="submit"><i class="fas fa-save"></i> <span data-i18n="sec.courses.save_btn">Save course</span></button>
                     <button class="btn btn-outline cancel-btn" type="button" style="display:none"><i
-                            class="fas fa-times"></i> Cancel</button>
+                            class="fas fa-times"></i> <span data-i18n="common.cancel">Cancel</span></button>
                 </div>
             </form>
             <p id="courseMessage" class="message"></p>
         </div>
         <div class="panel table-panel">
             <div class="table-header">
-                <h3>Courses list</h3>
-                <input id="courseSearch" class="search-input" placeholder="Search courses...">
+                <h3 data-i18n="sec.courses.list">Courses list</h3>
+                <input id="courseSearch" class="search-input" data-i18n-attr="placeholder" data-i18n="sec.courses.search_ph" placeholder="Search courses...">
             </div>
             <div class="table-wrap">
                 <table>
                     <thead>
                         <tr>
-                            <th>Code</th>
-                            <th>Course name</th>
-                            <th>Duration</th>
-                            <th>Tuition</th>
-                            <th>Classes/Students</th>
+                            <th data-i18n="sec.courses.th_code">Code</th>
+                            <th data-i18n="sec.courses.th_name">Course name</th>
+                            <th data-i18n="sec.courses.th_duration">Duration</th>
+                            <th data-i18n="sec.courses.th_tuition">Tuition</th>
+                            <th data-i18n="sec.courses.th_stats">Classes/Students</th>
                             <th style="width:60px"></th>
                         </tr>
                     </thead>

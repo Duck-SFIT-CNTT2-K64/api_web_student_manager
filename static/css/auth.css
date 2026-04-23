@@ -84,6 +84,22 @@ html[data-theme="dark"] .auth-footer-bar { background: linear-gradient(180deg, t
 html[data-theme="dark"] .theme-toggle { background: #121a2a; color: #fde68a; border-color: var(--auth-border); }
 html[data-theme="dark"] .theme-toggle:hover { color: #fff; border-color: #fbbf24; }
 
+.lang-toggle {
+    min-width: 48px; height: 40px; padding: 0 10px;
+    display: inline-flex; align-items: center; justify-content: center;
+    border-radius: 12px;
+    border: 1px solid var(--auth-border);
+    background: #ffffffcc;
+    color: var(--auth-text);
+    font-weight: 800; font-size: 0.72rem; letter-spacing: 0.08em;
+    cursor: pointer;
+    transition: color .2s, background .2s, border-color .2s, transform .15s;
+    backdrop-filter: blur(8px);
+}
+.lang-toggle:hover { color: var(--auth-primary); border-color: var(--auth-primary); transform: translateY(-1px); }
+html[data-theme="dark"] .lang-toggle { background: #121a2a; color: #e2e8f0; border-color: var(--auth-border); }
+html[data-theme="dark"] .lang-toggle:hover { color: #fff; border-color: #fbbf24; }
+
 *,
 *::before,
 *::after {

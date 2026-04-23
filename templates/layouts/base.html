@@ -8,6 +8,7 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/app.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/login_notification_modal.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/app_modal.css') }}">
     <script>
         (function () {
             try {
@@ -31,7 +32,7 @@
             </div>
             <div class="sidebar-brand">
                 <h2>CLASSES369</h2>
-                <p>{% block sidebar_subtitle %}Center management{% endblock %}</p>
+                <p>{% block sidebar_subtitle %}<span data-i18n="nav.sidebar_subtitle_default">Center management</span>{% endblock %}</p>
             </div>
         </div>
 
@@ -43,7 +44,7 @@
             <form method="post" action="/logout">
                 <button type="submit" class="sidebar-logout">
                     <i class="fas fa-sign-out-alt"></i>
-                    <span>Sign out</span>
+                    <span data-i18n="common.sign_out">Sign out</span>
                 </button>
             </form>
         </div>
@@ -54,7 +55,9 @@
     <div class="main-wrapper" id="mainWrapper">
         <header class="topbar">
             <div class="topbar-left">
-                <button class="topbar-toggle" id="sidebarToggle" type="button" aria-label="Toggle sidebar">
+                <button class="topbar-toggle" id="sidebarToggle" type="button"
+                    data-i18n-attrs="aria-label" data-i18n-aria-label="common.toggle_sidebar"
+                    aria-label="Toggle sidebar">
                     <i class="fas fa-bars"></i>
                 </button>
                 <div class="topbar-title">
@@ -64,18 +67,31 @@
             <div class="topbar-right">
                 {% block topbar_actions %}{% endblock %}
                 {% if current_user and current_user.RoleName == 'Teacher' %}
-                <button type="button" class="topbar-reload" id="topbarReloadBtn" title="Reload data" aria-label="Reload data">
+                <button type="button" class="topbar-reload" id="topbarReloadBtn"
+                    data-i18n-attrs="title,aria-label" data-i18n-title="common.reload_data" data-i18n-aria-label="common.reload_data"
+                    title="Reload data" aria-label="Reload data">
                     <i class="fas fa-sync-alt"></i>
                 </button>
                 {% endif %}
                 {% if current_user and current_user.RoleName in ['Admin', 'Teacher'] %}
                 <a href="{{ '/dashboard#notifications' if current_user.RoleName == 'Admin' else '/teacher/home#notifications' }}"
-                   class="notif-bell" id="topbarNotifBell" title="Notifications" aria-label="Notifications">
+                   class="notif-bell" id="topbarNotifBell"
+                   data-i18n-attrs="title,aria-label"
+                   data-i18n-title="common.notifications"
+                   data-i18n-aria-label="common.notifications"
+                   title="Notifications" aria-label="Notifications">
                     <i class="fas fa-bell"></i>
                     <span class="notif-bell-badge" id="topbarNotifBellBadge" hidden>0</span>
                 </a>
                 {% endif %}
+                <button type="button" class="lang-toggle" data-lang-toggle
+                        title="Switch language" aria-label="Switch language" aria-pressed="false">
+                    <span data-lang-label>EN</span>
+                </button>
                 <button type="button" class="theme-toggle" data-theme-toggle
+                        data-i18n-attrs="title,aria-label"
+                        data-i18n-title="common.toggle_theme"
+                        data-i18n-aria-label="common.toggle_theme"
                         title="Toggle theme" aria-label="Toggle theme" aria-pressed="false">
                     <i class="fas fa-moon" data-theme-icon></i>
                 </button>
@@ -96,7 +112,7 @@
         </main>
 
         <footer class="main-footer">
-            <p>&copy; 2024 CLASSES369 &mdash; Computer training center management system</p>
+            <p data-i18n="base.footer">&copy; 2024 CLASSES369 &mdash; Computer training center management system</p>
         </footer>
     </div>
 
@@ -106,11 +122,12 @@
         <div class="login-notif-dialog" role="dialog" aria-modal="true" aria-labelledby="loginNotifTitle" aria-describedby="loginNotifContent">
             <header class="login-notif-head">
                 <div>
-                    <p class="login-notif-kicker" id="loginNotifKicker">Notification</p>
+                    <p class="login-notif-kicker" id="loginNotifKicker" data-i18n="ln.title">Notification</p>
                     <h3 class="login-notif-title" id="loginNotifTitle">—</h3>
-                    <p class="login-notif-sub" id="loginNotifSub">You have an unread announcement. Admin notifications are shown first.</p>
+                    <p class="login-notif-sub" id="loginNotifSub" data-i18n="ln.sub">You have an unread announcement. Admin notifications are shown first.</p>
                 </div>
-                <button type="button" class="login-notif-close" data-login-notif-close aria-label="Close">
+                <button type="button" class="login-notif-close" data-login-notif-close
+                    data-i18n-attrs="aria-label" data-i18n-aria-label="ln.close_aria" aria-label="Close">
                     <i class="fas fa-xmark"></i>
                 </button>
             </header>
@@ -122,9 +139,9 @@
                 </div>
                 <div class="login-notif-content" id="loginNotifContent">—</div>
                 <footer class="login-notif-foot">
-                    <button type="button" class="login-notif-btn" data-login-notif-close>Đóng</button>
+                    <button type="button" class="login-notif-btn" data-login-notif-close data-i18n="ln.btn_close">Close</button>
                     <button type="button" class="login-notif-btn primary" id="loginNotifReadBtn">
-                        <i class="fas fa-check"></i> Đã đọc
+                        <i class="fas fa-check"></i> <span data-i18n="ln.btn_read">Mark as read</span>
                     </button>
                 </footer>
             </div>
@@ -132,8 +149,11 @@
     </div>
     {% endif %}
 
+    <script src="{{ url_for('static', filename='js/i18n-locales.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/i18n.js') }}"></script>
     <script src="{{ url_for('static', filename='js/theme.js') }}"></script>
     <script src="{{ url_for('static', filename='js/shell.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/app_modal.js') }}"></script>
     <script src="{{ url_for('static', filename='js/notification_bell.js') }}"></script>
     <script src="{{ url_for('static', filename='js/login_notification_modal.js') }}"></script>
     {% block extra_js %}{% endblock %}

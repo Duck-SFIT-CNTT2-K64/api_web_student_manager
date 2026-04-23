@@ -52,6 +52,15 @@ const endpoints = {
 
 const globalMessage = document.getElementById("globalMessage");
 
+/** Bản dịch UI (cần i18n-locales.js + i18n.js). */
+function T(key, fb) {
+    if (window.i18n && typeof window.i18n.t === "function") {
+        var s = window.i18n.t(key);
+        if (s != null && s !== "" && s !== key) return s;
+    }
+    return fb != null ? fb : key;
+}
+
 function escapeHtml(value) {
     return String(value ?? "")
         .replaceAll("&", "&amp;")
@@ -196,7 +205,18 @@ function bindBulkActions() {
                         .map(cb => cb.dataset.id);
 
                     if (checkedIds.length === 0) return;
-                    if (!confirm("Are you sure you want to delete " + checkedIds.length + " selected items?")) return;
+                    const ok = await window.AppModal.confirm({
+                        kicker: "Bulk delete",
+                        title: "Confirm deletion",
+                        desc: "Review the action below before continuing.",
+                        details: [
+                            { label: "Items selected", value: String(checkedIds.length) },
+                            { label: "Action", value: "Delete permanently" },
+                        ],
+                        okText: "Delete",
+                        cancelText: "Cancel",
+                    });
+                    if (!ok) return;
 
                     try {
                         setMessage(globalMessage, "Processing bulk delete...");
@@ -340,12 +360,12 @@ function renderStats() {
     if (!statsGrid) return;
     var s = state.summary || {};
     var cards = [
-        ["Students", s.TotalStudents, "fa-user-graduate", "gc-blue"],
-        ["Teachers", s.TotalTeachers, "fa-user-tie", "gc-green"],
-        ["Classes", s.TotalClasses, "fa-chalkboard", "gc-amber"],
-        ["Revenue", formatMoney(s.TotalRevenue), "fa-coins", "gc-teal"],
-        ["Debt", formatMoney(s.OutstandingTuition), "fa-hourglass-half", "gc-red"],
-        ["Notices", s.TotalNotifications, "fa-bell", "gc-violet"],
+        [T("dash.stats.students", "Students"), s.TotalStudents, "fa-user-graduate", "gc-blue"],
+        [T("dash.stats.teachers", "Teachers"), s.TotalTeachers, "fa-user-tie", "gc-green"],
+        [T("dash.stats.classes", "Classes"), s.TotalClasses, "fa-chalkboard", "gc-amber"],
+        [T("dash.stats.revenue", "Revenue"), formatMoney(s.TotalRevenue), "fa-coins", "gc-teal"],
+        [T("dash.stats.debt", "Debt"), formatMoney(s.OutstandingTuition), "fa-hourglass-half", "gc-red"],
+        [T("dash.stats.notices", "Notices"), s.TotalNotifications, "fa-bell", "gc-violet"],
     ];
     statsGrid.innerHTML = cards
         .map(function (c) {
@@ -361,18 +381,18 @@ function renderStats() {
             .map(function (item, index) {
                 return '<div class="rank-item"><span>' + (index + 1) + "</span>" +
                     "<div><strong>" + escapeHtml(item.CourseName) + "</strong>" +
-                    "<small>" + escapeHtml(item.EnrollmentCount) + " enrollments</small></div></div>";
+                    "<small>" + escapeHtml(item.EnrollmentCount) + " " + T("dash.enroll_count", "enrollments") + "</small></div></div>";
             })
-            .join("") || '<p class="empty">No enrollment data available.</p>';
+            .join("") || ('<p class="empty">' + escapeHtml(T("dash.empty_enroll", "No enrollment data available.")) + "</p>");
 
     document.getElementById("recentNotificationsList").innerHTML =
         (s.RecentNotifications || [])
             .map(function (item) {
                 return '<div class="rank-item"><span><i class="fas fa-bullhorn"></i></span>' +
                     "<div><strong>" + escapeHtml(item.Title) + "</strong>" +
-                    "<small>" + formatDate(item.CreatedDate) + " · " + escapeHtml(item.RecipientCount) + " recipients</small></div></div>";
+                    "<small>" + formatDate(item.CreatedDate) + " · " + escapeHtml(item.RecipientCount) + " " + T("dash.recipients", "recipients") + "</small></div></div>";
             })
-            .join("") || '<p class="empty">No notifications available.</p>';
+            .join("") || ('<p class="empty">' + escapeHtml(T("dash.empty_notif", "No notifications available.")) + "</p>");
 
     // Vẽ biểu đồ
     renderCharts();
@@ -389,8 +409,8 @@ function renderStudents() {
             .map(function (student, index) {
                 // Check if the student has a UserId
                 var btnGenerateAccount = !student.UserId
-                    ? '<button class="btn-icon" style="color:var(--primary)" title="Auto-generate account" data-generate-account="' + student.StudentId + '"><i class="fas fa-user-plus"></i></button> '
-                    : '<span title="Account exists" style="color:var(--success);display:inline-block;padding:6px;font-size:.9rem"><i class="fas fa-check-circle"></i></span> ';
+                    ? '<button class="btn-icon" style="color:var(--primary)" title="' + escapeHtml(T("dash.gen_account", "Auto-generate account")) + '" data-generate-account="' + student.StudentId + '"><i class="fas fa-user-plus"></i></button> '
+                    : '<span title="' + escapeHtml(T("dash.account_ok", "Account exists")) + '" style="color:var(--success);display:inline-block;padding:6px;font-size:.9rem"><i class="fas fa-check-circle"></i></span> ';
                 return '<tr data-search="' + escapeHtml((student.StudentCode + " " + student.FullName + " " + student.Email).toLowerCase()) + '">' +
                     "<td>" + (index + 1) + "</td>" +
                     '<td><input type="checkbox" class="row-checkbox" data-id="' + student.StudentId + '"></td>' +
@@ -401,11 +421,11 @@ function renderStudents() {
                     "<td>" + badge(student.StatusName || student.AccountStatus) + "</td>" +
                     "<td>" + btnGenerateAccount + "</td>" +
                     '<td style="white-space:nowrap">' +
-                    '<button class="btn-icon edit" title="Edit" data-edit-student="' + student.StudentId + '"><i class="fas fa-edit"></i></button> ' +
-                    '<button class="btn-icon del" title="Delete" data-delete-student="' + student.StudentId + '"><i class="fas fa-trash-alt"></i></button>' +
+                    '<button class="btn-icon edit" title="' + escapeHtml(T("common.edit", "Edit")) + '" data-edit-student="' + student.StudentId + '"><i class="fas fa-edit"></i></button> ' +
+                    '<button class="btn-icon del" title="' + escapeHtml(T("common.delete", "Delete")) + '" data-delete-student="' + student.StudentId + '"><i class="fas fa-trash-alt"></i></button>' +
                     '</td></tr>';
             })
-            .join("") || '<tr><td colspan="9" class="empty">No students available.</td></tr>';
+            .join("") || ('<tr><td colspan="9" class="empty">' + escapeHtml(T("dash.empty_students", "No students available.")) + "</td></tr>");
 }
 
 function renderCourses() {
@@ -418,13 +438,13 @@ function renderCourses() {
                     "<td>" + escapeHtml(course.CourseName) + "</td>" +
                     "<td>" + escapeHtml(course.Duration) + "</td>" +
                     "<td>" + formatMoney(course.TuitionFee) + "</td>" +
-                    "<td>" + escapeHtml(course.ClassCount) + " lớp / " + escapeHtml(course.EnrollmentCount) + " HV</td>" +
+                    "<td>" + escapeHtml(course.ClassCount) + " " + T("dash.class_student_abbr", "classes") + " / " + escapeHtml(course.EnrollmentCount) + " " + T("dash.student_abbr", "students") + "</td>" +
                     '<td style="white-space:nowrap">' +
-                    '<button class="btn-icon edit" title="Edit" data-edit-course="' + course.CourseId + '"><i class="fas fa-edit"></i></button> ' +
-                    '<button class="btn-icon del" title="Delete" data-delete-course="' + course.CourseId + '"><i class="fas fa-trash-alt"></i></button>' +
+                    '<button class="btn-icon edit" title="' + escapeHtml(T("common.edit", "Edit")) + '" data-edit-course="' + course.CourseId + '"><i class="fas fa-edit"></i></button> ' +
+                    '<button class="btn-icon del" title="' + escapeHtml(T("common.delete", "Delete")) + '" data-delete-course="' + course.CourseId + '"><i class="fas fa-trash-alt"></i></button>' +
                     '</td></tr>';
             })
-            .join("") || '<tr><td colspan="6" class="empty">Chưa có khóa học.</td></tr>';
+            .join("") || ('<tr><td colspan="6" class="empty">' + escapeHtml(T("dash.empty_courses", "No courses yet.")) + "</td></tr>");
 }
 
 function renderClasses() {
@@ -580,8 +600,8 @@ function renderScores() {
                     "<td>" + escapeHtml(item.ScoreTypeName) + "</td>" +
                     "<td><strong>" + escapeHtml(item.ScoreValue) + "</strong></td>" +
                     '<td style="white-space:nowrap">' +
-                    '<button class="btn-icon edit" title="Edit" data-edit-score="' + item.ScoreId + '"><i class="fas fa-edit"></i></button> ' +
-                    '<button class="btn-icon del" title="Delete" data-delete-score="' + item.ScoreId + '"><i class="fas fa-trash-alt"></i></button>' +
+                    '<button class="btn-icon edit" title="' + escapeHtml(T("common.edit", "Edit")) + '" data-edit-score="' + item.ScoreId + '"><i class="fas fa-edit"></i></button> ' +
+                    '<button class="btn-icon del" title="' + escapeHtml(T("common.delete", "Delete")) + '" data-delete-score="' + item.ScoreId + '"><i class="fas fa-trash-alt"></i></button>' +
                     '</td></tr>';
             })
             .join("") || '<tr><td colspan="6" class="empty">Chưa có điểm.</td></tr>';
@@ -609,8 +629,8 @@ function renderTeachers() {
                     "<td>" + badge(t.AccountStatus) + "</td>" +
                     "<td>" + btnGenerateAccount + "</td>" +
                     '<td style="white-space:nowrap">' +
-                    '<button class="btn-icon edit" title="Edit" data-edit-teacher="' + t.TeacherId + '"><i class="fas fa-edit"></i></button> ' +
-                    '<button class="btn-icon del" title="Delete" data-delete-teacher="' + t.TeacherId + '"><i class="fas fa-trash-alt"></i></button>' +
+                    '<button class="btn-icon edit" title="' + escapeHtml(T("common.edit", "Edit")) + '" data-edit-teacher="' + t.TeacherId + '"><i class="fas fa-edit"></i></button> ' +
+                    '<button class="btn-icon del" title="' + escapeHtml(T("common.delete", "Delete")) + '" data-delete-teacher="' + t.TeacherId + '"><i class="fas fa-trash-alt"></i></button>' +
                     '</td></tr>';
             })
             .join("") || '<tr><td colspan="10" class="empty">Chưa có giảng viên.</td></tr>';
@@ -645,8 +665,8 @@ function renderNotifications() {
                     '</div>' +
                     '</div>' +
                     '<div style="position:absolute;top:14px;right:14px;display:flex;gap:5px">' +
-                    '<button class="btn-icon edit" title="Edit" data-edit-notification="' + item.NotificationId + '"><i class="fas fa-edit"></i></button>' +
-                    '<button class="btn-icon del" title="Delete" data-delete-notification="' + item.NotificationId + '"><i class="fas fa-trash-alt"></i></button>' +
+                    '<button class="btn-icon edit" title="' + escapeHtml(T("common.edit", "Edit")) + '" data-edit-notification="' + item.NotificationId + '"><i class="fas fa-edit"></i></button>' +
+                    '<button class="btn-icon del" title="' + escapeHtml(T("common.delete", "Delete")) + '" data-delete-notification="' + item.NotificationId + '"><i class="fas fa-trash-alt"></i></button>' +
                     '</div>' +
                     '</article>';
             })
@@ -836,7 +856,7 @@ function bindForms() {
             if (editId) {
                 await sendJson("/api/students/" + editId, "PUT", studentPayload);
                 setMessage(document.getElementById("studentMessage"), "Đã cập nhật sinh viên.", "success");
-                resetFormState("studentForm", "studentFormTitle", "Thêm sinh viên", "Lưu sinh viên");
+                resetFormState("studentForm", "studentFormTitle", T("dash.form.student_add", "Add student"), T("dash.form.student_save", "Save student"));
             } else {
                 const newStudent = await sendJson("/api/students", "POST", studentPayload);
                 form.reset();
@@ -890,7 +910,7 @@ function bindForms() {
                 if (editId) {
                     await sendJson("/api/teachers/" + editId, "PUT", payload);
                     setMessage(document.getElementById("teacherMessage"), "Đã cập nhật giảng viên.", "success");
-                    resetFormState("teacherForm", "teacherFormTitle", "Thêm giảng viên", "Lưu giảng viên");
+                    resetFormState("teacherForm", "teacherFormTitle", T("dash.form.teacher_add", "Add teacher"), T("dash.form.teacher_save", "Save teacher"));
                 } else {
                     var createdTeacher = await sendJson("/api/teachers", "POST", payload);
                     form.reset();
@@ -928,7 +948,7 @@ function bindForms() {
             if (editId) {
                 await sendJson("/api/courses/" + editId, "PUT", payload);
                 setMessage(document.getElementById("courseMessage"), "Đã cập nhật khóa học.", "success");
-                resetFormState("courseForm", "courseFormTitle", "Thêm khóa học", "Lưu khóa học");
+                resetFormState("courseForm", "courseFormTitle", T("dash.form.course_add", "Add course"), T("dash.form.course_save", "Save course"));
             } else {
                 await sendJson("/api/courses", "POST", payload);
                 form.reset();
@@ -958,7 +978,7 @@ function bindForms() {
             if (editId) {
                 await sendJson("/api/classes/" + editId, "PUT", payload);
                 setMessage(document.getElementById("classMessage"), "Đã cập nhật lớp học.", "success");
-                resetFormState("classForm", "classFormTitle", "Tạo lớp", "Lưu lớp");
+                resetFormState("classForm", "classFormTitle", T("dash.form.class_create", "Create class"), T("dash.form.class_save", "Save class"));
             } else {
                 await sendJson("/api/classes", "POST", payload);
                 form.reset();
@@ -986,7 +1006,7 @@ function bindForms() {
             if (editId) {
                 await sendJson("/api/rooms/" + editId, "PUT", payload);
                 setMessage(document.getElementById("roomMessage"), "Đã cập nhật phòng.", "success");
-                resetFormState("roomForm", "roomFormTitle", "Thêm phòng học", "Lưu phòng");
+                resetFormState("roomForm", "roomFormTitle", T("dash.form.room_add", "Add room"), T("dash.form.room_save", "Save room"));
             } else {
                 await sendJson("/api/rooms", "POST", payload);
                 form.reset();
@@ -1058,7 +1078,7 @@ function bindForms() {
                 };
                 await sendJson("/api/users/" + editId, "PUT", updatePayload);
                 setMessage(document.getElementById("adminAccountMessage"), "Account updated.", "success");
-                resetFormState("adminAccountForm", "adminAccountFormTitle", "Add Admin Account", "Save Admin");
+                resetFormState("adminAccountForm", "adminAccountFormTitle", T("dash.form.acc_admin_add", "Add Admin Account"), T("dash.form.acc_admin_save", "Save Admin"));
                 document.getElementById("adminPwdLabel").style.display = "block";
                 form.elements["Password"].required = true;
             } else {
@@ -1098,7 +1118,7 @@ function bindForms() {
                 };
                 await sendJson("/api/users/" + editId, "PUT", updatePayload);
                 setMessage(document.getElementById("teacherAccountMessage"), "Teacher account updated.", "success");
-                resetFormState("teacherAccountForm", "teacherAccountFormTitle", "Add Teacher Account", "Save Teacher");
+                resetFormState("teacherAccountForm", "teacherAccountFormTitle", T("dash.form.acc_teacher_add", "Add Teacher Account"), T("dash.form.acc_teacher_save", "Save Teacher"));
                 document.getElementById("teacherPwdLabel").style.display = "block";
                 form.elements["Password"].required = true;
             } else {
@@ -1138,7 +1158,7 @@ function bindForms() {
                 };
                 await sendJson("/api/users/" + editId, "PUT", updatePayload);
                 setMessage(document.getElementById("studentAccountMessage"), "Student account updated.", "success");
-                resetFormState("studentAccountForm", "studentAccountFormTitle", "Add Student Account", "Save Student");
+                resetFormState("studentAccountForm", "studentAccountFormTitle", T("dash.form.acc_student_add", "Add Student Account"), T("dash.form.acc_student_save", "Save Student"));
                 document.getElementById("studentPwdLabel").style.display = "block";
                 form.elements["Password"].required = true;
             } else {
@@ -1182,7 +1202,7 @@ function bindForms() {
                 await sendJson("/api/scores/" + editId, "PUT", payload);
                 setMessage(document.getElementById("scoreMessage"), "Đã cập nhật điểm.", "success");
                 form.elements["EnrollmentId"].disabled = false;
-                resetFormState("scoreForm", "scoreFormTitle", "Thêm điểm", "Lưu điểm");
+                resetFormState("scoreForm", "scoreFormTitle", T("dash.form.score_add", "Add grade"), T("dash.form.score_save", "Save grade"));
             } else {
                 await sendJson("/api/scores", "POST", payload);
                 form.reset();
@@ -1210,7 +1230,7 @@ function bindForms() {
             if (editId) {
                 await sendJson("/api/schedules/" + editId, "PUT", payload);
                 setMessage(document.getElementById("class_scheduleMessage"), "Đã cập nhật lịch học.", "success");
-                resetFormState("class_scheduleForm", "class_scheduleFormTitle", "Thêm lịch học", "Lưu lịch");
+                resetFormState("class_scheduleForm", "class_scheduleFormTitle", T("dash.form.sched_add", "Add schedule"), T("dash.form.sched_save", "Save schedule"));
             } else {
                 await sendJson("/api/schedules", "POST", payload);
                 form.reset();
@@ -1238,7 +1258,7 @@ function bindForms() {
             if (editId) {
                 await sendJson("/api/notifications/" + editId, "PUT", payload);
                 setMessage(document.getElementById("notificationMessage"), "Đã cập nhật thông báo.", "success");
-                resetFormState("notificationForm", "notificationFormTitle", "Tạo thông báo", "Gửi thông báo");
+                resetFormState("notificationForm", "notificationFormTitle", T("dash.form.notif_create", "Create notification"), T("dash.form.notif_send", "Send notification"));
                 form.elements["Audience"].disabled = false;
             } else {
                 await sendJson("/api/notifications", "POST", payload);
@@ -1276,7 +1296,15 @@ function bindDeletes() {
             var isGraduated = statusName.indexOf("tốt nghiệp") !== -1;
 
             if (student && !isGraduated) {
-                if (!window.confirm("CẢNH BÁO: Học viên này CHƯA TỐT NGHIỆP!\nBạn có chắc chắn muốn xóa toàn bộ dữ liệu của học viên này không?")) return;
+                const ok = await window.AppModal.confirm({
+                    kicker: "Warning",
+                    title: "Student is not graduated",
+                    desc: "Deleting will remove related data. Continue?",
+                    message: "CẢNH BÁO: Học viên này CHƯA TỐT NGHIỆP!\nBạn có chắc chắn muốn xóa toàn bộ dữ liệu của học viên này không?",
+                    okText: "Delete",
+                    cancelText: "Cancel",
+                });
+                if (!ok) return;
                 skipConfirm = true; // Đã confirm cảnh báo riêng nên bỏ qua confirm chung
             }
             config = ["/api/students/", studentId, "sinh viên"];
@@ -1291,12 +1319,30 @@ function bindDeletes() {
         else if (enrollmentButton) config = ["/api/enrollments/", enrollmentButton.dataset.deleteEnrollment, "ghi danh"];
 
         if (!skipConfirm) {
-            if (!window.confirm("Xóa " + config[2] + " này?")) return;
+            const ok = await window.AppModal.confirm({
+                kicker: "Delete",
+                title: "Confirm deletion",
+                desc: "Review the action below before continuing.",
+                details: [
+                    { label: "Type", value: String(config[2] || "item") },
+                    { label: "ID", value: String(config[1]) },
+                    { label: "Action", value: "Delete permanently" },
+                ],
+                okText: "Delete",
+                cancelText: "Cancel",
+            });
+            if (!ok) return;
         }
 
         try {
             await fetch(config[0] + config[1], { method: "DELETE" }).then(parseResponse);
-            setMessage(globalMessage, "Đã xóa " + config[2] + ".", "success");
+            await window.AppModal.alert({
+                kicker: "Success",
+                title: "Deleted",
+                desc: "The item was deleted successfully.",
+                message: "Đã xóa " + config[2] + ".",
+                okText: "OK",
+            });
             await loadAll(true);
         } catch (error) {
             setMessage(globalMessage, error.message, "error");
@@ -1327,7 +1373,7 @@ function bindEdits() {
                 form.elements["Gender"].value = student.Gender || "";
                 form.elements["Address"].value = student.Address || "";
 
-                setFormEditMode("studentForm", "studentFormTitle", "Sửa sinh viên", "Cập nhật sinh viên");
+                setFormEditMode("studentForm", "studentFormTitle", T("dash.form.student_edit", "Edit student"), T("dash.form.student_update", "Update student"));
                 document.getElementById("studentFormTitle").scrollIntoView({ behavior: "smooth", block: "start" });
             }
         }
@@ -1344,7 +1390,7 @@ function bindEdits() {
                 form.elements["Email"].value = teacher.Email || "";
                 form.elements["PhoneNumber"].value = teacher.PhoneNumber || "";
                 form.elements["Specialization"].value = teacher.Specialization || "";
-                setFormEditMode("teacherForm", "teacherFormTitle", "Sửa giảng viên", "Cập nhật giảng viên");
+                setFormEditMode("teacherForm", "teacherFormTitle", T("dash.form.teacher_edit", "Edit teacher"), T("dash.form.teacher_update", "Update teacher"));
                 document.getElementById("teacherFormTitle").scrollIntoView({ behavior: "smooth", block: "start" });
             }
         }
@@ -1362,7 +1408,7 @@ function bindEdits() {
                 form.elements["Credits"].value = course.Credits || 0;
                 form.elements["Description"].value = course.Description || "";
 
-                setFormEditMode("courseForm", "courseFormTitle", "Sửa khóa học", "Cập nhật khóa học");
+                setFormEditMode("courseForm", "courseFormTitle", T("dash.form.course_edit", "Edit course"), T("dash.form.course_update", "Update course"));
                 document.getElementById("courseFormTitle").scrollIntoView({ behavior: "smooth", block: "start" });
             }
         }
@@ -1379,7 +1425,7 @@ function bindEdits() {
                 form.elements["TeacherId"].value = cls.TeacherId || "";
                 form.elements["MaxStudents"].value = cls.MaxStudents || 30;
 
-                setFormEditMode("classForm", "classFormTitle", "Sửa lớp", "Cập nhật lớp");
+                setFormEditMode("classForm", "classFormTitle", T("dash.form.class_edit", "Edit class"), T("dash.form.class_update", "Update class"));
                 document.getElementById("classFormTitle").scrollIntoView({ behavior: "smooth", block: "start" });
             }
         }
@@ -1424,7 +1470,7 @@ function bindEdits() {
                 form.elements["RoomName"].value = room.RoomName || "";
                 form.elements["Capacity"].value = room.Capacity || 30;
 
-                setFormEditMode("roomForm", "roomFormTitle", "Sửa phòng học", "Cập nhật phòng");
+                setFormEditMode("roomForm", "roomFormTitle", T("dash.form.room_edit", "Edit room"), T("dash.form.room_update", "Update room"));
                 document.getElementById("roomFormTitle").scrollIntoView({ behavior: "smooth", block: "start" });
             }
         }
@@ -1441,7 +1487,7 @@ function bindEdits() {
                 form.elements["ScoreValue"].value = score.ScoreValue !== null ? score.ScoreValue : "";
                 form.elements["EnrollmentId"].disabled = true;
 
-                setFormEditMode("scoreForm", "scoreFormTitle", "Sửa điểm", "Cập nhật điểm");
+                setFormEditMode("scoreForm", "scoreFormTitle", T("dash.form.score_edit", "Edit grade"), T("dash.form.score_update", "Update grade"));
                 document.getElementById("scoreFormTitle").scrollIntoView({ behavior: "smooth", block: "start" });
             }
         }
@@ -1457,7 +1503,7 @@ function bindEdits() {
                 form.elements["Content"].value = notification.Content || "";
                 form.elements["Audience"].disabled = true; // Disable audience select for editing
 
-                setFormEditMode("notificationForm", "notificationFormTitle", "Sửa thông báo", "Cập nhật thông báo");
+                setFormEditMode("notificationForm", "notificationFormTitle", T("dash.form.notif_edit", "Edit notification"), T("dash.form.notif_update", "Update notification"));
                 document.getElementById("notificationFormTitle").scrollIntoView({ behavior: "smooth", block: "start" });
             }
         }
@@ -1475,7 +1521,7 @@ function bindEdits() {
                 form.elements["StartTime"].value = schedule.StartTime || "";
                 form.elements["EndTime"].value = schedule.EndTime || "";
 
-                setFormEditMode("class_scheduleForm", "class_scheduleFormTitle", "Sửa lịch học", "Cập nhật lịch");
+                setFormEditMode("class_scheduleForm", "class_scheduleFormTitle", T("dash.form.sched_edit", "Edit schedule"), T("dash.form.sched_update", "Update schedule"));
                 document.getElementById("class_scheduleFormTitle").scrollIntoView({ behavior: "smooth", block: "start" });
             }
         }
@@ -1485,34 +1531,34 @@ function bindEdits() {
         btn.addEventListener("click", function (event) {
             var formId = event.target.closest("form").id;
             var form = event.target.closest("form");
-            if (formId === "studentForm") resetFormState("studentForm", "studentFormTitle", "Thêm sinh viên", "Lưu sinh viên");
-            if (formId === "teacherForm") resetFormState("teacherForm", "teacherFormTitle", "Thêm giảng viên", "Lưu giảng viên");
-            if (formId === "courseForm") resetFormState("courseForm", "courseFormTitle", "Thêm khóa học", "Lưu khóa học");
-            if (formId === "classForm") resetFormState("classForm", "classFormTitle", "Tạo lớp", "Lưu lớp");
-            if (formId === "roomForm") resetFormState("roomForm", "roomFormTitle", "Thêm phòng học", "Lưu phòng");
+            if (formId === "studentForm") resetFormState("studentForm", "studentFormTitle", T("dash.form.student_add", "Add student"), T("dash.form.student_save", "Save student"));
+            if (formId === "teacherForm") resetFormState("teacherForm", "teacherFormTitle", T("dash.form.teacher_add", "Add teacher"), T("dash.form.teacher_save", "Save teacher"));
+            if (formId === "courseForm") resetFormState("courseForm", "courseFormTitle", T("dash.form.course_add", "Add course"), T("dash.form.course_save", "Save course"));
+            if (formId === "classForm") resetFormState("classForm", "classFormTitle", T("dash.form.class_create", "Create class"), T("dash.form.class_save", "Save class"));
+            if (formId === "roomForm") resetFormState("roomForm", "roomFormTitle", T("dash.form.room_add", "Add room"), T("dash.form.room_save", "Save room"));
             if (formId === "scoreForm") {
-                resetFormState("scoreForm", "scoreFormTitle", "Thêm điểm", "Lưu điểm");
+                resetFormState("scoreForm", "scoreFormTitle", T("dash.form.score_add", "Add grade"), T("dash.form.score_save", "Save grade"));
                 if (form.elements["EnrollmentId"]) form.elements["EnrollmentId"].disabled = false;
             }
             if (formId === "notificationForm") {
-                resetFormState("notificationForm", "notificationFormTitle", "Tạo thông báo", "Gửi thông báo");
+                resetFormState("notificationForm", "notificationFormTitle", T("dash.form.notif_create", "Create notification"), T("dash.form.notif_send", "Send notification"));
                 if (form.elements["Audience"]) form.elements["Audience"].disabled = false;
             }
             if (formId === "class_scheduleForm") {
-                resetFormState("class_scheduleForm", "class_scheduleFormTitle", "Thêm lịch học", "Lưu lịch");
+                resetFormState("class_scheduleForm", "class_scheduleFormTitle", T("dash.form.sched_add", "Add schedule"), T("dash.form.sched_save", "Save schedule"));
             }
             if (formId === "adminAccountForm") {
-                resetFormState("adminAccountForm", "adminAccountFormTitle", "Add Admin Account", "Save Admin");
+                resetFormState("adminAccountForm", "adminAccountFormTitle", T("dash.form.acc_admin_add", "Add Admin Account"), T("dash.form.acc_admin_save", "Save Admin"));
                 document.getElementById("adminPwdLabel").style.display = "block";
                 form.elements["Password"].required = true;
             }
             if (formId === "teacherAccountForm") {
-                resetFormState("teacherAccountForm", "teacherAccountFormTitle", "Add Teacher Account", "Save Teacher");
+                resetFormState("teacherAccountForm", "teacherAccountFormTitle", T("dash.form.acc_teacher_add", "Add Teacher Account"), T("dash.form.acc_teacher_save", "Save Teacher"));
                 document.getElementById("teacherPwdLabel").style.display = "block";
                 form.elements["Password"].required = true;
             }
             if (formId === "studentAccountForm") {
-                resetFormState("studentAccountForm", "studentAccountFormTitle", "Add Student Account", "Save Student");
+                resetFormState("studentAccountForm", "studentAccountFormTitle", T("dash.form.acc_student_add", "Add Student Account"), T("dash.form.acc_student_save", "Save Student"));
                 document.getElementById("studentPwdLabel").style.display = "block";
                 form.elements["Password"].required = true;
             }
@@ -2162,7 +2208,18 @@ document.addEventListener("DOMContentLoaded", function () {
             var uid = toggleBtn.dataset.userToggle;
             var newStatus = toggleBtn.dataset.userStatus;
             var label = newStatus === "Inactive" ? "khóa" : "mở khóa";
-            if (!window.confirm("Xác nhận " + label + " tài khoản này?")) return;
+            const ok = await window.AppModal.confirm({
+                kicker: "Account status",
+                title: "Confirm change",
+                desc: "Review the action below before continuing.",
+                details: [
+                    { label: "Action", value: label },
+                    { label: "User ID", value: String(uid) },
+                ],
+                okText: "Confirm",
+                cancelText: "Cancel",
+            });
+            if (!ok) return;
             try {
                 await sendJson("/api/users/" + uid + "/status", "PUT", { Status: newStatus });
                 setMessage(document.getElementById("userMessage"), "Đã " + label + " tài khoản.", "success");
@@ -2182,7 +2239,18 @@ document.addEventListener("DOMContentLoaded", function () {
             var row = generateBtn.closest("tr");
             var fullName = row.cells[1].textContent;
 
-            if (!window.confirm("Bạn có chắc muốn tự động tạo tài khoản cho sinh viên này?")) return;
+            const ok = await window.AppModal.confirm({
+                kicker: "Auto-generate",
+                title: "Generate student account",
+                desc: "This will create a new login for the selected student.",
+                details: [
+                    { label: "Student", value: String(fullName || "—") },
+                    { label: "Student ID", value: String(studentId) },
+                ],
+                okText: "Generate",
+                cancelText: "Cancel",
+            });
+            if (!ok) return;
 
             try {
                 var result = await sendJson("/api/users/generate/student/" + studentId, "POST");
@@ -2193,7 +2261,13 @@ document.addEventListener("DOMContentLoaded", function () {
                     showCredentialModal(fullName, result.data.username, result.data.password);
                 }
             } catch (error) {
-                alert("Lỗi khi cấp tài khoản: " + error.message);
+                await window.AppModal.alert({
+                    kicker: "Error",
+                    title: "Could not generate account",
+                    desc: "Please review the message below.",
+                    message: "Lỗi khi cấp tài khoản: " + error.message,
+                    okText: "OK",
+                });
             }
         }
     });
@@ -2206,7 +2280,18 @@ document.addEventListener("DOMContentLoaded", function () {
             var row = generateBtn.closest("tr");
             var fullName = row.cells[1].textContent;
 
-            if (!window.confirm("Bạn có chắc muốn tự động tạo tài khoản cho giảng viên này?")) return;
+            const ok = await window.AppModal.confirm({
+                kicker: "Auto-generate",
+                title: "Generate teacher account",
+                desc: "This will create a new login for the selected teacher.",
+                details: [
+                    { label: "Teacher", value: String(fullName || "—") },
+                    { label: "Teacher ID", value: String(teacherId) },
+                ],
+                okText: "Generate",
+                cancelText: "Cancel",
+            });
+            if (!ok) return;
 
             try {
                 var result = await sendJson("/api/users/generate/teacher/" + teacherId, "POST");
@@ -2217,7 +2302,13 @@ document.addEventListener("DOMContentLoaded", function () {
                     showCredentialModal(fullName, result.data.username, result.data.password);
                 }
             } catch (error) {
-                alert("Lỗi khi cấp tài khoản: " + error.message);
+                await window.AppModal.alert({
+                    kicker: "Error",
+                    title: "Could not generate account",
+                    desc: "Please review the message below.",
+                    message: "Lỗi khi cấp tài khoản: " + error.message,
+                    okText: "OK",
+                });
             }
         }
     });
@@ -2264,6 +2355,14 @@ document.addEventListener("DOMContentLoaded", function () {
     }
 
     bindBulkActions();
+
+    window.addEventListener("classes369:langchange", function () {
+        try {
+            if (typeof renderAll === "function") renderAll();
+            if (window.i18n && typeof window.i18n.apply === "function") window.i18n.apply(document);
+        } catch (err) { /* ignore */ }
+    });
+
     loadAll();
 });
 
@@ -2307,7 +2406,13 @@ async function openClassListModal(classId, className, timeRange, roomName) {
 
 function exportScheduleToExcel() {
     if (!state.class_schedules || state.class_schedules.length === 0) {
-        alert("Không có lịch học để xuất!");
+        window.AppModal.alert({
+            kicker: "Export",
+            title: "No data",
+            desc: "There is no schedule data to export.",
+            message: "Không có lịch học để xuất!",
+            okText: "OK",
+        });
         return;
     }
 
@@ -2580,7 +2685,7 @@ function renderCharts() {
             data: {
                 labels: labels,
                 datasets: [{
-                    label: 'Enrollment count',
+                    label: T("dash.chart.enroll_label", "Enrollment count"),
                     data: counts,
                     backgroundColor: 'rgba(99, 102, 241, 0.6)',
                     borderColor: 'rgb(99, 102, 241)',
@@ -2610,7 +2715,7 @@ function renderCharts() {
         dashboardCharts.tuition = new Chart(ctxTuition, {
             type: 'doughnut',
             data: {
-                labels: ['Paid', 'Debt'],
+                labels: [T("dash.chart.paid", "Paid"), T("dash.chart.debt", "Debt")],
                 datasets: [{
                     data: [s.TotalRevenue || 0, s.OutstandingTuition || 0],
                     backgroundColor: ['#22c55e', '#ef4444'],

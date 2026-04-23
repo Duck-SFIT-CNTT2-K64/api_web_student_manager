@@ -1,16 +1,5 @@
 {#
 Admin sidebar nav — 5 collapsible groups.
-
-Each group = `.nav-group` (with `data-group` used as a localStorage key).
-Inside:
-- `.nav-group-header` is the toggle button.
-- `.nav-group-items` contains the child `.nav-item` links.
-- `open` class on `.nav-group` means expanded.
-
-`active` context (string):
-home | statistics | students | teachers | courses | classes | rooms |
-users | enrollments | schedules | scores | tuitions | notifications
-The group that contains the active item is auto-expanded.
 #}
 {% set active = active|default('') %}
 {%- set dashboard_items = ['home', 'statistics'] -%}
@@ -23,16 +12,16 @@ The group that contains the active item is auto-expanded.
     <button type="button" class="nav-group-header">
         <span class="nav-group-title">
             <span class="nav-group-emoji">📊</span>
-            <span>Dashboard</span>
+            <span data-i18n="nav.group_dashboard">Dashboard</span>
         </span>
         <i class="fas fa-chevron-down nav-group-chevron"></i>
     </button>
     <div class="nav-group-items">
         <a href="/admin/home" class="nav-item {{ 'active' if active == 'home' else '' }}">
-            <i class="fas fa-house"></i><span>Overview</span>
+            <i class="fas fa-house"></i><span data-i18n="nav.overview">Overview</span>
         </a>
         <a href="/dashboard#statistics" class="nav-item {{ 'active' if active == 'statistics' else '' }}">
-            <i class="fas fa-chart-line"></i><span>Statistics</span>
+            <i class="fas fa-chart-line"></i><span data-i18n="nav.statistics">Statistics</span>
         </a>
     </div>
 </div>
@@ -41,44 +30,44 @@ The group that contains the active item is auto-expanded.
     <button type="button" class="nav-group-header">
         <span class="nav-group-title">
             <span class="nav-group-emoji">🗂️</span>
-            <span>Management</span>
+            <span data-i18n="nav.group_management">Management</span>
         </span>
         <i class="fas fa-chevron-down nav-group-chevron"></i>
     </button>
     <div class="nav-group-items">
         <a href="/dashboard#students" class="nav-item {{ 'active' if active == 'students' else '' }}">
-            <i class="fas fa-user-graduate"></i><span>Students</span>
+            <i class="fas fa-user-graduate"></i><span data-i18n="nav.students">Students</span>
         </a>
         <a href="/dashboard#teachers" class="nav-item {{ 'active' if active == 'teachers' else '' }}">
-            <i class="fas fa-chalkboard-teacher"></i><span>Teachers</span>
+            <i class="fas fa-chalkboard-teacher"></i><span data-i18n="nav.teachers">Teachers</span>
         </a>
         <a href="/dashboard#courses" class="nav-item {{ 'active' if active == 'courses' else '' }}">
-            <i class="fas fa-book"></i><span>Courses</span>
+            <i class="fas fa-book"></i><span data-i18n="nav.courses">Courses</span>
         </a>
         <a href="/dashboard#classes" class="nav-item {{ 'active' if active == 'classes' else '' }}">
-            <i class="fas fa-school"></i><span>Classes</span>
+            <i class="fas fa-school"></i><span data-i18n="nav.classes">Classes</span>
         </a>
         <a href="/dashboard#rooms" class="nav-item {{ 'active' if active == 'rooms' else '' }}">
-            <i class="fas fa-door-open"></i><span>Rooms</span>
+            <i class="fas fa-door-open"></i><span data-i18n="nav.rooms">Rooms</span>
         </a>
         {%- set account_items = ['admin_accounts', 'teacher_accounts', 'student_accounts'] -%}
         <div class="nav-sub-group {{ 'open' if active in account_items else '' }}" data-subgroup="accounts">
             <button type="button" class="nav-sub-header">
                 <span class="nav-sub-title">
                     <i class="fas fa-users-cog"></i>
-                    <span>Accounts</span>
+                    <span data-i18n="nav.accounts">Accounts</span>
                 </span>
                 <i class="fas fa-chevron-right nav-sub-chevron"></i>
             </button>
             <div class="nav-sub-items">
                 <a href="/dashboard#admin_accounts" class="nav-item {{ 'active' if active == 'admin_accounts' else '' }}">
-                    <i class="fas fa-user-shield"></i><span>Admin</span>
+                    <i class="fas fa-user-shield"></i><span data-i18n="nav.admin_accounts">Admin</span>
                 </a>
                 <a href="/dashboard#teacher_accounts" class="nav-item {{ 'active' if active == 'teacher_accounts' else '' }}">
-                    <i class="fas fa-user-tie"></i><span>Teachers</span>
+                    <i class="fas fa-user-tie"></i><span data-i18n="nav.teacher_accounts">Teachers</span>
                 </a>
                 <a href="/dashboard#student_accounts" class="nav-item {{ 'active' if active == 'student_accounts' else '' }}">
-                    <i class="fas fa-user-graduate"></i><span>Students</span>
+                    <i class="fas fa-user-graduate"></i><span data-i18n="nav.student_accounts">Students</span>
                 </a>
             </div>
         </div>
@@ -89,19 +78,19 @@ The group that contains the active item is auto-expanded.
     <button type="button" class="nav-group-header">
         <span class="nav-group-title">
             <span class="nav-group-emoji">🎓</span>
-            <span>Academic</span>
+            <span data-i18n="nav.group_academic">Academic</span>
         </span>
         <i class="fas fa-chevron-down nav-group-chevron"></i>
     </button>
     <div class="nav-group-items">
         <a href="/dashboard#enrollments" class="nav-item {{ 'active' if active == 'enrollments' else '' }}">
-            <i class="fas fa-user-plus"></i><span>Enrollments</span>
+            <i class="fas fa-user-plus"></i><span data-i18n="nav.enrollments">Enrollments</span>
         </a>
         <a href="/dashboard#schedules" class="nav-item {{ 'active' if active == 'schedules' else '' }}">
-            <i class="fas fa-calendar-alt"></i><span>Schedules</span>
+            <i class="fas fa-calendar-alt"></i><span data-i18n="nav.schedules">Schedules</span>
         </a>
         <a href="/dashboard#scores" class="nav-item {{ 'active' if active == 'scores' else '' }}">
-            <i class="fas fa-clipboard-list"></i><span>Grades</span>
+            <i class="fas fa-clipboard-list"></i><span data-i18n="nav.grades">Grades</span>
         </a>
     </div>
 </div>
@@ -110,13 +99,13 @@ The group that contains the active item is auto-expanded.
     <button type="button" class="nav-group-header">
         <span class="nav-group-title">
             <span class="nav-group-emoji">💰</span>
-            <span>Finance</span>
+            <span data-i18n="nav.group_finance">Finance</span>
         </span>
         <i class="fas fa-chevron-down nav-group-chevron"></i>
     </button>
     <div class="nav-group-items">
         <a href="/dashboard#tuitions" class="nav-item {{ 'active' if active == 'tuitions' else '' }}">
-            <i class="fas fa-money-bill-wave"></i><span>Tuition</span>
+            <i class="fas fa-money-bill-wave"></i><span data-i18n="nav.tuition">Tuition</span>
         </a>
     </div>
 </div>
@@ -125,13 +114,13 @@ The group that contains the active item is auto-expanded.
     <button type="button" class="nav-group-header">
         <span class="nav-group-title">
             <span class="nav-group-emoji">📢</span>
-            <span>Information</span>
+            <span data-i18n="nav.group_information">Information</span>
         </span>
         <i class="fas fa-chevron-down nav-group-chevron"></i>
     </button>
     <div class="nav-group-items">
         <a href="/dashboard#notifications" class="nav-item {{ 'active' if active == 'notifications' else '' }}">
-            <i class="fas fa-bell"></i><span>Notifications</span>
+            <i class="fas fa-bell"></i><span data-i18n="common.notifications">Notifications</span>
         </a>
     </div>
 </div>

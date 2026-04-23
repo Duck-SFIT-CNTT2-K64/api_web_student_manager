@@ -1,12 +1,11 @@
 {#
     Management > Teachers
-    CRUD form + teachers list table (dashboard.js → renderTeachers).
 #}
 <section id="teachers" class="section">
     <div class="section-heading">
         <div>
-            <h2>Teachers</h2>
-            <p>Add new instructor accounts and manage profiles.</p>
+            <h2 data-i18n="sec.teachers.title">Teachers</h2>
+            <p data-i18n="sec.teachers.subtitle">Add new instructor accounts and manage profiles.</p>
         </div>
     </div>
     <div class="grid form-and-table">
@@ -14,44 +13,43 @@
             <h3 id="teacherFormTitle">Add instructor</h3>
             <form id="teacherForm" class="form-grid">
                 <input type="hidden" name="EditId" value="">
-                <label>Last name * <input name="LastName" required maxlength="50" placeholder="e.g. Smith"></label>
-                <label>First name * <input name="FirstName" required maxlength="50" placeholder="e.g. John"></label>
-                <label>Email * <input name="Email" type="email" required maxlength="100"></label>
-                <label>Phone number <input name="PhoneNumber" pattern="[0-9]{10,15}" maxlength="20"
+                <label><span data-i18n="sec.teachers.lbl_last">Last name *</span> <input name="LastName" required maxlength="50" placeholder="e.g. Smith"></label>
+                <label><span data-i18n="sec.teachers.lbl_first">First name *</span> <input name="FirstName" required maxlength="50" placeholder="e.g. John"></label>
+                <label><span data-i18n="sec.teachers.lbl_email">Email *</span> <input name="Email" type="email" required maxlength="100"></label>
+                <label><span data-i18n="sec.teachers.lbl_phone">Phone number</span> <input name="PhoneNumber" pattern="[0-9]{10,15}" maxlength="20"
                         title="Digits only"></label>
-                <label>Specialization <input name="Specialization" maxlength="100"
+                <label><span data-i18n="sec.teachers.lbl_spec">Specialization</span> <input name="Specialization" maxlength="100"
                         placeholder="e.g. Web Programming"></label>
                 <div style="display:flex;gap:8px">
-                    <button class="btn btn-primary submit-btn" type="submit"><i class="fas fa-save"></i> <span>Save
-                            instructor</span></button>
+                    <button class="btn btn-primary submit-btn" type="submit"><i class="fas fa-save"></i> <span data-i18n="sec.teachers.save_btn">Save instructor</span></button>
                     <button class="btn btn-outline cancel-btn" type="button" style="display:none"><i
-                            class="fas fa-times"></i> Cancel</button>
+                            class="fas fa-times"></i> <span data-i18n="common.cancel">Cancel</span></button>
                 </div>
             </form>
             <p id="teacherMessage" class="message"></p>
         </div>
         <div class="panel table-panel">
             <div class="table-header">
-                <h3>Teachers list</h3>
+                <h3 data-i18n="sec.teachers.list">Teachers list</h3>
                 <div style="display:flex;gap:8px">
                     <button id="btnBulkDeleteTeachers" class="btn btn-outline" style="color:var(--danger);display:none">
-                        <i class="fas fa-trash-alt"></i> Delete Selected
+                        <i class="fas fa-trash-alt"></i> <span data-i18n="sec.teachers.bulk_delete">Delete Selected</span>
                     </button>
-                    <input id="teacherSearch" class="search-input" placeholder="Search ID, name, email...">
+                    <input id="teacherSearch" class="search-input" data-i18n-attr="placeholder" data-i18n="sec.teachers.search_ph" placeholder="Search ID, name, email...">
                 </div>
             </div>
             <div class="table-wrap">
                 <table>
                     <thead>
                         <tr>
-                            <th style="width:50px">STT</th>
+                            <th style="width:50px" data-i18n="common.stt">STT</th>
                             <th style="width:40px"><input type="checkbox" id="selectAllTeachers"></th>
-                            <th>Teacher ID</th>
-                            <th>Full name</th>
-                            <th>Email</th>
-                            <th>Specialization</th>
-                            <th>Classes / Students</th>
-                            <th>Account</th>
+                            <th data-i18n="sec.teachers.th_tid">Teacher ID</th>
+                            <th data-i18n="sec.teachers.th_name">Full name</th>
+                            <th data-i18n="sec.teachers.th_email">Email</th>
+                            <th data-i18n="sec.teachers.th_spec">Specialization</th>
+                            <th data-i18n="sec.teachers.th_load">Classes / Students</th>
+                            <th data-i18n="sec.teachers.th_account">Account</th>
                             <th style="width:60px"></th>
                         </tr>
                     </thead>

@@ -375,7 +375,8 @@ def delete_student_by_id(student_id: int) -> bool:
             
             # Xóa nhật ký (ActionLogs) và thông báo liên quan (để tránh lỗi FK khi xóa User)
             cursor.execute("DELETE FROM ActionLogs WHERE UserId = ?", (user_id,))
-            cursor.execute("DELETE FROM NotificationRecipients WHERE UserId = ?", (user_id,))
+            # NotificationRecipients uses RecipientId (not UserId)
+            cursor.execute("DELETE FROM NotificationRecipients WHERE RecipientId = ?", (user_id,))
             
             
 

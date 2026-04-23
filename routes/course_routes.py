@@ -77,6 +77,8 @@ def remove_course(course_id: int):
         if not deleted:
             return jsonify({"success": False, "error": "Course not found."}), 404
         return jsonify({"success": True, "message": "Course deleted."}), 200
+    except ValueError as exc:
+        return jsonify({"success": False, "error": str(exc)}), 400
     except pyodbc.IntegrityError as exc:
         return jsonify({"success": False, "error": "Cannot delete course with related classes.", "details": str(exc)}), 400
     except pyodbc.Error as exc:

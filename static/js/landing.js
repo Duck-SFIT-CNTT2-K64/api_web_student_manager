@@ -254,6 +254,12 @@
                 return;
             }
 
+            var fallbackSrc = img.dataset.fallback;
+            if (fallbackSrc && img.getAttribute("src") !== fallbackSrc) {
+                img.setAttribute("src", fallbackSrc);
+                return;
+            }
+
             var initial = img.dataset.initial || holder.dataset.initial || "T";
             img.remove();
 

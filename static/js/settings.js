@@ -1,4 +1,21 @@
 (function () {
+    function T(key, fallback) {
+        try {
+            if (window.i18n && typeof window.i18n.t === "function") {
+                var s = window.i18n.t(key);
+                if (s && s !== key) return s;
+            }
+        } catch (e) {}
+        return fallback != null ? fallback : key;
+    }
+
+    function syncLanguageSelect() {
+        var sel = document.getElementById("settingsLanguageSelect");
+        if (!sel || !window.i18n || typeof window.i18n.getLang !== "function") return;
+        var lang = window.i18n.getLang();
+        sel.value = lang === "vi" ? "vi" : "en";
+    }
+
     var navButtons = Array.from(document.querySelectorAll("#settingsNav [data-tab]"));
     var panels = Array.from(document.querySelectorAll(".settings-panel"));
     var feedback = document.getElementById("settingsFeedback");
@@ -78,13 +95,13 @@
                 .then(function (res) { return res.json().then(function (json) { return { res: res, json: json }; }); })
                 .then(function (result) {
                     if (result.res.ok && result.json && result.json.success) {
-                        renderFeedback("success", result.json.message || "Đã lưu thay đổi.");
+                        renderFeedback("success", result.json.message || T("set.msg_profile_saved", "Changes saved."));
                     } else {
-                        renderFeedback("error", (result.json && result.json.error) || "Không thể lưu thay đổi.");
+                        renderFeedback("error", (result.json && result.json.error) || T("set.msg_profile_error", "Could not save changes."));
                     }
                 })
                 .catch(function () {
-                    renderFeedback("error", "Không thể kết nối máy chủ. Vui lòng thử lại.");
+                    renderFeedback("error", T("set.msg_network", "Cannot reach the server. Please try again."));
                 });
         });
     }
@@ -95,7 +112,7 @@
             var payload = formToJson(passwordForm);
 
             if (payload.NewPassword && payload.NewPassword !== payload.ConfirmPassword) {
-                renderFeedback("error", "Mật khẩu xác nhận không khớp.");
+                renderFeedback("error", T("set.msg_pw_mismatch", "Password confirmation does not match."));
                 return;
             }
 
@@ -107,14 +124,14 @@
                 .then(function (res) { return res.json().then(function (json) { return { res: res, json: json }; }); })
                 .then(function (result) {
                     if (result.res.ok && result.json && result.json.success) {
-                        renderFeedback("success", result.json.message || "Đã đổi mật khẩu.");
+                        renderFeedback("success", result.json.message || T("set.msg_pw_saved", "Password updated."));
                         passwordForm.reset();
                     } else {
-                        renderFeedback("error", (result.json && result.json.error) || "Không thể đổi mật khẩu.");
+                        renderFeedback("error", (result.json && result.json.error) || T("set.msg_pw_error", "Could not change password."));
                     }
                 })
                 .catch(function () {
-                    renderFeedback("error", "Không thể kết nối máy chủ. Vui lòng thử lại.");
+                    renderFeedback("error", T("set.msg_network", "Cannot reach the server. Please try again."));
                 });
         });
     }
@@ -144,19 +161,39 @@
 
     if (preferencesForm) {
         loadPreferences();
+        syncLanguageSelect();
         preferencesForm.addEventListener("submit", function (event) {
             event.preventDefault();
             var payload = formToJson(preferencesForm);
             try {
                 localStorage.setItem(PREF_KEY, JSON.stringify(payload));
-                renderFeedback("success", "Đã lưu tuỳ chọn trên thiết bị này.");
+                if (window.i18n && typeof window.i18n.setLang === "function" && payload.language) {
+                    window.i18n.setLang(payload.language === "vi" ? "vi" : "en");
+                }
+                renderFeedback("success", T("set.msg_pref_saved", "Preferences saved on this device."));
             } catch (err) {
-                renderFeedback("error", "Không thể lưu vào thiết bị này.");
+                renderFeedback("error", T("set.msg_pref_storage_error", "Could not save to this device."));
             }
         });
+
+        var langSel = document.getElementById("settingsLanguageSelect");
+        if (langSel) {
+            langSel.addEventListener("change", function () {
+                if (window.i18n && typeof window.i18n.setLang === "function") {
+                    window.i18n.setLang(langSel.value === "vi" ? "vi" : "en");
+                }
+            });
+        }
     }
 
+    document.addEventListener("classes369:langchange", function () {
+        syncLanguageSelect();
+        if (window.i18n && typeof window.i18n.apply === "function") {
+            window.i18n.apply(document);
+        }
+    });
+
     if (sessionAgent) {
-        sessionAgent.textContent = navigator.userAgent || "Không xác định";
+        sessionAgent.textContent = navigator.userAgent || T("set.msg_ua_unknown", "Unknown");
     }
 })();

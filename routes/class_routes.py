@@ -108,7 +108,7 @@ def remove_class(class_id: int):
     try:
         user = current_session_user()
         role = user.get("RoleName", "Guest")
-        
+
         deleted = delete_class_by_id(class_id, user_role=role)
         if not deleted:
             return jsonify({"success": False, "error": "Class not found."}), 404

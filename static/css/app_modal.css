@@ -1,0 +1,169 @@
+.app-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+}
+
+.app-modal[hidden] {
+  display: none !important;
+}
+
+.app-modal-backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(2, 8, 20, 0.66);
+  backdrop-filter: blur(8px);
+}
+
+.app-modal-dialog {
+  position: relative;
+  width: min(640px, calc(100vw - 28px));
+  max-height: calc(100vh - 28px);
+  margin: 14px auto;
+  border-radius: 18px;
+  overflow: hidden;
+  border: 1px solid rgba(148, 163, 184, 0.18);
+  background: var(--surface, #0f172a);
+  box-shadow: 0 28px 56px rgba(0, 0, 0, 0.55);
+}
+
+.app-modal-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 16px 16px 14px;
+  background: linear-gradient(120deg, #1e3a7a, #132855);
+  border-bottom: 1px solid rgba(148, 163, 184, 0.18);
+}
+
+.app-modal-head .app-modal-kicker {
+  margin: 0 0 4px;
+  font-size: 0.78rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.78);
+}
+
+.app-modal-head .app-modal-title {
+  margin: 0;
+  font-size: 1.2rem;
+  line-height: 1.25;
+  color: #fff;
+}
+
+.app-modal-head .app-modal-sub {
+  margin: 8px 0 0;
+  color: rgba(255, 255, 255, 0.86);
+  font-size: 0.94rem;
+}
+
+.app-modal-close {
+  border: 0;
+  background: rgba(255, 255, 255, 0.12);
+  color: #fff;
+  width: 38px;
+  height: 38px;
+  border-radius: 12px;
+  cursor: pointer;
+  display: grid;
+  place-items: center;
+  flex: 0 0 auto;
+}
+.app-modal-close:hover {
+  background: rgba(255, 255, 255, 0.18);
+}
+
+.app-modal-body {
+  padding: 16px;
+  color: var(--dk-text-2, rgba(226, 232, 240, 0.92));
+}
+
+.app-modal-msg {
+  margin: 0;
+  white-space: pre-wrap;
+}
+
+.app-modal-confirm-card {
+  border-radius: 16px;
+  border: 1px solid rgba(148, 163, 184, 0.18);
+  background: linear-gradient(180deg, rgba(15, 23, 42, 0.95) 0%, rgba(15, 24, 41, 0.92) 100%);
+  box-shadow: 0 18px 40px rgba(0, 0, 0, 0.38);
+  overflow: hidden;
+}
+
+.app-modal-confirm-grid {
+  display: grid;
+  gap: 10px;
+  padding: 12px;
+}
+
+.app-modal-confirm-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  border: 1px solid rgba(148, 163, 184, 0.16);
+  background: rgba(30, 41, 59, 0.6);
+}
+
+.app-modal-confirm-row span {
+  color: var(--dk-text-3, rgba(148, 163, 184, 0.92));
+  font-size: 0.92rem;
+}
+
+.app-modal-confirm-row strong {
+  color: var(--dk-text, rgba(241, 245, 249, 0.96));
+  font-size: 0.98rem;
+  text-align: right;
+}
+
+.app-modal-foot {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  padding: 14px 16px 16px;
+  border-top: 1px solid rgba(148, 163, 184, 0.18);
+  background: var(--surface, #0b1222);
+}
+
+/* Buttons: align with existing .btn styles if present; provide fallback */
+.app-modal-foot .btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 10px 14px;
+  border-radius: 12px;
+  border: 1px solid rgba(148, 163, 184, 0.22);
+  background: rgba(148, 163, 184, 0.06);
+  color: var(--dk-text, rgba(241, 245, 249, 0.96));
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.app-modal-foot .btn:hover {
+  background: rgba(148, 163, 184, 0.1);
+}
+
+.app-modal-foot .btn-primary {
+  border-color: rgba(255, 157, 29, 0.35);
+  background: linear-gradient(120deg, #ff9d1d, #ff7a00);
+  color: #fff;
+}
+.app-modal-foot .btn-primary:hover {
+  filter: brightness(1.02);
+}
+
+.app-modal-foot .btn-outline {
+  background: transparent;
+}
+
+@media (max-width: 520px) {
+  .app-modal-head { padding: 14px 14px 12px; }
+  .app-modal-body { padding: 14px; }
+  .app-modal-foot { padding: 12px 14px 14px; }
+}
+

@@ -15,7 +15,7 @@
 {% extends 'layouts/base.html' %}
 
 {% block title %}Admin dashboard | CLASSES369{% endblock %}
-{% block sidebar_subtitle %}Administrator{% endblock %}
+{% block sidebar_subtitle %}<span data-i18n="nav.sidebar_subtitle_admin">Administrator</span>{% endblock %}
 
 {% block sidebar_nav %}
     {% with active = active|default('statistics') %}
@@ -24,13 +24,13 @@
 {% endblock %}
 
 {% block topbar_title %}
-<h1>Admin dashboard</h1>
-<p>Manage the entire system</p>
+<h1 data-i18n="topbar.admin_title">Admin dashboard</h1>
+<p data-i18n="topbar.admin_sub">Manage the entire system</p>
 {% endblock %}
 
 {% block topbar_actions %}
 <button id="refreshAll" class="btn btn-primary" style="font-size:.85rem">
-    <i class="fas fa-rotate"></i> Refresh
+    <i class="fas fa-rotate"></i> <span data-i18n="common.refresh">Refresh</span>
 </button>
 {% endblock %}
 

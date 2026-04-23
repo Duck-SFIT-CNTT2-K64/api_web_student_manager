@@ -213,7 +213,7 @@ def update_teacher(teacher_id: int, payload: Dict[str, Any]) -> Optional[Dict[st
     return get_teacher_by_id(teacher_id)
 
 
-def delete_teacher(teacher_id: int) -> bool:
+def delete_teacher(teacher_id: int, acting_user_id: Optional[int] = None) -> bool:
     existing = get_teacher_by_id(teacher_id)
     if not existing:
         return False
@@ -222,11 +222,42 @@ def delete_teacher(teacher_id: int) -> bool:
         cursor = connection.cursor()
         # 1. Gỡ giảng viên khỏi các lớp đang dạy (nếu có)
         cursor.execute("UPDATE Classes SET TeacherId = NULL WHERE TeacherId = ?", (teacher_id,))
-        
-        # 2. Xóa teacher
+
+        # 2. Cleanup user-linked data to avoid FK failures when deleting Users
+        if user_id:
+            uid = int(user_id)
+
+            # Exams.UserId -> Users(UserId)
+            cursor.execute(
+                "DELETE FROM ExamSubmissions WHERE ExamId IN (SELECT ExamId FROM Exams WHERE UserId = ?)",
+                (uid,),
+            )
+            cursor.execute("DELETE FROM Exams WHERE UserId = ?", (uid,))
+
+            # Notifications.CreatorId -> Users(UserId)
+            cursor.execute(
+                "DELETE FROM NotificationRecipients WHERE NotificationId IN (SELECT NotificationId FROM Notifications WHERE CreatorId = ?)",
+                (uid,),
+            )
+            cursor.execute("DELETE FROM Notifications WHERE CreatorId = ?", (uid,))
+
+            # Recipient notifications
+            cursor.execute("DELETE FROM NotificationRecipients WHERE RecipientId = ?", (uid,))
+
+            # ActionLogs.UserId -> Users(UserId)
+            cursor.execute("DELETE FROM ActionLogs WHERE UserId = ?", (uid,))
+
+            # Receipts.CashierId is NOT NULL: re-assign to acting user if possible
+            cursor.execute("SELECT TOP 1 ReceiptId FROM Receipts WHERE CashierId = ?", (uid,))
+            if cursor.fetchone():
+                if acting_user_id is None:
+                    raise ValueError("Không thể xóa tài khoản giảng viên vì có biên lai thanh toán (Receipts) đang tham chiếu. Hãy xóa/chuyển biên lai trước.")
+                cursor.execute("UPDATE Receipts SET CashierId = ? WHERE CashierId = ?", (int(acting_user_id), uid))
+
+        # 3. Xóa teacher
         cursor.execute("DELETE FROM Teachers WHERE TeacherId = ?", (teacher_id,))
-        
-        # 3. Xóa user nếu có
+
+        # 4. Xóa user nếu có
         if user_id:
             cursor.execute("DELETE FROM Users WHERE UserId = ?", (user_id,))
             

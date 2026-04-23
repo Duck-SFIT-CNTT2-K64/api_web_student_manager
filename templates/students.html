@@ -8,6 +8,8 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,700&family=Space+Grotesk:wght@400;500;700&display=swap" rel="stylesheet" />
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}" />
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/app_modal.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/app.css') }}">
 </head>
 <body>
     <div class="ambient-bg" aria-hidden="true"></div>
@@ -15,6 +17,11 @@
     <header class="page-header">
         <h1>Student Management System</h1>
         <p>Manage students quickly with a clean REST-based workflow.</p>
+        <div style="margin-top:12px; display:flex; gap:10px; justify-content:center;">
+            <button type="button" class="lang-toggle" data-lang-toggle title="Switch language" aria-label="Switch language" aria-pressed="false">
+                <span data-lang-label>EN</span>
+            </button>
+        </div>
         <nav>
             <a href="/students-page" class="active">Students</a>
             <a href="/classes-page">Classes</a>
@@ -68,6 +75,8 @@
         </section>
     </main>
 
+    <script src="{{ url_for('static', filename='js/i18n.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/app_modal.js') }}"></script>
     <script src="{{ url_for('static', filename='js/students.js') }}"></script>
 </body>
 </html>

@@ -1,12 +1,11 @@
 {#
     Management > Students
-    CRUD form + students list table (dashboard.js → renderStudents).
 #}
 <section id="students" class="section">
     <div class="section-heading">
         <div>
-            <h2>Students</h2>
-            <p>Create student accounts and manage profiles linked with the Users table.</p>
+            <h2 data-i18n="sec.students.title">Students</h2>
+            <p data-i18n="sec.students.subtitle">Create student accounts and manage profiles linked with the Users table.</p>
         </div>
     </div>
     <div class="grid form-and-table">
@@ -14,52 +13,51 @@
             <h3 id="studentFormTitle">Add student</h3>
             <form id="studentForm" class="form-grid">
                 <input type="hidden" name="EditId" value="">
-                <label>Full name <input name="FullName" required maxlength="100"></label>
-                <label>Email <input name="Email" type="email" required maxlength="100"></label>
-                <label>Phone number <input name="PhoneNumber" maxlength="15" pattern="[0-9]{10,15}"
+                <label><span data-i18n="sec.students.label_fullname">Full name</span> <input name="FullName" required maxlength="100"></label>
+                <label><span data-i18n="sec.students.label_email">Email</span> <input name="Email" type="email" required maxlength="100"></label>
+                <label><span data-i18n="sec.students.label_phone">Phone number</span> <input name="PhoneNumber" maxlength="15" pattern="[0-9]{10,15}"
                         title="Digits only"></label>
-                <label>Date of birth <input name="DateOfBirth" type="date"></label>
-                <label>Gender
+                <label><span data-i18n="sec.students.label_dob">Date of birth</span> <input name="DateOfBirth" type="date"></label>
+                <label><span data-i18n="sec.students.label_gender">Gender</span>
                     <select name="Gender">
-                        <option value="">Select gender</option>
-                        <option value="Nam">Male</option>
-                        <option value="Nữ">Female</option>
-                        <option value="Khác">Other</option>
+                        <option value="" data-i18n="sec.students.gender_select">Select gender</option>
+                        <option value="Nam" data-i18n="sec.students.gender_male">Male</option>
+                        <option value="Nữ" data-i18n="sec.students.gender_female">Female</option>
+                        <option value="Khác" data-i18n="sec.students.gender_other">Other</option>
                     </select>
                 </label>
-                <label>Address <textarea name="Address" rows="3"></textarea></label>
+                <label><span data-i18n="sec.students.label_address">Address</span> <textarea name="Address" rows="3"></textarea></label>
                 <div style="display:flex;gap:8px">
-                    <button class="btn btn-primary submit-btn" type="submit"><i class="fas fa-save"></i> <span>Save
-                            student</span></button>
+                    <button class="btn btn-primary submit-btn" type="submit"><i class="fas fa-save"></i> <span data-i18n="sec.students.save">Save student</span></button>
                     <button class="btn btn-outline cancel-btn" type="button" style="display:none"><i
-                            class="fas fa-times"></i> Cancel</button>
+                            class="fas fa-times"></i> <span data-i18n="common.cancel">Cancel</span></button>
                 </div>
             </form>
             <p id="studentMessage" class="message"></p>
         </div>
         <div class="panel table-panel">
             <div class="table-header">
-                <h3>Students list</h3>
+                <h3 data-i18n="sec.students.list">Students list</h3>
                 <div style="display:flex;gap:8px">
                     <button id="btnBulkDeleteStudents" class="btn btn-outline" style="color:var(--danger);display:none">
-                        <i class="fas fa-trash-alt"></i> Delete Selected
+                        <i class="fas fa-trash-alt"></i> <span data-i18n="sec.students.bulk_delete">Delete Selected</span>
                     </button>
-                    <input id="studentSearch" class="search-input" placeholder="Search ID, name, email...">
+                    <input id="studentSearch" class="search-input" data-i18n-attr="placeholder" data-i18n="sec.students.search_ph" placeholder="Search ID, name, email...">
                 </div>
             </div>
             <div class="table-wrap">
                 <table>
                     <thead>
                         <tr>
-                            <th style="width:50px">STT</th>
+                            <th style="width:50px" data-i18n="common.stt">STT</th>
                             <th style="width:40px"><input type="checkbox" id="selectAllStudents"></th>
-                            <th>Student ID</th>
-                            <th>Full name</th>
-                            <th>Email</th>
-                            <th>Phone</th>
-                            <th>Status</th>
-                            <th>Account</th>
-                            <th>Actions</th>
+                            <th data-i18n="sec.students.th_id">Student ID</th>
+                            <th data-i18n="sec.students.th_name">Full name</th>
+                            <th data-i18n="sec.students.th_email">Email</th>
+                            <th data-i18n="sec.students.th_phone">Phone</th>
+                            <th data-i18n="sec.students.th_status">Status</th>
+                            <th data-i18n="sec.students.th_account">Account</th>
+                            <th data-i18n="common.actions">Actions</th>
                             <th style="width:60px"></th>
                         </tr>
                     </thead>

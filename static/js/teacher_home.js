@@ -75,6 +75,36 @@
             .replaceAll("'", "&#039;");
     }
 
+    function uiAlert(message, opts) {
+        if (window.AppModal) {
+            return window.AppModal.alert(Object.assign({
+                kicker: "Notice",
+                title: "Message",
+                desc: "Please review the message below.",
+                message: String(message || ""),
+                okText: "OK",
+            }, opts || {}));
+        }
+        // app_modal.js is expected to be present on teacher pages (base.html).
+        // If missing for any reason, degrade gracefully to native alert.
+        window.alert(String(message || ""));
+        return Promise.resolve(true);
+    }
+
+    function uiConfirm(message, opts) {
+        if (window.AppModal) {
+            return window.AppModal.confirm(Object.assign({
+                kicker: "Confirmation",
+                title: "Confirm action",
+                desc: "Review the details below before continuing.",
+                message: String(message || ""),
+                okText: "Confirm",
+                cancelText: "Cancel",
+            }, opts || {}));
+        }
+        return Promise.resolve(window.confirm(String(message || "")));
+    }
+
     function splitExamDescriptionAndPdf(rawDescription) {
         var text = String(rawDescription || "");
         var marker = "[PDFS]";
@@ -129,7 +159,7 @@
     async function uploadExamPdfFile(file) {
         if (!file) return;
         if (!String(file.name || "").toLowerCase().endsWith(".pdf")) {
-            alert("Chỉ hỗ trợ file PDF.");
+            uiAlert("Chỉ hỗ trợ file PDF.", { kicker: "Upload", title: "Invalid file" });
             return;
         }
 
@@ -148,7 +178,7 @@
             }
         } catch (err) {
             if (status) status.textContent = "Tải file thất bại.";
-            alert("Upload PDF lỗi: " + err.message);
+            uiAlert("Upload PDF lỗi: " + err.message, { kicker: "Upload", title: "Upload failed" });
         }
     }
 
@@ -500,7 +530,7 @@
         var teacherName = document.getElementById("profileFullName") ? document.getElementById("profileFullName").textContent.trim() : "Giảng viên";
 
         if (!classId) {
-            alert("Vui lòng chọn lớp trước!");
+            uiAlert("Vui lòng chọn lớp trước!", { kicker: "Export", title: "Missing class" });
             return;
         }
 
@@ -513,7 +543,7 @@
         getJson(endpoints.classStudents + classId)
             .then(function (students) {
                 if (!students || !students.length) {
-                    alert("Lớp chưa có sinh viên!");
+                    uiAlert("Lớp chưa có sinh viên!", { kicker: "Export", title: "No students" });
                     return;
                 }
 
@@ -567,7 +597,7 @@
                 XLSX.writeFile(wb, fileName);
             })
             .catch(function (err) {
-                alert("Lỗi xuất Excel: " + err.message);
+                uiAlert("Lỗi xuất Excel: " + err.message, { kicker: "Export", title: "Export failed" });
             })
             .finally(function () {
                 if (exportBtn) {
@@ -1066,7 +1096,7 @@
 
         var rows = document.querySelectorAll("#scoreStudentTableBody tr[data-enrollment-id]");
         if (!rows.length) {
-            alert("Vui lòng tải danh sách sinh viên trước!");
+            uiAlert("Vui lòng tải danh sách sinh viên trước!", { kicker: "Export", title: "No data" });
             return;
         }
 
@@ -1351,7 +1381,7 @@
         if (attSearchBtn) {
             attSearchBtn.addEventListener('click', function() {
                 var classId = document.getElementById('attendanceClassSelect').value;
-                if (!classId) { alert('Vui lòng chọn lớp!'); return; }
+                if (!classId) { uiAlert('Vui lòng chọn lớp!', { kicker: "Validation", title: "Missing class" }); return; }
 
                 attSearchBtn.disabled = true;
                 attSearchBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Đang tải...';
@@ -1434,7 +1464,7 @@
                 });
 
                 if (!records.length) {
-                    alert('Không có thay đổi nào để lưu!');
+                    uiAlert('Không có thay đổi nào để lưu!', { kicker: "Notice", title: "No changes" });
                     return;
                 }
 
@@ -1443,7 +1473,7 @@
 
                 postJson('/api/teachers/attendance/save', { records: records })
                     .then(function() {
-                        alert('Đã lưu ' + records.length + ' bản ghi điểm danh!');
+                        uiAlert('Đã lưu ' + records.length + ' bản ghi điểm danh!', { kicker: "Success", title: "Saved" });
                         attendanceState.dirty = {};
                         // Merge dirty vào recordMap
                         records.forEach(function(r) {
@@ -1454,7 +1484,7 @@
                         attSaveBtn.style.display = "none";
                     })
                     .catch(function(err) {
-                        alert('Lỗi: ' + err.message);
+                        uiAlert('Lỗi: ' + err.message, { kicker: "Error", title: "Save failed" });
                     })
                     .finally(function() {
                         attSaveBtn.disabled = false;
@@ -1649,23 +1679,31 @@
             var btnDelNotif = event.target.closest('.btn-del-notif');
             if (btnDelNotif) {
                 event.stopPropagation();
-                if (confirm('Bạn có chắc chắn muốn xóa thông báo này? Dữ liệu người nhận cũng sẽ bị xóa.')) {
+                uiConfirm('Bạn có chắc chắn muốn xóa thông báo này? Dữ liệu người nhận cũng sẽ bị xóa.', {
+                    kicker: "Delete",
+                    title: "Delete notification",
+                    okText: "Delete",
+                    cancelText: "Cancel",
+                }).then(function (ok) {
+                    if (!ok) return;
                     var card = btnDelNotif.closest('.notice-card');
                     var n = JSON.parse(decodeURIComponent(card.getAttribute('data-notif')));
 
                     btnDelNotif.disabled = true;
                     deleteJson('/api/teachers/notifications/' + n.NotificationId)
                         .then(function () {
-                            alert('Đã xóa thông báo!');
+                            return uiAlert('Đã xóa thông báo!', { kicker: "Success", title: "Deleted" });
+                        })
+                        .then(function () {
                             if (typeof loadNotifications === 'function') loadNotifications();
                         })
                         .catch(function (err) {
-                            alert('Lỗi: ' + err.message);
+                            uiAlert('Lỗi: ' + err.message, { kicker: "Error", title: "Delete failed" });
                         })
                         .finally(function () {
                             btnDelNotif.disabled = false;
                         });
-                }
+                });
                 return;
             }
 
@@ -1673,22 +1711,30 @@
             var btnDelStudent = event.target.closest('.btn-del-student-class');
             if (btnDelStudent) {
                 event.stopPropagation();
-                if (confirm('Bạn có chắc chắn muốn xóa sinh viên này khỏi lớp?')) {
+                uiConfirm('Bạn có chắc chắn muốn xóa sinh viên này khỏi lớp?', {
+                    kicker: "Remove",
+                    title: "Remove student from class",
+                    okText: "Remove",
+                    cancelText: "Cancel",
+                }).then(function (ok) {
+                    if (!ok) return;
                     var enrollmentId = btnDelStudent.getAttribute('data-enrollment-id');
                     btnDelStudent.disabled = true;
                     deleteJson('/api/teachers/enroll/' + enrollmentId)
                         .then(function () {
-                            alert('Đã xóa sinh viên khỏi lớp!');
+                            return uiAlert('Đã xóa sinh viên khỏi lớp!', { kicker: "Success", title: "Removed" });
+                        })
+                        .then(function () {
                             var classListBtn = document.getElementById('classListBtn');
                             if (classListBtn) classListBtn.click(); // Reload list
                         })
                         .catch(function (err) {
-                            alert('Lỗi: ' + err.message);
+                            uiAlert('Lỗi: ' + err.message, { kicker: "Error", title: "Remove failed" });
                         })
                         .finally(function () {
                             btnDelStudent.disabled = false;
                         });
-                }
+                });
                 return;
             }
 
@@ -1754,8 +1800,8 @@
                 };
                 btnSaveGrade.disabled = true;
                 putJson('/api/exams/' + examIdForGrade + '/submissions/' + subId, payloadGrade)
-                    .then(function () { alert('Đã cập nhật chấm bài.'); })
-                    .catch(function (err) { alert('Lỗi: ' + err.message); })
+                    .then(function () { uiAlert('Đã cập nhật chấm bài.', { kicker: "Success", title: "Updated" }); })
+                    .catch(function (err) { uiAlert('Lỗi: ' + err.message, { kicker: "Error", title: "Update failed" }); })
                     .finally(function () { btnSaveGrade.disabled = false; });
                 return;
             }
@@ -1815,11 +1861,11 @@
                     try {
                         var parsed = new Date(newDue);
                         if (isNaN(parsed.getTime()) || parsed <= new Date()) {
-                            alert('Hạn nộp mới phải là thời điểm trong tương lai!');
+                            uiAlert('Hạn nộp mới phải là thời điểm trong tương lai!', { kicker: "Validation", title: "Invalid due date" });
                             return;
                         }
                     } catch (e) {
-                        alert('Định dạng thời gian không hợp lệ!');
+                        uiAlert('Định dạng thời gian không hợp lệ!', { kicker: "Validation", title: "Invalid format" });
                         return;
                     }
 
@@ -1828,35 +1874,41 @@
                         DueDate: newDue
                     })
                         .then(function () { loadExams(); })
-                        .catch(function (err) { alert('Lỗi: ' + err.message); });
+                        .catch(function (err) { uiAlert('Lỗi: ' + err.message, { kicker: "Error", title: "Update failed" }); });
                     return;
                 }
 
                 // Đóng bình thường
                 putJson('/api/exams/' + examIdToggle + '/status', { Status: nextStatus })
                     .then(function () { loadExams(); })
-                    .catch(function (err) { alert('Lỗi: ' + err.message); });
+                    .catch(function (err) { uiAlert('Lỗi: ' + err.message, { kicker: "Error", title: "Update failed" }); });
                 return;
             }
 
             var btnDelExam = event.target.closest('.btn-del-exam');
             if (btnDelExam) {
                 event.stopPropagation();
-                if (confirm('Bạn có chắc chắn muốn xóa bài kiểm tra này?')) {
+                uiConfirm('Bạn có chắc chắn muốn xóa bài kiểm tra này?', {
+                    kicker: "Delete",
+                    title: "Delete exam",
+                    okText: "Delete",
+                    cancelText: "Cancel",
+                }).then(function (ok) {
+                    if (!ok) return;
                     var examId = btnDelExam.getAttribute('data-id');
                     btnDelExam.disabled = true;
                     deleteJson('/api/teachers/exams/' + examId)
                         .then(function () {
-                            alert('Đã xóa bài kiểm tra!');
-                            loadExams();
+                            return uiAlert('Đã xóa bài kiểm tra!', { kicker: "Success", title: "Deleted" });
                         })
+                        .then(function () { loadExams(); })
                         .catch(function (err) {
-                            alert('Lỗi: ' + err.message);
+                            uiAlert('Lỗi: ' + err.message, { kicker: "Error", title: "Delete failed" });
                         })
                         .finally(function () {
                             btnDelExam.disabled = false;
                         });
-                }
+                });
                 return;
             }
 
@@ -1996,7 +2048,7 @@
                 var val = document.getElementById("classListSelect").value;
                 var body = document.getElementById("classListTableBody");
                 if (!val) {
-                    alert("Vui lòng chọn lớp!");
+                    uiAlert("Vui lòng chọn lớp!", { kicker: "Validation", title: "Missing class" });
                     return;
                 }
 
@@ -2081,7 +2133,7 @@
             quickAddBtn.addEventListener("click", function () {
                 var classIdSelect = document.getElementById("classListSelect");
                 var classId = classIdSelect ? classIdSelect.value : "";
-                if (!classId) { alert("Vui lòng chọn lớp!"); return; }
+                if (!classId) { uiAlert("Vui lòng chọn lớp!", { kicker: "Validation", title: "Missing class" }); return; }
 
                 var payload = {
                     ClassId: classId,
@@ -2094,13 +2146,13 @@
                     Address: actionAddress ? actionAddress.value.trim() : ""
                 };
 
-                if (!payload.StudentCode) { alert("Vui lòng nhập mã sinh viên!"); return; }
-                if (!payload.FullName) { alert("Vui lòng nhập họ tên sinh viên!"); return; }
+                if (!payload.StudentCode) { uiAlert("Vui lòng nhập mã sinh viên!", { kicker: "Validation", title: "Missing student code" }); return; }
+                if (!payload.FullName) { uiAlert("Vui lòng nhập họ tên sinh viên!", { kicker: "Validation", title: "Missing full name" }); return; }
 
                 quickAddBtn.disabled = true;
                 postJson("/api/teachers/student/save", payload)
                     .then(function (res) {
-                        alert(res.message || "Lưu thành công!");
+                        uiAlert(res.message || "Lưu thành công!", { kicker: "Success", title: "Saved" });
                         // Clear form
                         if (actionStudentCode) actionStudentCode.value = "";
                         if (actionFullName) actionFullName.value = "";
@@ -2113,7 +2165,7 @@
                         var classListBtn = document.getElementById("classListBtn");
                         if (classListBtn) classListBtn.click(); // Refresh list
                     })
-                    .catch(function (err) { alert("Lỗi: " + err.message); })
+                    .catch(function (err) { uiAlert("Lỗi: " + err.message, { kicker: "Error", title: "Save failed" }); })
                     .finally(function () { quickAddBtn.disabled = false; });
             });
         }
@@ -2122,20 +2174,28 @@
             quickRemoveBtn.addEventListener("click", function () {
                 var classId = document.getElementById("classListSelect").value;
                 var studentCode = actionStudentCode.value.trim();
-                if (!classId) { alert("Vui lòng chọn lớp!"); return; }
-                if (!studentCode) { alert("Vui lòng nhập mã sinh viên!"); return; }
+                if (!classId) { uiAlert("Vui lòng chọn lớp!", { kicker: "Validation", title: "Missing class" }); return; }
+                if (!studentCode) { uiAlert("Vui lòng nhập mã sinh viên!", { kicker: "Validation", title: "Missing student code" }); return; }
 
-                if (confirm("Bạn có chắc muốn xóa sinh viên " + studentCode + " khỏi lớp này?")) {
+                uiConfirm("Bạn có chắc muốn xóa sinh viên " + studentCode + " khỏi lớp này?", {
+                    kicker: "Remove",
+                    title: "Remove student",
+                    okText: "Remove",
+                    cancelText: "Cancel",
+                }).then(function (ok) {
+                    if (!ok) return;
                     quickRemoveBtn.disabled = true;
                     postJson("/api/teachers/unenroll", { ClassId: classId, StudentCode: studentCode })
                         .then(function (res) {
-                            alert(res.message || "Đã xóa thành công!");
+                            return uiAlert(res.message || "Đã xóa thành công!", { kicker: "Success", title: "Removed" });
+                        })
+                        .then(function () {
                             actionStudentCode.value = "";
                             if (classListBtn) classListBtn.click(); // Refresh list
                         })
-                        .catch(function (err) { alert("Lỗi: " + err.message); })
+                        .catch(function (err) { uiAlert("Lỗi: " + err.message, { kicker: "Error", title: "Remove failed" }); })
                         .finally(function () { quickRemoveBtn.disabled = false; });
-                }
+                });
             });
         }
 
@@ -2149,7 +2209,7 @@
                 var content = form.querySelector('textarea').value.trim();
 
                 if (!title || !content) {
-                    alert('Vui lòng nhập tiêu đề và nội dung!');
+                    uiAlert('Vui lòng nhập tiêu đề và nội dung!', { kicker: "Validation", title: "Missing fields" });
                     return;
                 }
 
@@ -2165,13 +2225,13 @@
                         Content: content
                     })
                         .then(function () {
-                            alert('Thông báo đã được cập nhật!');
+                            uiAlert('Thông báo đã được cập nhật!', { kicker: "Success", title: "Updated" });
                             var cancelBtn = document.getElementById('notificationCancelBtn');
                             if (cancelBtn) cancelBtn.click(); // Reset form and remove editId
                             loadNotifications();
                         })
                         .catch(function (err) {
-                            alert('Lỗi: ' + err.message);
+                            uiAlert('Lỗi: ' + err.message, { kicker: "Error", title: "Update failed" });
                         })
                         .finally(function () {
                             // Only reset button state if it hasn't been reset by cancelBtn.click() yet
@@ -2189,12 +2249,12 @@
                         ClassId: classId
                     })
                         .then(function () {
-                            alert('Thông báo đã được gửi thành công!');
+                            uiAlert('Thông báo đã được gửi thành công!', { kicker: "Success", title: "Sent" });
                             form.reset();
                             loadNotifications();
                         })
                         .catch(function (err) {
-                            alert('Lỗi: ' + err.message);
+                            uiAlert('Lỗi: ' + err.message, { kicker: "Error", title: "Send failed" });
                         })
                         .finally(function () {
                             notifSendBtn.disabled = false;
@@ -2241,7 +2301,7 @@
             scoreViewSearchBtn.addEventListener('click', function () {
                 var classId = document.getElementById('scoreViewClassSelect').value;
                 if (!classId) {
-                    alert('Vui lòng chọn lớp để xem điểm!');
+                    uiAlert('Vui lòng chọn lớp để xem điểm!', { kicker: "Validation", title: "Missing class" });
                     return;
                 }
                 loadScoreView(Number(classId));
@@ -2270,7 +2330,7 @@
                 var rows = document.querySelectorAll('#scoreViewBody tr');
 
                 if (!rows.length || rows[0].querySelector('.empty')) {
-                    alert('Chưa có dữ liệu để xuất!');
+                    uiAlert('Chưa có dữ liệu để xuất!', { kicker: "Export", title: "No data" });
                     return;
                 }
 
@@ -2356,7 +2416,7 @@
                 var editId = state.examEditingId;
 
                 if (!classId || !title) {
-                    alert('Vui lòng điền lớp học và tiêu đề!');
+                    uiAlert('Vui lòng điền lớp học và tiêu đề!', { kicker: "Validation", title: "Missing fields" });
                     return;
                 }
 
@@ -2376,14 +2436,14 @@
                 var req = editId ? putJson('/api/exams/' + editId, payload) : postJson('/api/exams', payload);
 
                 req.then(function () {
-                    alert(editId ? 'Đã cập nhật bài kiểm tra!' : 'Đã tạo bài kiểm tra!');
+                    uiAlert(editId ? 'Đã cập nhật bài kiểm tra!' : 'Đã tạo bài kiểm tra!', { kicker: "Success", title: "Saved" });
                     examForm.reset();
                     state.examEditingId = null;
                     state.examPdfFiles = [];
                     renderExamPdfList();
                     loadExams();
                 }).catch(function (err) {
-                    alert('Lỗi: ' + err.message);
+                    uiAlert('Lỗi: ' + err.message, { kicker: "Error", title: "Save failed" });
                 }).finally(function () {
                     btn.disabled = false;
                     btn.innerHTML = state.examEditingId
@@ -2484,11 +2544,11 @@
         try {
             var students = await getJson('/api/teachers/class-students/' + Number(classId));
             if (!students || !students.length) {
-                alert('Lớp chưa có sinh viên để xuất PDF.');
+                await uiAlert('Lớp chưa có sinh viên để xuất PDF.', { kicker: "Export", title: "No students" });
                 return;
             }
             if (!window.jspdf || !window.jspdf.jsPDF) {
-                alert('Không thể tải thư viện PDF. Vui lòng thử lại.');
+                await uiAlert('Không thể tải thư viện PDF. Vui lòng thử lại.', { kicker: "Export", title: "Dependency missing" });
                 return;
             }
             var teacherName = document.getElementById('profileFullName')
@@ -2515,7 +2575,7 @@
             });
             var reportTitle = 'BaoCao_Lop_' + String(classCode || classId).replace(/[^a-zA-Z0-9_]/g, '_');
             if (typeof window.html2canvas !== 'function') {
-                alert('Không thể tải thư viện xuất PDF. Vui lòng thử lại.');
+                await uiAlert('Không thể tải thư viện xuất PDF. Vui lòng thử lại.', { kicker: "Export", title: "Dependency missing" });
                 return;
             }
 
@@ -2615,7 +2675,7 @@
             }
             doc.save(reportTitle + '.pdf');
         } catch (err) {
-            alert('Không thể xuất PDF: ' + err.message);
+            uiAlert('Không thể xuất PDF: ' + err.message, { kicker: "Export", title: "Export failed" });
         }
     }
 
@@ -2811,14 +2871,14 @@
 
             putJson('/api/teachers/profile', payload)
                 .then(function(response) {
-                    alert('Hồ sơ đã được cập nhật thành công!');
+                    uiAlert('Hồ sơ đã được cập nhật thành công!', { kicker: "Success", title: "Updated" });
                     editProfileModal.style.display = 'none';
                     editProfileForm.reset();
                     // Reload page to show updated data
                     window.location.reload();
                 })
                 .catch(function(err) {
-                    alert('Lỗi: ' + err.message);
+                    uiAlert('Lỗi: ' + err.message, { kicker: "Error", title: "Update failed" });
                 })
                 .finally(function() {
                     editProfileSaveBtn.disabled = false;

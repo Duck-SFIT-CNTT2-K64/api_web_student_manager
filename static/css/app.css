@@ -113,6 +113,41 @@ html[data-theme="dark"] .theme-toggle:hover { color: #fff; border-color: #fbbf24
     box-sizing: border-box;
 }
 
+.lang-toggle {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    min-width: 44px;
+    height: 38px;
+    padding: 0 12px;
+    border-radius: 12px;
+    border: 1px solid rgba(148, 163, 184, 0.25);
+    background: rgba(148, 163, 184, 0.06);
+    color: var(--text);
+    cursor: pointer;
+    transition: transform .15s ease, background .15s ease, border-color .15s ease, color .15s ease;
+    font-weight: 700;
+    letter-spacing: .06em;
+}
+
+.lang-toggle:hover {
+    color: var(--primary);
+    border-color: var(--primary);
+    transform: translateY(-1px);
+}
+
+html[data-theme="dark"] .lang-toggle {
+    background: #121a2a;
+    color: #e2e8f0;
+    border-color: rgba(148, 163, 184, 0.22);
+}
+
+html[data-theme="dark"] .lang-toggle:hover {
+    color: #fff;
+    border-color: #fbbf24;
+}
+
 html {
     scroll-behavior: smooth;
 }

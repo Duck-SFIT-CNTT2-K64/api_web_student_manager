@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Account settings | CLASSES369</title>
+    <title data-i18n="set.title_page">Account settings | CLASSES369</title>
     <link rel="icon" type="image/png" href="{{ url_for('static', filename='image/logo.png') }}">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -29,6 +29,8 @@
 
 <body class="settings-body">
     {% set role_name = (profile.RoleName or '')|lower %}
+    {% set role_i18n_key = 'role.admin' if role_name == 'admin' else 'role.teacher' if role_name == 'teacher' else
+    'role.student' if role_name == 'student' else 'common.member' %}
     {% set full_name = (profile.FullName or '')|trim %}
     {% set user_initial = (full_name[:1] if full_name else 'U')|upper %}
     {% set role_label = 'Administrator' if role_name == 'admin' else 'Instructor' if role_name == 'teacher' else
@@ -39,24 +41,29 @@
 
     <header class="site-header">
         <div class="header-inner">
-            <a class="brand" href="/" aria-label="Home">
+            <a class="brand" href="/" data-i18n-attrs="aria-label" data-i18n-aria-label="set.brand_home_aria"
+                aria-label="Home">
                 <img class="brand-logo" src="{{ url_for('static', filename='image/logo.png') }}" alt="CLASSES369">
             </a>
             <nav class="settings-breadcrumbs">
-                <a href="/"><i class="fas fa-house"></i> Home</a>
+                <a href="/"><i class="fas fa-house"></i> <span data-i18n="set.breadcrumb_home">Home</span></a>
                 <span class="crumb-sep">/</span>
-                <a href="{{ home_path }}">{{ role_label }}</a>
+                <a href="{{ home_path }}"><span data-i18n="{{ role_i18n_key }}">{{ role_label }}</span></a>
                 <span class="crumb-sep">/</span>
-                <span class="crumb-current">Account settings</span>
+                <span class="crumb-current" data-i18n="set.crumb_settings">Account settings</span>
             </nav>
             <div class="header-tools">
-                <button type="button" class="theme-toggle" data-theme-toggle title="Toggle theme"
-                    aria-label="Toggle theme" aria-pressed="false">
+                <button type="button" class="lang-toggle" data-lang-toggle aria-pressed="false">
+                    <span data-lang-label>EN</span>
+                </button>
+                <button type="button" class="theme-toggle" data-theme-toggle aria-pressed="false"
+                    data-i18n-attrs="title,aria-label" data-i18n-title="common.toggle_theme"
+                    data-i18n-aria-label="common.toggle_theme">
                     <i class="fas fa-moon" data-theme-icon></i>
                 </button>
                 <a class="header-secondary" href="/">
                     <i class="fas fa-arrow-left"></i>
-                    <span>Back to workspace</span>
+                    <span data-i18n="set.back_workspace">Back to workspace</span>
                 </a>
             </div>
         </div>
@@ -68,31 +75,34 @@
                 <div class="settings-avatar">{{ user_initial }}</div>
                 <div class="settings-user-info">
                     <strong>{{ full_name or profile.Username }}</strong>
-                    <span>{{ role_label }}</span>
-                    {% if profile.StudentCode %}<small>Student ID: {{ profile.StudentCode }}</small>{% endif %}
-                    {% if profile.TeacherCode %}<small>Teacher ID: {{ profile.TeacherCode }}</small>{% endif %}
+                    <span data-i18n="{{ role_i18n_key }}">{{ role_label }}</span>
+                    {% if profile.StudentCode %}<small><span data-i18n="set.lbl_student_id">Student ID:</span> {{
+                        profile.StudentCode }}</small>{% endif %}
+                    {% if profile.TeacherCode %}<small><span data-i18n="set.lbl_teacher_id">Teacher ID:</span> {{
+                        profile.TeacherCode }}</small>{% endif %}
                 </div>
             </div>
 
             <nav class="settings-nav" id="settingsNav">
                 <button type="button" class="is-active" data-tab="profile">
-                    <i class="fas fa-id-card"></i><span>Personal profile</span>
+                    <i class="fas fa-id-card"></i><span data-i18n="set.tab_profile">Personal profile</span>
                 </button>
                 <button type="button" data-tab="security">
-                    <i class="fas fa-shield-halved"></i><span>Security &amp; password</span>
+                    <i class="fas fa-shield-halved"></i><span data-i18n="set.tab_security">Security &amp;
+                        password</span>
                 </button>
                 <button type="button" data-tab="preferences">
-                    <i class="fas fa-sliders"></i><span>Display preferences</span>
+                    <i class="fas fa-sliders"></i><span data-i18n="set.tab_preferences">Display preferences</span>
                 </button>
                 <button type="button" data-tab="sessions">
-                    <i class="fas fa-circle-info"></i><span>Sign-in sessions</span>
+                    <i class="fas fa-circle-info"></i><span data-i18n="set.tab_sessions">Sign-in sessions</span>
                 </button>
             </nav>
 
             <form method="post" action="/logout" class="settings-logout">
                 <button type="submit">
                     <i class="fas fa-right-from-bracket"></i>
-                    <span>Sign out</span>
+                    <span data-i18n="set.sign_out">Sign out</span>
                 </button>
             </form>
         </aside>
@@ -100,9 +110,10 @@
         <section class="settings-content">
             <header class="settings-page-head">
                 <div>
-                    <p class="eyebrow">Account settings</p>
-                    <h1>Manage your profile &amp; security</h1>
-                    <p class="settings-sub">Update your personal information, change your password and customize your
+                    <p class="eyebrow" data-i18n="set.eyebrow">Account settings</p>
+                    <h1 data-i18n="set.headline">Manage your profile &amp; security</h1>
+                    <p class="settings-sub" data-i18n="set.sub">Update your personal information, change your password
+                        and customize your
                         CLASSES369 experience.</p>
                 </div>
             </header>
@@ -111,64 +122,68 @@
 
             <article class="settings-panel is-active" data-panel="profile">
                 <header class="panel-head">
-                    <h2>Personal profile</h2>
-                    <p>This information is used for contact and appears on your learning documents.</p>
+                    <h2 data-i18n="set.panel_profile_title">Personal profile</h2>
+                    <p data-i18n="set.panel_profile_desc">This information is used for contact and appears on your
+                        learning documents.</p>
                 </header>
 
                 <form id="profileForm" class="settings-form" autocomplete="off">
                     <div class="form-grid">
                         <label class="field">
-                            <span>Full name <em>*</em></span>
+                            <span data-i18n="set.field_fullname">Full name</span> <em>*</em>
                             <input type="text" name="FullName" value="{{ profile.FullName or '' }}" required>
                         </label>
                         <label class="field">
-                            <span>Username</span>
+                            <span data-i18n="set.field_username">Username</span>
                             <input type="text" value="{{ profile.Username or '' }}" disabled>
-                            <small class="field-hint">Username cannot be changed.</small>
+                            <small class="field-hint" data-i18n="set.hint_username">Username cannot be changed.</small>
                         </label>
                         <label class="field">
-                            <span>Email <em>*</em></span>
+                            <span data-i18n="set.field_email">Email</span> <em>*</em>
                             <input type="email" name="Email" value="{{ profile.Email or '' }}" required>
                         </label>
                         <label class="field">
-                            <span>Phone number</span>
+                            <span data-i18n="set.field_phone">Phone number</span>
                             <input type="tel" name="PhoneNumber" value="{{ profile.PhoneNumber or '' }}"
                                 pattern="[0-9+\-\s]{0,20}">
                         </label>
 
                         {% if role_name == 'student' %}
                         <label class="field">
-                            <span>Date of birth</span>
+                            <span data-i18n="set.field_dob">Date of birth</span>
                             <input type="date" name="DateOfBirth" value="{{ dob_value }}">
                         </label>
                         <label class="field">
-                            <span>Gender</span>
+                            <span data-i18n="set.field_gender">Gender</span>
                             <select name="Gender">
-                                <option value="">— Select —</option>
-                                <option value="Male" {% if profile.Gender in ['Male', 'Nam'] %}selected{% endif %}>Male</option>
-                                <option value="Female" {% if profile.Gender in ['Female', 'Nữ'] %}selected{% endif %}>Female</option>
-                                <option value="Other" {% if profile.Gender in ['Other', 'Khác'] %}selected{% endif %}>Other</option>
+                                <option value="" data-i18n="set.select_placeholder">— Select —</option>
+                                <option value="Male" {% if profile.Gender in ['Male', 'Nam'] %}selected{% endif %}
+                                    data-i18n="set.gender_male">Male</option>
+                                <option value="Female" {% if profile.Gender in ['Female', 'Nữ'] %}selected{% endif %}
+                                    data-i18n="set.gender_female">Female</option>
+                                <option value="Other" {% if profile.Gender in ['Other', 'Khác'] %}selected{% endif %}
+                                    data-i18n="set.gender_other">Other</option>
                             </select>
                         </label>
                         <label class="field field-wide">
-                            <span>Address</span>
+                            <span data-i18n="set.field_address">Address</span>
                             <input type="text" name="Address" value="{{ profile.Address or '' }}">
                         </label>
                         {% endif %}
 
                         {% if role_name == 'teacher' %}
                         <label class="field field-wide">
-                            <span>Specialization</span>
+                            <span data-i18n="set.field_specialization">Specialization</span>
                             <input type="text" name="Specialization" value="{{ profile.Specialization or '' }}">
                         </label>
                         {% endif %}
                     </div>
 
                     <div class="form-actions">
-                        <button type="reset" class="btn btn-outline">Reset</button>
+                        <button type="reset" class="btn btn-outline" data-i18n="set.btn_reset">Reset</button>
                         <button type="submit" class="btn btn-primary">
                             <i class="fas fa-save"></i>
-                            <span>Save changes</span>
+                            <span data-i18n="set.save_changes">Save changes</span>
                         </button>
                     </div>
                 </form>
@@ -176,83 +191,84 @@
 
             <article class="settings-panel" data-panel="security">
                 <header class="panel-head">
-                    <h2>Security &amp; password</h2>
-                    <p>Change your password regularly to keep your account safe.</p>
+                    <h2 data-i18n="set.tab_security">Security &amp; password</h2>
+                    <p data-i18n="set.panel_security_desc">Change your password regularly to keep your account safe.</p>
                 </header>
 
                 <form id="passwordForm" class="settings-form" autocomplete="off">
                     <div class="form-grid">
                         <label class="field field-wide">
-                            <span>Current password <em>*</em></span>
+                            <span data-i18n="set.field_current_pw">Current password</span> <em>*</em>
                             <input type="password" name="CurrentPassword" required>
                         </label>
                         <label class="field">
-                            <span>New password <em>*</em></span>
+                            <span data-i18n="set.field_new_pw">New password</span> <em>*</em>
                             <input type="password" name="NewPassword" minlength="6" required>
-                            <small class="field-hint">At least 6 characters.</small>
+                            <small class="field-hint" data-i18n="set.hint_pw_len">At least 6 characters.</small>
                         </label>
                         <label class="field">
-                            <span>Confirm new password <em>*</em></span>
+                            <span data-i18n="set.field_confirm_pw">Confirm new password</span> <em>*</em>
                             <input type="password" name="ConfirmPassword" minlength="6" required>
                         </label>
                     </div>
 
                     <div class="form-actions">
-                        <button type="reset" class="btn btn-outline">Cancel</button>
+                        <button type="reset" class="btn btn-outline" data-i18n="set.btn_cancel">Cancel</button>
                         <button type="submit" class="btn btn-primary">
                             <i class="fas fa-key"></i>
-                            <span>Change password</span>
+                            <span data-i18n="set.change_password">Change password</span>
                         </button>
                     </div>
                 </form>
 
                 <div class="security-tips">
-                    <h3><i class="fas fa-lightbulb"></i> Security tips</h3>
+                    <h3><i class="fas fa-lightbulb"></i> <span data-i18n="set.security_tips_title">Security tips</span>
+                    </h3>
                     <ul>
-                        <li>Don't reuse your password across other services.</li>
-                        <li>Combine uppercase, lowercase, numbers and special characters.</li>
-                        <li>Never share sign-in information via email or messaging apps.</li>
+                        <li data-i18n="set.tip_reuse">Don't reuse your password across other services.</li>
+                        <li data-i18n="set.tip_mix">Combine uppercase, lowercase, numbers and special characters.</li>
+                        <li data-i18n="set.tip_share">Never share sign-in information via email or messaging apps.</li>
                     </ul>
                 </div>
             </article>
 
             <article class="settings-panel" data-panel="preferences">
                 <header class="panel-head">
-                    <h2>Display preferences</h2>
-                    <p>These preferences are saved on this device.</p>
+                    <h2 data-i18n="set.pref_title">Display preferences</h2>
+                    <p data-i18n="set.pref_desc">These preferences are saved on this device.</p>
                 </header>
 
                 <form id="preferencesForm" class="settings-form">
                     <div class="pref-grid">
                         <label class="pref-item">
                             <div>
-                                <strong>Dark mode</strong>
-                                <p>Reduce glare while studying at night.</p>
+                                <strong data-i18n="set.pref_dark">Dark mode</strong>
+                                <p data-i18n="set.pref_dark_desc">Reduce glare while studying at night.</p>
                             </div>
                             <input type="checkbox" name="darkMode" data-theme-toggle-checkbox>
                         </label>
                         <label class="pref-item">
                             <div>
-                                <strong>Email notifications</strong>
-                                <p>Get emails about class openings and tuition.</p>
+                                <strong data-i18n="set.pref_email">Email notifications</strong>
+                                <p data-i18n="set.pref_email_desc">Get emails about class openings and tuition.</p>
                             </div>
                             <input type="checkbox" name="emailNotify" checked>
                         </label>
                         <label class="pref-item">
                             <div>
-                                <strong>Browser notifications</strong>
-                                <p>Show a popup when there are new updates.</p>
+                                <strong data-i18n="set.pref_browser">Browser notifications</strong>
+                                <p data-i18n="set.pref_browser_desc">Show a popup when there are new updates.</p>
                             </div>
                             <input type="checkbox" name="browserNotify" checked>
                         </label>
                         <label class="pref-item">
                             <div>
-                                <strong>Language</strong>
-                                <p>Current interface language.</p>
+                                <strong data-i18n="set.pref_lang">Language</strong>
+                                <p data-i18n="set.pref_lang_desc">Current interface language.</p>
                             </div>
-                            <select name="language">
-                                <option value="en" selected>English</option>
-                                <option value="vi">Tiếng Việt</option>
+                            <select name="language" id="settingsLanguageSelect">
+                                <option value="en" selected data-i18n="set.lang_english">English</option>
+                                <option value="vi" data-i18n="set.lang_vietnamese">Vietnamese</option>
                             </select>
                         </label>
                     </div>
@@ -260,7 +276,7 @@
                     <div class="form-actions">
                         <button type="submit" class="btn btn-primary">
                             <i class="fas fa-check"></i>
-                            <span>Save preferences</span>
+                            <span data-i18n="set.save_preferences">Save preferences</span>
                         </button>
                     </div>
                 </form>
@@ -268,25 +284,27 @@
 
             <article class="settings-panel" data-panel="sessions">
                 <header class="panel-head">
-                    <h2>Sign-in sessions</h2>
-                    <p>Details about your current session.</p>
+                    <h2 data-i18n="set.sessions_title">Sign-in sessions</h2>
+                    <p data-i18n="set.sessions_desc">Details about your current session.</p>
                 </header>
 
                 <div class="session-grid">
                     <div class="session-card">
                         <div class="session-icon"><i class="fas fa-desktop"></i></div>
                         <div>
-                            <strong>Current browser</strong>
+                            <strong data-i18n="set.session_browser">Current browser</strong>
                             <p id="sessionUserAgent">—</p>
-                            <small>Active sign-in session.</small>
+                            <small data-i18n="set.session_active">Active sign-in session.</small>
                         </div>
                     </div>
                     <div class="session-card">
                         <div class="session-icon"><i class="fas fa-user-shield"></i></div>
                         <div>
-                            <strong>Role</strong>
-                            <p>{{ role_label }}</p>
-                            <small>Account status: {{ profile.Status or 'Active' }}</small>
+                            <strong data-i18n="set.session_role">Role</strong>
+                            <p><span data-i18n="{{ role_i18n_key }}">{{ role_label }}</span></p>
+                            <small><span data-i18n="set.account_status">Account status:</span>
+                                {% if profile.Status %}{{ profile.Status }}{% else %}<span
+                                    data-i18n="set.status_active">Active</span>{% endif %}</small>
                         </div>
                     </div>
                 </div>
@@ -294,7 +312,7 @@
                 <form method="post" action="/logout" class="session-logout">
                     <button type="submit" class="btn btn-danger">
                         <i class="fas fa-right-from-bracket"></i>
-                        <span>Sign out of this device</span>
+                        <span data-i18n="set.signout_device">Sign out of this device</span>
                     </button>
                 </form>
             </article>
@@ -302,9 +320,11 @@
     </main>
 
     <footer class="settings-footer">
-        <p>&copy; 2026 CLASSES369 &mdash; All changes are safely recorded.</p>
+        <p data-i18n="set.footer">&copy; 2026 CLASSES369 &mdash; All changes are safely recorded.</p>
     </footer>
 
+    <script src="{{ url_for('static', filename='js/i18n-locales.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/i18n.js') }}"></script>
     <script src="{{ url_for('static', filename='js/theme.js') }}"></script>
     <script src="{{ url_for('static', filename='js/settings.js') }}"></script>
     {% if role_name == 'student' %}
