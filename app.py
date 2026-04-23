@@ -26,6 +26,7 @@ from routes.room_routes import room_bp
 from routes.user_routes import user_bp
 from routes.classschedules_routes import class_schedule_bp
 from routes.exam_routes import exam_bp
+from routes.assistant_routes import assistant_bp
 
 
 def create_app() -> Flask:
@@ -57,6 +58,7 @@ def create_app() -> Flask:
     app.register_blueprint(user_bp, url_prefix="/api/users")
     app.register_blueprint(class_schedule_bp, url_prefix="/api/schedules")
     app.register_blueprint(exam_bp, url_prefix="/api/exams")
+    app.register_blueprint(assistant_bp, url_prefix="/api/assistant")
 
     @app.get("/api/health")
     def health_check():

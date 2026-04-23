@@ -13,6 +13,7 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/landing.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/login_notification_modal.css') }}">
+    {# Student assistant widget CSS comes from partial include below #}
     <script>
         (function () {
             try {
@@ -692,9 +693,14 @@
     </div>
     {% endif %}
 
+    {% if current_user and role_name == 'student' %}
+        {% include 'partials/_student_assistant_widget.html' %}
+    {% endif %}
+
     <script src="{{ url_for('static', filename='js/theme.js') }}"></script>
     <script src="{{ url_for('static', filename='js/landing.js') }}"></script>
     <script src="{{ url_for('static', filename='js/login_notification_modal.js') }}"></script>
+    {# student assistant widget JS comes from partial include above #}
 
 </body>
 </html>
