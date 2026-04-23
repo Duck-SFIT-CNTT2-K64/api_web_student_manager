@@ -5,7 +5,8 @@ services:
     environment:
       ACCEPT_EULA: "Y"
       MSSQL_PID: "Developer"
-      MSSQL_SA_PASSWORD: ${MSSQL_SA_PASSWORD}
+      # Dev default to prevent empty password causing init failures
+      MSSQL_SA_PASSWORD: ${MSSQL_SA_PASSWORD:-YourStrong!Passw0rd}
     ports:
       - "${MSSQL_PORT:-1433}:1433"
     volumes:
@@ -34,7 +35,7 @@ services:
       DB_SERVER: db
       DB_NAME: ${DB_NAME:-QLSV_TrungTamTinHoc}
       DB_ADMIN_USER: sa
-      MSSQL_SA_PASSWORD: ${MSSQL_SA_PASSWORD}
+      MSSQL_SA_PASSWORD: ${MSSQL_SA_PASSWORD:-Duckcyzzz@2026}
       SCHEMA_FILE: /scripts/QLSV_TrungTamTinHoc.sql
       BULK_SEED_FILE: /scripts/seed_bulk_data.sql
       # auto | always | never (xem docker/db-init/init-db.sh)
@@ -63,7 +64,7 @@ services:
       DB_ENCRYPT: ${DB_ENCRYPT:-yes}
       DB_TRUST_SERVER_CERTIFICATE: ${DB_TRUST_SERVER_CERTIFICATE:-yes}
       DB_USER: sa
-      DB_PASSWORD: ${MSSQL_SA_PASSWORD}
+      DB_PASSWORD: ${MSSQL_SA_PASSWORD:-YourStrong!Passw0rd}
       FLASK_SECRET_KEY: ${FLASK_SECRET_KEY}
     volumes:
       - .:/app

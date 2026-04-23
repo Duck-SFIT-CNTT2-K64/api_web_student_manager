@@ -148,6 +148,7 @@ CREATE TABLE Classes (
     TeacherId INT,
     ClassCode NVARCHAR(20) NOT NULL UNIQUE,
     ClassName NVARCHAR(100) NOT NULL,
+    Semester NVARCHAR(50) NULL,
     MaxStudents INT,
     CONSTRAINT FK_Classes_Courses FOREIGN KEY (CourseId)
         REFERENCES Courses(CourseId)
@@ -165,6 +166,7 @@ CREATE TABLE Notifications (
     ClassId INT NULL, -- Gửi cho cả lớp (NULL nếu gửi cá nhân hoặc toàn trung tâm)
     Title NVARCHAR(200) NOT NULL,
     Content NVARCHAR(MAX),
+    AttachmentUrl NVARCHAR(500) NULL,
     CreatedDate DATETIME2 NOT NULL DEFAULT GETDATE(),
     CONSTRAINT FK_Notifications_Users FOREIGN KEY (CreatorId)
         REFERENCES Users(UserId)

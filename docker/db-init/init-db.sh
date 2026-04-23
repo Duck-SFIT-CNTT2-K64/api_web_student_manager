@@ -52,6 +52,39 @@ done
 
 echo "[db-init] SQL Server is ready."
 
+# Some restarts can leave user DBs in recovery for a bit even after SQL accepts connections.
+# Avoid `Msg 904 ... cannot be autostarted during server shutdown or startup`.
+echo "[db-init] Waiting for database ${DB_NAME} to be ONLINE (if exists)..."
+for i in {1..60}; do
+  db_state="$("${SQLCMD_BIN}" -S "${DB_SERVER}" -U "${DB_ADMIN_USER}" -P "${MSSQL_SA_PASSWORD}" -C -h -1 -W -Q "SET NOCOUNT ON; SELECT COALESCE(state_desc,'MISSING') FROM sys.databases WHERE name = N'${DB_NAME}'" 2>/dev/null || true)"
+  db_state="$(echo "${db_state}" | tr -d '\r\n[:space:]')"
+  if [ -z "${db_state}" ] || [ "${db_state}" = "MISSING" ] || [ "${db_state}" = "ONLINE" ]; then
+    break
+  fi
+  echo "[db-init] DB state=${db_state}. Sleeping..."
+  sleep 2
+done
+
+# ---- Step 0: lightweight migrations to match app expectations ----
+# Keep these idempotent so db-init can run many times.
+echo "[db-init] Ensuring required columns exist..."
+"${SQLCMD_BIN}" -S "${DB_SERVER}" -U "${DB_ADMIN_USER}" -P "${MSSQL_SA_PASSWORD}" -C -b -d master -Q "
+IF DB_ID(N'${DB_NAME}') IS NOT NULL
+BEGIN
+  IF COL_LENGTH(N'${DB_NAME}.dbo.Notifications', N'AttachmentUrl') IS NULL
+  BEGIN
+    PRINT N'Adding Notifications.AttachmentUrl...';
+    ALTER TABLE [${DB_NAME}].dbo.Notifications ADD AttachmentUrl NVARCHAR(500) NULL;
+  END
+
+  IF COL_LENGTH(N'${DB_NAME}.dbo.Classes', N'Semester') IS NULL
+  BEGIN
+    PRINT N'Adding Classes.Semester...';
+    ALTER TABLE [${DB_NAME}].dbo.Classes ADD Semester NVARCHAR(50) NULL;
+  END
+END
+"
+
 IS_INITIALIZED="$("${SQLCMD_BIN}" -S "${DB_SERVER}" -U "${DB_ADMIN_USER}" -P "${MSSQL_SA_PASSWORD}" -C -h -1 -W -Q "SET NOCOUNT ON; SELECT CASE WHEN DB_ID(N'${DB_NAME}') IS NOT NULL AND EXISTS (SELECT 1 FROM [${DB_NAME}].sys.tables WHERE name = 'Roles') THEN 1 ELSE 0 END")"
 IS_INITIALIZED="$(echo "${IS_INITIALIZED}" | tr -d '\r\n[:space:]')"
 
