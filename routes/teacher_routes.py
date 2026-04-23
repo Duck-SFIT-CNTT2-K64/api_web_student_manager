@@ -7,6 +7,7 @@ from models.teacher_model import (
     get_all_teachers,
     get_class_students_with_scores,
     get_teacher_by_id,
+    get_teacher_by_user_id,
     get_teacher_classes_by_user_id,
     get_teacher_schedule_by_user_id,
     get_teacher_stats_by_user_id,
@@ -472,3 +473,42 @@ def get_teacher_report(user_id: int):
         return jsonify({"success": True, "data": data}), 200
     except Exception as exc:
         return jsonify({"success": False, "error": str(exc)}), 500
+
+
+@teacher_bp.get("/profile")
+@role_required("Teacher", "Admin")
+def get_teacher_profile():
+    try:
+        session_user = current_session_user()
+        user_id = session_user.get("UserId")
+        teacher = get_teacher_by_user_id(user_id)
+        if not teacher:
+            return jsonify({"success": False, "error": "Teacher not found."}), 404
+        return jsonify({"success": True, "data": teacher}), 200
+    except Exception as exc:
+        return jsonify({"success": False, "error": str(exc)}), 500
+
+
+@teacher_bp.put("/profile")
+@role_required("Teacher", "Admin")
+def update_teacher_profile():
+    try:
+        session_user = current_session_user()
+        user_id = session_user.get("UserId")
+        teacher = get_teacher_by_user_id(user_id)
+        if not teacher:
+            return jsonify({"success": False, "error": "Teacher not found."}), 404
+        teacher_id = teacher["TeacherId"]
+        payload = request.get_json(silent=True) or {}
+        updated_teacher = update_teacher(teacher_id, payload)
+        if not updated_teacher:
+            return jsonify({"success": False, "error": "Failed to update profile."}), 400
+        return jsonify({"success": True, "message": "Profile updated successfully.", "data": updated_teacher}), 200
+    except ValueError as exc:
+        return jsonify({"success": False, "error": str(exc)}), 400
+    except pyodbc.IntegrityError as exc:
+        return jsonify({"success": False, "error": "Dữ liệu không hợp lệ khi cập nhật.", "details": str(exc)}), 400
+    except pyodbc.Error as exc:
+        return jsonify({"success": False, "error": "Database error.", "details": str(exc)}), 500
+    except Exception as exc:
+        return jsonify({"success": False, "error": "Unexpected server error.", "details": str(exc)}), 500

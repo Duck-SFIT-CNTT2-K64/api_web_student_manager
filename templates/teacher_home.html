@@ -44,7 +44,7 @@
 
 {% block content %}
 {% if home_data.Profile %}
-<div id="teacherPortalRoot" data-user-id="{{ current_user.UserId }}"></div>
+<div id="teacherPortalRoot" data-user-id="{{ current_user.UserId }}" data-username="{{ current_user.Username }}"></div>
 
 <!-- ══════════════════ TỔNG QUAN ══════════════════ -->
 <section class="section active" id="overview">
@@ -121,6 +121,9 @@
         <div class="profile-card-code">{{ home_data.Profile.TeacherCode }} · Giảng viên</div>
       </div>
       <div style="margin-left:auto;">
+        <button class="btn btn-sm btn-outline-primary me-2" id="editProfileBtn">
+          <i class="fas fa-edit"></i> Chỉnh sửa
+        </button>
         {% if (home_data.Profile.AccountStatus or '')|lower == 'active' %}
         <span class="t-badge t-badge-green"><i class="fas fa-circle" style="font-size:.5rem"></i> Hoạt động</span>
         {% else %}
@@ -1015,6 +1018,67 @@
           </tr>
         </tbody>
       </table>
+    </div>
+  </div>
+</div>
+
+<!-- Modal Chỉnh sửa hồ sơ -->
+<div id="editProfileModal" class="modal-overlay" style="display:none;background:rgba(0,0,0,0.5);">
+  <div class="modal-content" style="max-width:600px;border-radius:12px;box-shadow:0 20px 60px rgba(0,0,0,0.3);">
+    <div class="modal-header" style="background:linear-gradient(135deg, #1e40af 0%, #2563eb 100%);color:white;padding:24px;border-radius:12px 12px 0 0;">
+      <div style="display:flex;align-items:center;gap:12px;flex:1;">
+        <i class="fas fa-user-edit" style="font-size:1.5rem;"></i>
+        <div>
+          <h3 style="margin:0;font-size:1.25rem;font-weight:600;">Chỉnh sửa hồ sơ cá nhân</h3>
+          <p style="margin:4px 0 0 0;font-size:0.875rem;opacity:0.9;">Cập nhật thông tin của bạn</p>
+        </div>
+      </div>
+      <button id="editProfileModalClose" class="modal-close-btn" style="background:rgba(255,255,255,0.2);color:white;border:none;width:32px;height:32px;border-radius:6px;cursor:pointer;">
+        <i class="fas fa-times"></i>
+      </button>
+    </div>
+    <div class="modal-body" style="padding:24px;">
+      <form id="editProfileForm">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px;">
+          <div class="form-group" style="margin:0;">
+            <label for="profileFirstName" style="display:block;font-weight:600;margin-bottom:6px;color:#1e293b;font-size:0.875rem;"><i class="fas fa-user" style="margin-right:6px;color:#2563eb;"></i>Họ</label>
+            <input type="text" id="profileFirstName" name="FirstName" class="form-control" style="border:1.5px solid #e2e8f0;border-radius:8px;padding:10px 12px;" required>
+          </div>
+          <div class="form-group" style="margin:0;">
+            <label for="profileLastName" style="display:block;font-weight:600;margin-bottom:6px;color:#1e293b;font-size:0.875rem;"><i class="fas fa-user" style="margin-right:6px;color:#2563eb;"></i>Tên</label>
+            <input type="text" id="profileLastName" name="LastName" class="form-control" style="border:1.5px solid #e2e8f0;border-radius:8px;padding:10px 12px;" required>
+          </div>
+        </div>
+        <div class="form-group" style="margin-bottom:16px;">
+          <label for="profileSpecialization" style="display:block;font-weight:600;margin-bottom:6px;color:#1e293b;font-size:0.875rem;"><i class="fas fa-book" style="margin-right:6px;color:#2563eb;"></i>Chuyên môn</label>
+          <input type="text" id="profileSpecialization" name="Specialization" class="form-control" placeholder="VD: Công nghệ thông tin" style="border:1.5px solid #e2e8f0;border-radius:8px;padding:10px 12px;">
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px;">
+          <div class="form-group" style="margin:0;">
+            <label for="profileEmail" style="display:block;font-weight:600;margin-bottom:6px;color:#1e293b;font-size:0.875rem;"><i class="fas fa-envelope" style="margin-right:6px;color:#2563eb;"></i>Email</label>
+            <input type="email" id="profileEmail" name="Email" class="form-control" style="border:1.5px solid #e2e8f0;border-radius:8px;padding:10px 12px;">
+          </div>
+          <div class="form-group" style="margin:0;">
+            <label for="profilePhone" style="display:block;font-weight:600;margin-bottom:6px;color:#1e293b;font-size:0.875rem;"><i class="fas fa-phone" style="margin-right:6px;color:#2563eb;"></i>Số điện thoại</label>
+            <input type="tel" id="profilePhone" name="PhoneNumber" class="form-control" style="border:1.5px solid #e2e8f0;border-radius:8px;padding:10px 12px;">
+          </div>
+        </div>
+        <div class="form-group" style="margin-bottom:16px;">
+          <label for="profileUsername" style="display:block;font-weight:600;margin-bottom:6px;color:#1e293b;font-size:0.875rem;"><i class="fas fa-user-circle" style="margin-right:6px;color:#2563eb;"></i>Tên đăng nhập</label>
+          <input type="text" id="profileUsername" name="Username" class="form-control" style="border:1.5px solid #e2e8f0;border-radius:8px;padding:10px 12px;" required>
+        </div>
+        <div class="form-group" style="margin:0;">
+          <label for="profilePassword" style="display:block;font-weight:600;margin-bottom:6px;color:#1e293b;font-size:0.875rem;"><i class="fas fa-lock" style="margin-right:6px;color:#2563eb;"></i>Mật khẩu mới</label>
+          <input type="password" id="profilePassword" name="Password" class="form-control" placeholder="Để trống nếu không đổi" style="border:1.5px solid #e2e8f0;border-radius:8px;padding:10px 12px;">
+          <small style="color:#64748b;font-size:0.75rem;margin-top:4px;display:block;">Để trống nếu không muốn thay đổi mật khẩu</small>
+        </div>
+      </form>
+    </div>
+    <div class="modal-footer" style="background:#f8fafc;padding:16px 24px;border-top:1px solid #e2e8f0;display:flex;justify-content:flex-end;gap:12px;border-radius:0 0 12px 12px;">
+      <button id="editProfileCancelBtn" class="btn btn-outline-secondary" style="padding:10px 20px;border-radius:8px;font-weight:600;border:1.5px solid #cbd5e1;color:#475569;">Hủy</button>
+      <button id="editProfileSaveBtn" class="btn btn-primary" style="padding:10px 20px;border-radius:8px;font-weight:600;background:linear-gradient(135deg, #1e40af 0%, #2563eb 100%);color:white;border:none;">
+        <i class="fas fa-save" style="margin-right:6px;"></i> Lưu thay đổi
+      </button>
     </div>
   </div>
 </div>

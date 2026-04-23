@@ -1101,7 +1101,7 @@
         if (attSearchBtn) {
             attSearchBtn.addEventListener('click', function () {
                 var classId = document.getElementById('attendanceClassSelect').value;
-                var date = document.querySelector('#attendanceForm input[type="date"]').value;
+                var date = document.getElementById('attendanceDateInput').value;
                 var body = document.getElementById('attendanceTableBody');
 
                 if (!classId || !date) {
@@ -1109,25 +1109,35 @@
                     return;
                 }
 
-                body.innerHTML = '<tr><td colspan="5" class="empty">Đang tải...</td></tr>';
+                attSearchBtn.disabled = true;
+                attSearchBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Đang tải...';
+                body.innerHTML = '<tr><td colspan="5" style="text-align:center;padding:32px;color:#94a3b8;"><i class="fas fa-spinner fa-spin"></i> Đang tải...</td></tr>';
 
                 getJson('/api/teachers/attendance/' + classId + '?date=' + date)
                     .then(function (students) {
-                        body.innerHTML = (students || []).map(function (sv) {
-                            var present = sv.AttendanceStatus === 'Present' ? 'checked' : '';
-                            var absent = sv.AttendanceStatus === 'Absent' ? 'checked' : '';
-                            var late = sv.AttendanceStatus === 'Late' ? 'checked' : '';
-                            return "<tr data-enrollment-id='" + sv.EnrollmentId + "'>"
-                                + "<td><strong>" + escapeHtml(sv.StudentCode) + "</strong></td>"
-                                + "<td>" + escapeHtml(sv.FullName) + "</td>"
-                                + "<td style='text-align:center'><input type='radio' name='att_" + sv.EnrollmentId + "' value='Present' " + present + "></td>"
-                                + "<td style='text-align:center'><input type='radio' name='att_" + sv.EnrollmentId + "' value='Absent' " + absent + "></td>"
-                                + "<td style='text-align:center'><input type='radio' name='att_" + sv.EnrollmentId + "' value='Late' " + late + "></td>"
-                                + "</tr>";
-                        }).join('') || '<tr><td colspan="5" class="empty">Lớp chưa có sinh viên.</td></tr>';
+                        if (!students || students.length === 0) {
+                            body.innerHTML = '<tr><td colspan="5" style="text-align:center;padding:32px;color:#94a3b8;"><i class="fas fa-users-slash" style="font-size:1.5rem;margin-bottom:8px;display:block;"></i>Lớp chưa có sinh viên.</td></tr>';
+                        } else {
+                            body.innerHTML = students.map(function (sv) {
+                                var present = sv.AttendanceStatus === 'Present' ? 'checked' : '';
+                                var absent = sv.AttendanceStatus === 'Absent' ? 'checked' : '';
+                                var late = sv.AttendanceStatus === 'Late' ? 'checked' : '';
+                                return "<tr data-enrollment-id='" + sv.EnrollmentId + "' style='hover:background:#f8fafc;'>"
+                                    + "<td><strong>" + escapeHtml(sv.StudentCode) + "</strong></td>"
+                                    + "<td>" + escapeHtml(sv.FullName) + "</td>"
+                                    + "<td style='text-align:center'><label style='cursor:pointer;display:inline-flex;align-items:center;'><input type='radio' name='att_" + sv.EnrollmentId + "' value='Present' " + present + " style='margin-right:6px;'><span style='color:#15803d;font-weight:500;'>Có</span></label></td>"
+                                    + "<td style='text-align:center'><label style='cursor:pointer;display:inline-flex;align-items:center;'><input type='radio' name='att_" + sv.EnrollmentId + "' value='Absent' " + absent + " style='margin-right:6px;'><span style='color:#b91c1c;font-weight:500;'>Vắng</span></label></td>"
+                                    + "<td style='text-align:center'><label style='cursor:pointer;display:inline-flex;align-items:center;'><input type='radio' name='att_" + sv.EnrollmentId + "' value='Late' " + late + " style='margin-right:6px;'><span style='color:#ea580c;font-weight:500;'>Trễ</span></label></td>"
+                                    + "</tr>";
+                            }).join('');
+                        }
                     })
                     .catch(function (err) {
-                        body.innerHTML = '<tr><td colspan="5" class="empty">Lỗi: ' + escapeHtml(err.message) + '</td></tr>';
+                        body.innerHTML = '<tr><td colspan="5" style="text-align:center;padding:32px;color:#ef4444;"><i class="fas fa-exclamation-circle" style="font-size:1.5rem;margin-bottom:8px;display:block;"></i>Lỗi: ' + escapeHtml(err.message) + '</td></tr>';
+                    })
+                    .finally(function () {
+                        attSearchBtn.disabled = false;
+                        attSearchBtn.innerHTML = '<i class="fas fa-search"></i> Tải danh sách';
                     });
             });
         }
@@ -1804,7 +1814,7 @@
         var attSaveBtn = document.getElementById("attendanceSaveBtn");
         if (attSaveBtn) {
             attSaveBtn.addEventListener('click', function () {
-                var date = document.querySelector('#attendanceForm input[type="date"]').value;
+                var date = document.getElementById('attendanceDateInput').value;
                 var rows = document.querySelectorAll('#attendanceTableBody tr[data-enrollment-id]');
 
                 if (!rows.length || !date) {
@@ -1813,10 +1823,12 @@
                 }
 
                 var records = [];
+                var selectedCount = 0;
                 rows.forEach(function (row) {
                     var enrollmentId = Number(row.dataset.enrollmentId);
                     var checked = row.querySelector('input[type="radio"]:checked');
                     if (checked) {
+                        selectedCount++;
                         records.push({
                             EnrollmentId: enrollmentId,
                             SessionDate: date,
@@ -1825,12 +1837,25 @@
                     }
                 });
 
+                if (!records.length) {
+                    alert('Vui lòng chọn trạng thái điểm danh cho ít nhất một sinh viên!');
+                    return;
+                }
+
+                attSaveBtn.disabled = true;
+                attSaveBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Đang lưu...';
+
                 postJson('/api/teachers/attendance/save', { records: records })
                     .then(function () {
-                        alert('Đã lưu điểm danh thành công!');
+                        alert('Đã lưu điểm danh cho ' + selectedCount + ' sinh viên thành công!');
+                        document.getElementById('attendanceSearchBtn').click(); // Reload
                     })
                     .catch(function (err) {
                         alert('Lỗi: ' + err.message);
+                    })
+                    .finally(function () {
+                        attSaveBtn.disabled = false;
+                        attSaveBtn.innerHTML = '<i class="fas fa-save"></i> Lưu điểm danh';
                     });
             });
         }
@@ -2166,6 +2191,115 @@
     loadDashboardData().catch(function (error) {
         console.error("Lỗi khởi động:", error);
     });
+
+    // Profile editing functionality
+    var editProfileBtn = document.getElementById('editProfileBtn');
+    var editProfileModal = document.getElementById('editProfileModal');
+    var editProfileForm = document.getElementById('editProfileForm');
+    var editProfileSaveBtn = document.getElementById('editProfileSaveBtn');
+    var editProfileCancelBtn = document.getElementById('editProfileCancelBtn');
+    var editProfileModalClose = document.getElementById('editProfileModalClose');
+
+    if (editProfileBtn) {
+        editProfileBtn.addEventListener('click', function() {
+            // Get profile data from the page
+            var fullName = document.getElementById('profileFullName').textContent.trim();
+            var nameParts = fullName.split(' ');
+            var firstName = nameParts[0] || '';
+            var lastName = nameParts.slice(1).join(' ') || '';
+
+            // Get specialization from the profile card
+            var specialization = '';
+            var profileRows = document.querySelectorAll('.profile-row');
+            profileRows.forEach(function(row) {
+                var label = row.querySelector('.profile-row-label');
+                var value = row.querySelector('.profile-row-value');
+                if (label && value && label.textContent.includes('Chuyên môn')) {
+                    specialization = value.textContent.trim();
+                }
+            });
+
+            // Get email and phone from profile rows
+            var email = '';
+            var phone = '';
+            profileRows.forEach(function(row) {
+                var label = row.querySelector('.profile-row-label');
+                var value = row.querySelector('.profile-row-value');
+                if (label && value) {
+                    if (label.textContent.includes('Email')) {
+                        email = value.textContent.trim();
+                    } else if (label.textContent.includes('Số điện thoại')) {
+                        phone = value.textContent.trim();
+                    }
+                }
+            });
+
+            // Fill form
+            document.getElementById('profileFirstName').value = firstName;
+            document.getElementById('profileLastName').value = lastName;
+            document.getElementById('profileSpecialization').value = specialization;
+            document.getElementById('profileEmail').value = email;
+            document.getElementById('profilePhone').value = phone;
+            document.getElementById('profileUsername').value = (root.dataset.username || '').trim();
+            document.getElementById('profilePassword').value = '';
+
+            // Show modal
+            editProfileModal.style.display = 'flex';
+        });
+    }
+
+    if (editProfileCancelBtn) {
+        editProfileCancelBtn.addEventListener('click', function() {
+            editProfileModal.style.display = 'none';
+            editProfileForm.reset();
+        });
+    }
+
+    if (editProfileModalClose) {
+        editProfileModalClose.addEventListener('click', function() {
+            editProfileModal.style.display = 'none';
+            editProfileForm.reset();
+        });
+    }
+
+    if (editProfileSaveBtn) {
+        editProfileSaveBtn.addEventListener('click', function() {
+            var formData = new FormData(editProfileForm);
+            var payload = {};
+            for (var pair of formData.entries()) {
+                payload[pair[0]] = pair[1];
+            }
+
+            editProfileSaveBtn.disabled = true;
+            editProfileSaveBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Đang lưu...';
+
+            putJson('/api/teachers/profile', payload)
+                .then(function(response) {
+                    alert('Hồ sơ đã được cập nhật thành công!');
+                    editProfileModal.style.display = 'none';
+                    editProfileForm.reset();
+                    // Reload page to show updated data
+                    window.location.reload();
+                })
+                .catch(function(err) {
+                    alert('Lỗi: ' + err.message);
+                })
+                .finally(function() {
+                    editProfileSaveBtn.disabled = false;
+                    editProfileSaveBtn.innerHTML = '<i class="fas fa-save"></i> Lưu thay đổi';
+                });
+        });
+    }
+
+    // Close modal when clicking outside
+    if (editProfileModal) {
+        editProfileModal.addEventListener('click', function(e) {
+            if (e.target === editProfileModal) {
+                editProfileModal.style.display = 'none';
+                editProfileForm.reset();
+            }
+        });
+    }
 
     window.toggleSubmenu = toggleSubmenu;
 })();
