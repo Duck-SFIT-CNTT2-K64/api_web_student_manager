@@ -349,12 +349,16 @@ def delete_student_by_id(student_id: int) -> bool:
 
         try:
             # 1. Xóa các dữ liệu liên quan
-            # Xóa bài làm sinh viên
-            cursor.execute("DELETE FROM ExamSubmissions WHERE StudentId = ?", student_id)
+            
+            # Xóa bài làm sinh viên (ExamSubmissions liên kết qua Enrollment)
+            cursor.execute("""
+                DELETE FROM ExamSubmissions 
+                WHERE EnrollmentId IN (SELECT EnrollmentId FROM Enrollments WHERE StudentId = ?)
+            """, (student_id,))
             
             # Xóa điểm và điểm danh
-            cursor.execute("DELETE FROM Scores WHERE EnrollmentId IN (SELECT EnrollmentId FROM Enrollments WHERE StudentId = ?)", student_id)
-            cursor.execute("DELETE FROM Attendances WHERE EnrollmentId IN (SELECT EnrollmentId FROM Enrollments WHERE StudentId = ?)", student_id)
+            cursor.execute("DELETE FROM Scores WHERE EnrollmentId IN (SELECT EnrollmentId FROM Enrollments WHERE StudentId = ?)", (student_id,))
+            cursor.execute("DELETE FROM Attendances WHERE EnrollmentId IN (SELECT EnrollmentId FROM Enrollments WHERE StudentId = ?)", (student_id,))
             
             # Xóa biên lai và học phí
             cursor.execute("""
@@ -363,31 +367,23 @@ def delete_student_by_id(student_id: int) -> bool:
                     INNER JOIN Enrollments e ON t.EnrollmentId = e.EnrollmentId 
                     WHERE e.StudentId = ?
                 )
-            """, student_id)
-            cursor.execute("DELETE FROM Tuitions WHERE EnrollmentId IN (SELECT EnrollmentId FROM Enrollments WHERE StudentId = ?)", student_id)
+            """, (student_id,))
+            cursor.execute("DELETE FROM Tuitions WHERE EnrollmentId IN (SELECT EnrollmentId FROM Enrollments WHERE StudentId = ?)", (student_id,))
             
             # Xóa các ghi danh
-            cursor.execute("DELETE FROM Enrollments WHERE StudentId = ?", student_id)
+            cursor.execute("DELETE FROM Enrollments WHERE StudentId = ?", (student_id,))
             
-            # Xóa thông báo nhận được
-            cursor.execute("DELETE FROM NotificationRecipients WHERE UserId = ?", user_id)
+            # Xóa nhật ký (ActionLogs) và thông báo liên quan (để tránh lỗi FK khi xóa User)
+            cursor.execute("DELETE FROM ActionLogs WHERE UserId = ?", (user_id,))
+            cursor.execute("DELETE FROM NotificationRecipients WHERE UserId = ?", (user_id,))
+            
+            
 
             # 2. Xóa thông tin sinh viên
             cursor.execute("DELETE FROM Students WHERE StudentId = ?", student_id)
             deleted = cursor.rowcount > 0
             
-            # 3. Xóa user nếu không còn liên kết với Teacher
-            cursor.execute(
-                """
-                DELETE FROM Users
-                WHERE UserId = ?
-                  AND NOT EXISTS (SELECT 1 FROM Students WHERE UserId = ?)
-                  AND NOT EXISTS (SELECT 1 FROM Teachers WHERE UserId = ?)
-                """,
-                user_id,
-                user_id,
-                user_id,
-            )
+            
             connection.commit()
         except Exception:
             connection.rollback()

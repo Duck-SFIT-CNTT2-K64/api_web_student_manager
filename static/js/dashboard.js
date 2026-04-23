@@ -226,7 +226,7 @@ function bindBulkActions() {
 
                         selectAll.checked = false;
                         selectAll.indeterminate = false;
-                        await loadAll();
+                        await loadAll(true);
                     } catch (error) {
                         setMessage(globalMessage, error.message, "error");
                     }
@@ -793,8 +793,8 @@ function renderAll() {
     renderOptions();
 }
 
-async function loadAll() {
-    setMessage(globalMessage, "Đang tải dữ liệu...");
+async function loadAll(silent = false) {
+    if (!silent) setMessage(globalMessage, "Đang tải dữ liệu...");
     try {
         await Promise.all(
             Object.entries(endpoints).map(async function (entry) {
@@ -812,9 +812,9 @@ async function loadAll() {
         }
 
         renderAll();
-        setMessage(globalMessage, "Dữ liệu đã được cập nhật.", "success");
+        if (!silent) setMessage(globalMessage, "Dữ liệu đã được cập nhật.", "success");
     } catch (error) {
-        setMessage(globalMessage, error.message, "error");
+        if (!silent) setMessage(globalMessage, error.message, "error");
     }
 }
 
@@ -851,7 +851,7 @@ function bindForms() {
                 }
 
             }
-            await loadAll();
+            await loadAll(true);
         } catch (error) {
             setMessage(document.getElementById("studentMessage"), error.message, "error");
         }
@@ -903,7 +903,7 @@ function bindForms() {
                         createdTeacher._loginPassword || "Teacher@123"
                     );
                 }
-                await loadAll();
+                await loadAll(true);
             } catch (error) {
                 setMessage(document.getElementById("teacherMessage"), error.message, "error");
             }
@@ -934,7 +934,7 @@ function bindForms() {
                 form.reset();
                 setMessage(document.getElementById("courseMessage"), "Đã thêm khóa học.", "success");
             }
-            await loadAll();
+            await loadAll(true);
         } catch (error) {
             setMessage(document.getElementById("courseMessage"), error.message, "error");
         }
@@ -964,7 +964,7 @@ function bindForms() {
                 form.reset();
                 setMessage(document.getElementById("classMessage"), "Đã tạo lớp.", "success");
             }
-            await loadAll();
+            await loadAll(true);
         } catch (error) {
             setMessage(document.getElementById("classMessage"), error.message, "error");
         }
@@ -992,7 +992,7 @@ function bindForms() {
                 form.reset();
                 setMessage(document.getElementById("roomMessage"), "Đã thêm phòng học.", "success");
             }
-            await loadAll();
+            await loadAll(true);
         } catch (error) {
             setMessage(document.getElementById("roomMessage"), error.message, "error");
         }
@@ -1012,7 +1012,7 @@ function bindForms() {
             await sendJson("/api/enrollments", "POST", payload);
             form.reset();
             setMessage(document.getElementById("enrollmentMessage"), "Đã ghi danh và tạo học phí.", "success");
-            await loadAll();
+            await loadAll(true);
         } catch (error) {
             setMessage(document.getElementById("enrollmentMessage"), error.message, "error");
         }
@@ -1033,7 +1033,7 @@ function bindForms() {
             form.reset();
             setDefaultPaymentDate();
             setMessage(document.getElementById("paymentMessage"), "Đã ghi nhận thanh toán.", "success");
-            await loadAll();
+            await loadAll(true);
         } catch (error) {
             setMessage(document.getElementById("paymentMessage"), error.message, "error");
         }
@@ -1074,7 +1074,7 @@ function bindForms() {
                 form.reset();
                 setMessage(document.getElementById("adminAccountMessage"), "Admin account created.", "success");
             }
-            await loadAll();
+            await loadAll(true);
         } catch (error) {
             setMessage(document.getElementById("adminAccountMessage"), error.message, "error");
         }
@@ -1114,7 +1114,7 @@ function bindForms() {
                 form.reset();
                 setMessage(document.getElementById("teacherAccountMessage"), "Teacher account created.", "success");
             }
-            await loadAll();
+            await loadAll(true);
         } catch (error) {
             setMessage(document.getElementById("teacherAccountMessage"), error.message, "error");
         }
@@ -1154,7 +1154,7 @@ function bindForms() {
                 form.reset();
                 setMessage(document.getElementById("studentAccountMessage"), "Student account created.", "success");
             }
-            await loadAll();
+            await loadAll(true);
         } catch (error) {
             setMessage(document.getElementById("studentAccountMessage"), error.message, "error");
         }
@@ -1188,7 +1188,7 @@ function bindForms() {
                 form.reset();
                 setMessage(document.getElementById("scoreMessage"), "Đã lưu điểm.", "success");
             }
-            await loadAll();
+            await loadAll(true);
         } catch (error) {
             setMessage(document.getElementById("scoreMessage"), error.message, "error");
         }
@@ -1216,7 +1216,7 @@ function bindForms() {
                 form.reset();
                 setMessage(document.getElementById("class_scheduleMessage"), "Đã thêm lịch học.", "success");
             }
-            await loadAll();
+            await loadAll(true);
         } catch (error) {
             setMessage(document.getElementById("class_scheduleMessage"), error.message, "error");
         }
@@ -1245,7 +1245,7 @@ function bindForms() {
                 form.reset();
                 setMessage(document.getElementById("notificationMessage"), "Đã tạo thông báo.", "success");
             }
-            await loadAll();
+            await loadAll(true);
         } catch (error) {
             setMessage(document.getElementById("notificationMessage"), error.message, "error");
         }
@@ -1297,7 +1297,7 @@ function bindDeletes() {
         try {
             await fetch(config[0] + config[1], { method: "DELETE" }).then(parseResponse);
             setMessage(globalMessage, "Đã xóa " + config[2] + ".", "success");
-            await loadAll();
+            await loadAll(true);
         } catch (error) {
             setMessage(globalMessage, error.message, "error");
         }
@@ -1605,6 +1605,12 @@ function bindNavigation() {
 
     function applyDashboardActiveState() {
         var activeHash = normalizeDashboardHash(window.location.hash || DEFAULT_DASHBOARD_HASH);
+        
+        // Xóa mọi thông báo cũ khi chuyển trang
+        if (globalMessage) setMessage(globalMessage, "");
+        document.querySelectorAll(".message").forEach(function(msg) {
+            setMessage(msg, "");
+        });
 
         navItems.forEach(function (item) {
             var href = item.getAttribute("href") || "";
@@ -2014,7 +2020,7 @@ document.addEventListener("DOMContentLoaded", function () {
             roleModalMsg.textContent = "Đã cập nhật vai trò!";
             roleModalMsg.className = "message success";
             setTimeout(closeRoleModal, 1000);
-            await loadAll(); // refresh lại toàn bộ
+            await loadAll(true); // refresh lại toàn bộ
         } catch (err) {
             roleModalMsg.textContent = err.message;
             roleModalMsg.className = "message error";
@@ -2063,7 +2069,7 @@ document.addEventListener("DOMContentLoaded", function () {
                 enrollmentModalMsg.textContent = "Đã cập nhật ghi danh.";
                 enrollmentModalMsg.className = "message success";
                 setTimeout(closeEnrollmentModal, 700);
-                await loadAll();
+                await loadAll(true);
             } catch (error) {
                 enrollmentModalMsg.textContent = error.message;
                 enrollmentModalMsg.className = "message error";
@@ -2160,7 +2166,7 @@ document.addEventListener("DOMContentLoaded", function () {
             try {
                 await sendJson("/api/users/" + uid + "/status", "PUT", { Status: newStatus });
                 setMessage(document.getElementById("userMessage"), "Đã " + label + " tài khoản.", "success");
-                await loadAll();
+                await loadAll(true);
             } catch (err) {
                 setMessage(document.getElementById("userMessage"), err.message, "error");
             }
@@ -2180,7 +2186,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
             try {
                 var result = await sendJson("/api/users/generate/student/" + studentId, "POST");
-                await loadAll();
+                await loadAll(true);
                 if (result.username && result.password) {
                     showCredentialModal(fullName, result.username, result.password);
                 } else if (result.data) {
@@ -2204,7 +2210,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
             try {
                 var result = await sendJson("/api/users/generate/teacher/" + teacherId, "POST");
-                await loadAll();
+                await loadAll(true);
                 if (result.username && result.password) {
                     showCredentialModal(fullName, result.username, result.password);
                 } else if (result.data) {

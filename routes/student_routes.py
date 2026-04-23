@@ -115,6 +115,8 @@ def remove_student(student_id: int):
         if not deleted:
             return jsonify({"success": False, "error": "Student not found."}), 404
         return jsonify({"success": True, "message": "Student deleted."}), 200
+    except ValueError as exc:
+        return jsonify({"success": False, "error": str(exc)}), 400
     except pyodbc.Error as exc:
         return jsonify({"success": False, "error": "Database error.", "details": str(exc)}), 500
     except Exception as exc:

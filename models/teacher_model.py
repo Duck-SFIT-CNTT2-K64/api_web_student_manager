@@ -533,6 +533,13 @@ def remove_student_from_class(enrollment_id: int, user_id: int) -> bool:
 
     with get_db_connection() as connection:
         cursor = connection.cursor()
+        
+        # Kiểm tra trạng thái phải là Dropped
+        cursor.execute("SELECT Status FROM Enrollments WHERE EnrollmentId = ?", enrollment_id)
+        row = cursor.fetchone()
+        if not row or str(row[0] or "").strip().lower() != "dropped":
+            raise ValueError("Chỉ được phép xóa khi trạng thái học tập là 'Dropped' (Đã nghỉ).")
+
         # Xóa các dữ liệu liên quan (điểm, điểm danh)
         cursor.execute("DELETE FROM Scores WHERE EnrollmentId = ?", enrollment_id)
         cursor.execute("DELETE FROM Attendances WHERE EnrollmentId = ?", enrollment_id)

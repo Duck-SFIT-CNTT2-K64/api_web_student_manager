@@ -232,9 +232,14 @@ def delete_enrollment(enrollment_id: int) -> bool:
     with get_db_connection() as connection:
         cursor = connection.cursor()
         try:
-            cursor.execute("SELECT EnrollmentId FROM Enrollments WHERE EnrollmentId = ?", enrollment_id)
-            if not cursor.fetchone():
+            cursor.execute("SELECT EnrollmentId, Status FROM Enrollments WHERE EnrollmentId = ?", enrollment_id)
+            row = cursor.fetchone()
+            if not row:
                 return False
+                
+            status = str(row[1] or "").strip().lower()
+            if status != "dropped":
+                raise ValueError("Chỉ được phép xóa Ghi danh khi trạng thái học tập là 'Dropped' (Đã nghỉ). Vui lòng chuyển trạng thái trước khi xóa.")
 
             # 1. Xóa điểm và điểm danh liên quan đến ghi danh này
             cursor.execute("DELETE FROM Scores WHERE EnrollmentId = ?", enrollment_id)

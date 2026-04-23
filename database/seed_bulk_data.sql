@@ -1,4 +1,4 @@
-﻿/* =====================================================================
+/* =====================================================================
    QLSV_TrungTamTinHoc · Bulk sample-data seed (15 GV + 35 SV + ~12 lớp)
    ---------------------------------------------------------------------
    Idempotent, transaction + TRY/CATCH, password mặc định: '123456'.
@@ -153,7 +153,7 @@ BEGIN TRY
     INSERT INTO Users (RoleId, Username, PasswordHash, FullName, Email, PhoneNumber, Status)
     SELECT @RoleTeacher, ts.Username, N'123456', ts.FullName, ts.Email, ts.PhoneNumber, N'Active'
     FROM @TeacherSeed ts
-    WHERE NOT EXISTS (SELECT 1 FROM Users u WHERE u.Username = ts.Username);
+    WHERE NOT EXISTS (SELECT 1 FROM Users u WHERE u.Username = ts.Username OR u.Email = ts.Email);
 
     -- Insert Teachers rows
     INSERT INTO Teachers (UserId, TeacherCode, FirstName, LastName, Specialization, PhoneNumber, Email)
@@ -214,7 +214,7 @@ BEGIN TRY
     INSERT INTO Users (RoleId, Username, PasswordHash, FullName, Email, PhoneNumber, Status)
     SELECT @RoleStudent, ss.Username, N'123456', ss.FullName, ss.Email, ss.PhoneNumber, N'Active'
     FROM @StudentSeed ss
-    WHERE NOT EXISTS (SELECT 1 FROM Users u WHERE u.Username = ss.Username);
+    WHERE NOT EXISTS (SELECT 1 FROM Users u WHERE u.Username = ss.Username OR u.Email = ss.Email);
 
     -- Insert Students rows
     INSERT INTO Students (UserId, StatusId, StudentCode, FullName, DateOfBirth, Gender, Address, PhoneNumber, Email)
