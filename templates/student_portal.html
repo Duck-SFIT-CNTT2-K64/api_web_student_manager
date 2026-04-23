@@ -11,6 +11,7 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/landing.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/student_portal.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/login_notification_modal.css') }}">
     <script>
         (function () {
             try {
@@ -149,12 +150,6 @@
                     <a href="/student/home" data-section="overview" class="{{ 'is-active' if active == 'overview' else '' }}">
                         <i class="fas fa-id-card"></i><span>Overview</span>
                     </a>
-                    <a href="/student/notifications" data-section="notifications" class="{{ 'is-active' if active == 'notifications' else '' }}">
-                        <i class="fas fa-bell"></i><span>Thông báo</span>
-                        {% if home_data.Totals.UnreadNotifications > 0 %}
-                            <span class="portal-nav-badge">{{ home_data.Totals.UnreadNotifications }}</span>
-                        {% endif %}
-                    </a>
                     <a href="/student/scores" data-section="scores" class="{{ 'is-active' if active == 'scores' else '' }}">
                         <i class="fas fa-magnifying-glass-chart"></i><span>Grades</span>
                     </a>
@@ -184,6 +179,9 @@
                     </a>
                     <a href="/student/notifications" data-section="notifications" class="{{ 'is-active' if active == 'notifications' else '' }}">
                         <i class="fas fa-bell"></i><span>Notifications</span>
+                        {% if home_data.Totals.UnreadNotifications > 0 %}
+                            <span class="portal-nav-badge">{{ home_data.Totals.UnreadNotifications }}</span>
+                        {% endif %}
                     </a>
                 </nav>
 
@@ -282,22 +280,6 @@
                                 <strong id="kpiWeekSessions">—</strong>
                             </div>
                         </article>
-                    </div>
-                </article>
-
-                {# ═══════════════ NOTIFICATIONS ═══════════════ #}
-                <article class="portal-panel {{ 'is-active' if active == 'notifications' else '' }}" data-panel="notifications">
-                    <header class="portal-panel-head">
-                        <div>
-                            <p class="eyebrow">Thông báo</p>
-                            <h2>Thông báo từ trung tâm & giảng viên</h2>
-                        </div>
-                    </header>
-
-                    <div class="portal-cards" id="notificationsList">
-                        <div class="portal-card">
-                            <div class="empty">Đang tải thông báo...</div>
-                        </div>
                     </div>
                 </article>
 
@@ -881,6 +863,87 @@
             </div>
         </div>
 
+        {# MODAL: Confirm course registration #}
+        <div class="portal-modal" id="registerConfirmModal" hidden>
+            <div class="portal-modal-backdrop" data-modal-close></div>
+            <div class="portal-modal-dialog portal-modal-confirm" role="dialog" aria-modal="true" aria-labelledby="registerConfirmTitle" aria-describedby="registerConfirmDesc">
+                <header class="portal-modal-head">
+                    <div>
+                        <p class="eyebrow" id="registerConfirmKicker">Course registration</p>
+                        <h3 id="registerConfirmTitle">Confirm registration</h3>
+                        <p class="portal-modal-sub" id="registerConfirmDesc">Review the details below before submitting.</p>
+                    </div>
+                    <button type="button" class="portal-modal-close" data-modal-close aria-label="Close"><i class="fas fa-xmark"></i></button>
+                </header>
+                <div class="portal-modal-body">
+                    <div class="confirm-card">
+                        <div class="confirm-grid" id="registerConfirmGrid">
+                            <div class="confirm-row">
+                                <span>Course</span>
+                                <strong id="registerConfirmCourse">—</strong>
+                            </div>
+                            <div class="confirm-row">
+                                <span>Class</span>
+                                <strong id="registerConfirmClass">—</strong>
+                            </div>
+                            <div class="confirm-row">
+                                <span>Teacher</span>
+                                <strong id="registerConfirmTeacher">—</strong>
+                            </div>
+                            <div class="confirm-row">
+                                <span>Tuition</span>
+                                <strong id="registerConfirmFee">—</strong>
+                            </div>
+                            <div class="confirm-row">
+                                <span>Seats</span>
+                                <strong id="registerConfirmSeats">—</strong>
+                            </div>
+                        </div>
+                        <p class="confirm-note">
+                            <i class="fas fa-circle-info"></i>
+                            This action registers you for the selected class. You can view the result in <strong>My enrollments</strong>.
+                        </p>
+                    </div>
+                </div>
+                <footer class="portal-modal-foot">
+                    <button type="button" class="btn btn-outline" data-modal-close>Cancel</button>
+                    <button type="button" class="btn btn-primary" id="registerConfirmOkBtn">
+                        <i class="fas fa-check"></i> Confirm registration
+                    </button>
+                </footer>
+            </div>
+        </div>
+
+        <div class="login-notif-modal" id="loginNotifModal" hidden>
+            <div class="login-notif-backdrop" data-login-notif-close></div>
+            <div class="login-notif-dialog" role="dialog" aria-modal="true" aria-labelledby="loginNotifTitle" aria-describedby="loginNotifContent">
+                <header class="login-notif-head">
+                    <div>
+                        <p class="login-notif-kicker" id="loginNotifKicker">Notification</p>
+                        <h3 class="login-notif-title" id="loginNotifTitle">—</h3>
+                        <p class="login-notif-sub" id="loginNotifSub">You have an unread announcement. Admin notifications are shown first.</p>
+                    </div>
+                    <button type="button" class="login-notif-close" data-login-notif-close aria-label="Close">
+                        <i class="fas fa-xmark"></i>
+                    </button>
+                </header>
+                <div class="login-notif-body">
+                    <div class="login-notif-meta">
+                        <span class="login-notif-chip"><i class="fas fa-user"></i> <span id="loginNotifCreator">—</span></span>
+                        <span class="login-notif-chip"><i class="fas fa-user-shield"></i> <span id="loginNotifCreatorRole">—</span></span>
+                        <span class="login-notif-chip"><i class="fas fa-clock"></i> <span id="loginNotifDate">—</span></span>
+                    </div>
+                    <div class="login-notif-content" id="loginNotifContent">—</div>
+                    <footer class="login-notif-foot">
+                        <button type="button" class="login-notif-btn" data-login-notif-close>Đóng</button>
+                        <button type="button" class="login-notif-btn primary" id="loginNotifReadBtn">
+                            <i class="fas fa-check"></i> Đã đọc
+                        </button>
+                    </footer>
+                </div>
+            </div>
+        </div>
+
         {% else %}
         <section class="section-shell">
             <div class="portal-card portal-warning">
@@ -899,5 +962,6 @@
     <script src="{{ url_for('static', filename='js/theme.js') }}"></script>
     <script src="{{ url_for('static', filename='js/landing.js') }}"></script>
     <script src="{{ url_for('static', filename='js/student_portal.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/login_notification_modal.js') }}"></script>
 </body>
 </html>

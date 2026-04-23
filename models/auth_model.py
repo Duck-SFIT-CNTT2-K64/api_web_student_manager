@@ -280,5 +280,5 @@ def get_navigation_path_by_role(role_name: Optional[str]) -> str:
     if role == "teacher":
         return "/"
     if role == "student":
-        return "/student/home"
+        return "/"
     return "/login"

@@ -12,6 +12,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/landing.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/login_notification_modal.css') }}">
     <script>
         (function () {
             try {
@@ -659,77 +660,41 @@
         <p>&copy; 2026 {{ landing_data.Center.Name }} - Hands-on IT training center.</p>
     </footer>
 
-    <script src="{{ url_for('static', filename='js/theme.js') }}"></script>
-    <script src="{{ url_for('static', filename='js/landing.js') }}"></script>
-
     {% if current_user %}
-    {# ── Notification toast for logged-in users ── #}
-    <div id="studentNotifToast" style="
-        display:none; position:fixed; bottom:24px; right:24px; z-index:9999;
-        background:linear-gradient(135deg,#1e40af,#3b82f6);
-        color:#fff; border-radius:14px; box-shadow:0 8px 32px rgba(59,130,246,.45);
-        padding:14px 18px; max-width:340px; cursor:pointer;
-        transition:opacity .3s, transform .3s;
-        font-family:'Inter',sans-serif; font-size:0.9rem;
-        animation: slideInUp .4s ease;
-    " id="notifToastEl">
-        <div style="display:flex; align-items:center; gap:12px;">
-            <span style="font-size:1.5rem; flex-shrink:0;">🔔</span>
-            <div>
-                <strong id="studentNotifTitle" style="display:block; margin-bottom:2px;">New notification</strong>
-                <span id="studentNotifBody" style="opacity:.88;">You have unread messages from your instructor.</span>
+    <div class="login-notif-modal" id="loginNotifModal" hidden>
+        <div class="login-notif-backdrop" data-login-notif-close></div>
+        <div class="login-notif-dialog" role="dialog" aria-modal="true" aria-labelledby="loginNotifTitle" aria-describedby="loginNotifContent">
+            <header class="login-notif-head">
+                <div>
+                    <p class="login-notif-kicker" id="loginNotifKicker">Notification</p>
+                    <h3 class="login-notif-title" id="loginNotifTitle">—</h3>
+                    <p class="login-notif-sub" id="loginNotifSub">You have an unread announcement. Admin notifications are shown first.</p>
+                </div>
+                <button type="button" class="login-notif-close" data-login-notif-close aria-label="Close">
+                    <i class="fas fa-xmark"></i>
+                </button>
+            </header>
+            <div class="login-notif-body">
+                <div class="login-notif-meta">
+                    <span class="login-notif-chip"><i class="fas fa-user"></i> <span id="loginNotifCreator">—</span></span>
+                    <span class="login-notif-chip"><i class="fas fa-user-shield"></i> <span id="loginNotifCreatorRole">—</span></span>
+                    <span class="login-notif-chip"><i class="fas fa-clock"></i> <span id="loginNotifDate">—</span></span>
+                </div>
+                <div class="login-notif-content" id="loginNotifContent">—</div>
+                <footer class="login-notif-foot">
+                    <button type="button" class="login-notif-btn" data-login-notif-close>Đóng</button>
+                    <button type="button" class="login-notif-btn primary" id="loginNotifReadBtn">
+                        <i class="fas fa-check"></i> Đã đọc
+                    </button>
+                </footer>
             </div>
-            <button onclick="event.stopPropagation(); document.getElementById('notifToastEl').style.display='none';"
-                style="background:none; border:none; color:#fff; opacity:.7; cursor:pointer; margin-left:4px; font-size:1.1rem;" aria-label="Close">&times;</button>
-        </div>
-        <div style="margin-top:10px; font-size:0.78rem; opacity:.75;">
-            <i class="fas fa-arrow-right"></i> Click to view all notifications
         </div>
     </div>
-    <style>
-        @keyframes slideInUp {
-            from { opacity:0; transform:translateY(24px); }
-            to   { opacity:1; transform:translateY(0); }
-        }
-    </style>
-    <script>
-        (function () {
-            var roleName = {{ '"' ~ role_name ~ '"' | safe }};
-            var notifUrl = roleName === 'student'
-                ? '/student/notifications'
-                : (roleName === 'teacher' ? '/teacher/home#notifications' : '/');
-
-            fetch('/api/notifications/my/all')
-                .then(function (r) { return r.ok ? r.json() : null; })
-                .then(function (json) {
-                    if (!json || !json.success) return;
-                    var notifs = json.data || [];
-                    var unread = notifs.filter(function (n) { return !n.IsRead; });
-                    if (!unread.length) return;
-
-                    var toast = document.getElementById('notifToastEl');
-                    var titleEl = document.getElementById('studentNotifTitle');
-                    var bodyEl = document.getElementById('studentNotifBody');
-
-                    var latest = unread[0];
-                    titleEl.textContent = latest.Title || 'New notification';
-                    bodyEl.textContent = unread.length > 1
-                        ? 'You have ' + unread.length + ' unread notifications.'
-                        : (latest.Content || '').slice(0, 80) + ((latest.Content || '').length > 80 ? '…' : '');
-
-                    toast.onclick = function () { window.location.href = notifUrl; };
-                    toast.style.display = 'block';
-
-                    // Auto-hide after 10s
-                    setTimeout(function () {
-                        toast.style.opacity = '0';
-                        toast.style.transform = 'translateY(16px)';
-                        setTimeout(function () { toast.style.display = 'none'; }, 300);
-                    }, 10000);
-                })
-                .catch(function () { /* silent – user not logged in */ });
-        })();
-    </script>
     {% endif %}
+
+    <script src="{{ url_for('static', filename='js/theme.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/landing.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/login_notification_modal.js') }}"></script>
+
 </body>
 </html>

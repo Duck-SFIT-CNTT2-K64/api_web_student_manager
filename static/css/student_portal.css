@@ -612,6 +612,12 @@
     gap: 8px;
 }
 
+/* Ensure buttons always show hand cursor (incl. icon/text). */
+.btn,
+.btn * {
+    cursor: pointer;
+}
+
 .portal-message {
     margin: 6px 0 0;
     padding: 9px 12px;
@@ -1908,6 +1914,82 @@
     font-size: 0.92rem;
 }
 
+.portal-modal-sub {
+    margin: 6px 0 0;
+    color: rgba(234, 246, 255, 0.88);
+    font-size: 0.88rem;
+    font-weight: 600;
+}
+
+.portal-modal-foot {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 10px;
+    padding: 14px 16px;
+    border-top: 1px solid #dee8f6;
+    background: #ffffff;
+}
+
+/* Confirm modal (register) */
+.portal-modal-confirm {
+    width: min(640px, 100%);
+}
+
+.confirm-card {
+    border-radius: 16px;
+    border: 1px solid #d7e5f5;
+    background: linear-gradient(180deg, #ffffff 0%, #f7fbff 100%);
+    padding: 14px 14px;
+    box-shadow: 0 14px 30px rgba(8, 45, 87, 0.10);
+}
+
+.confirm-grid {
+    display: grid;
+    gap: 8px;
+}
+
+.confirm-row {
+    display: grid;
+    grid-template-columns: 140px 1fr;
+    gap: 12px;
+    padding: 10px 12px;
+    border-radius: 12px;
+    background: #ffffff;
+    border: 1px solid #e1ecf9;
+}
+
+.confirm-row span {
+    color: #5f7ea6;
+    font-size: 0.86rem;
+    font-weight: 700;
+}
+
+.confirm-row strong {
+    color: #14406f;
+    font-weight: 800;
+    font-family: "Space Grotesk", "Inter", "Segoe UI", sans-serif;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.confirm-note {
+    margin: 12px 2px 0;
+    display: flex;
+    gap: 10px;
+    align-items: flex-start;
+    color: #4e6f96;
+    font-size: 0.88rem;
+    line-height: 1.5;
+}
+
+.confirm-note i {
+    color: #2f72b8;
+    margin-top: 2px;
+}
+
 .modal-info-grid {
     display: grid;
     grid-template-columns: 130px 1fr;
@@ -1989,6 +2071,10 @@
     .schedule-slot[data-day-idx="6"] {
         display: none;
     }
+
+    .confirm-row { grid-template-columns: 1fr; gap: 4px; }
+    .portal-modal-foot { flex-direction: column; align-items: stretch; }
+    .portal-modal-foot .btn { width: 100%; justify-content: center; }
 }
 
 /* =====================================================================
@@ -2437,6 +2523,27 @@ html[data-theme="dark"] .portal-modal-head {
 html[data-theme="dark"] .portal-modal-body { color: var(--dk-text-2); }
 html[data-theme="dark"] .modal-info-grid dt { color: var(--dk-text-3); }
 html[data-theme="dark"] .modal-info-grid dd { color: var(--dk-text); }
+
+html[data-theme="dark"] .portal-modal-foot {
+    background: var(--surface);
+    border-top-color: var(--line);
+}
+
+html[data-theme="dark"] .confirm-card {
+    background: linear-gradient(180deg, var(--surface) 0%, rgba(15, 24, 41, 0.92) 100%);
+    border-color: var(--line);
+    box-shadow: 0 18px 40px rgba(0, 0, 0, 0.55);
+}
+
+html[data-theme="dark"] .confirm-row {
+    background: var(--dk-surface-3);
+    border-color: var(--line);
+}
+
+html[data-theme="dark"] .confirm-row span { color: var(--dk-text-3); }
+html[data-theme="dark"] .confirm-row strong { color: var(--dk-text); }
+html[data-theme="dark"] .confirm-note { color: var(--dk-text-3); }
+html[data-theme="dark"] .confirm-note i { color: var(--dk-accent-2); }
 
 /* ---------- Warning block ---------- */
 html[data-theme="dark"] .portal-warning {
