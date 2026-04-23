@@ -1238,46 +1238,46 @@
         }
 
         // 4. Attendance
-        var addSessionBtn = document.getElementById("attendanceAddSessionBtn");
-    if (addSessionBtn) {
-        addSessionBtn.addEventListener("click", function() {
-            var classId    = document.getElementById("attendanceClassSelect").value;
-            var dateSelect = document.getElementById("attendanceDateSelect");
-            var date       = dateSelect ? dateSelect.value : "";
+        // 4. Attendance - Automatically add session when date is selected
+        var dateSelect = document.getElementById("attendanceDateSelect");
+        if (dateSelect) {
+            dateSelect.addEventListener("change", function() {
+                var classId = document.getElementById("attendanceClassSelect").value;
+                var date = this.value;
 
-            if (!classId) { alert("Vui lòng chọn lớp!"); return; }
-            if (!date)    { alert("Vui lòng chọn buổi học!"); return; }
+                if (!classId || !date) return;
 
-            // Nếu ngày chưa có trong danh sách → thêm vào và re-render
-            if (!attendanceState.dates.includes(date)) {
-                attendanceState.dates.push(date);
-                attendanceState.dates.sort();
-            }
-
-            // Mặc định tất cả sinh viên là Present cho ngày mới
-            attendanceState.students.forEach(function(sv) {
-                var eid = String(sv.EnrollmentId);
-                if (!attendanceState.dirty[eid]) attendanceState.dirty[eid] = {};
-                if (!attendanceState.dirty[eid][date]) {
-                    attendanceState.dirty[eid][date] = "Present";
+                // Nếu ngày chưa có trong danh sách → thêm vào và re-render
+                if (!attendanceState.dates.includes(date)) {
+                    attendanceState.dates.push(date);
+                    attendanceState.dates.sort();
                 }
-            });
 
-            renderAttendanceSummary();
+                // Mặc định tất cả sinh viên là Present cho ngày mới (nếu chưa có dirty/saved)
+                attendanceState.students.forEach(function(sv) {
+                    var eid = String(sv.EnrollmentId);
+                    if (!attendanceState.dirty[eid]) attendanceState.dirty[eid] = {};
+                    
+                    // Chỉ set nếu chưa có dữ liệu saved và chưa có dữ liệu dirty
+                    var hasSaved = attendanceState.recordMap[eid] && attendanceState.recordMap[eid][date];
+                    if (!hasSaved && !attendanceState.dirty[eid][date]) {
+                        attendanceState.dirty[eid][date] = "Present";
+                    }
+                });
 
-            // Cập nhật option trong select → thêm dấu ✓
-            if (dateSelect) {
-                Array.from(dateSelect.options).forEach(function(opt) {
+                renderAttendanceSummary();
+
+                // Cập nhật option trong select → thêm dấu ✓
+                Array.from(this.options).forEach(function(opt) {
                     if (opt.value === date && !opt.text.includes("✓")) {
                         opt.text += " ✓";
                     }
                 });
-            }
 
-            var saveBtn = document.getElementById("attendanceSaveBtn");
-            if (saveBtn) saveBtn.style.display = "inline-flex";
-        });
-    }
+                var saveBtn = document.getElementById("attendanceSaveBtn");
+                if (saveBtn) saveBtn.style.display = "inline-flex";
+            });
+        }
 
         // Sửa attendanceSearchBtn — chỉ cần chọn lớp
         var attSearchBtn = document.getElementById("attendanceSearchBtn");
@@ -1291,12 +1291,10 @@
 
                 // Reset date select
                 var dateSelect = document.getElementById("attendanceDateSelect");
-                var addBtn     = document.getElementById("attendanceAddSessionBtn");
                 if (dateSelect) {
                     dateSelect.innerHTML = '<option value="">Đang tải ngày học...</option>';
                     dateSelect.disabled = true;
                 }
-                if (addBtn) addBtn.disabled = true;
 
                 // Load summary và valid dates song song
                 Promise.all([
@@ -1339,7 +1337,6 @@
                         }).join('');
 
                     dateSelect.disabled = false;
-                    if (addBtn) addBtn.disabled = false;
                 })
                 .catch(function(err) {
                     if (dateSelect) dateSelect.innerHTML = '<option value="">Lỗi tải ngày học</option>';
@@ -2170,9 +2167,9 @@
         }
 
         // Xem điểm lớp
-        var scoreViewLoadBtn = document.getElementById('scoreViewLoadBtn');
-        if (scoreViewLoadBtn) {
-            scoreViewLoadBtn.addEventListener('click', function () {
+        var scoreViewSearchBtn = document.getElementById('scoreViewSearchBtn');
+        if (scoreViewSearchBtn) {
+            scoreViewSearchBtn.addEventListener('click', function () {
                 var classId = document.getElementById('scoreViewClassSelect').value;
                 if (!classId) {
                     alert('Vui lòng chọn lớp để xem điểm!');
