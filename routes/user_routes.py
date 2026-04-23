@@ -73,6 +73,7 @@ def update_my_profile():
         gender = (payload.get("Gender") or "").strip() or None
         address = (payload.get("Address") or "").strip() or None
         date_of_birth = (payload.get("DateOfBirth") or "").strip() or None
+        specialization = (payload.get("Specialization") or "").strip() or None
 
         if not full_name:
             return jsonify({"success": False, "error": "Họ tên không được để trống."}), 400
@@ -116,10 +117,10 @@ def update_my_profile():
                 cursor.execute(
                     """
                     UPDATE Teachers
-                    SET Email = ?, PhoneNumber = ?
+                    SET Email = ?, PhoneNumber = ?, Specialization = ?
                     WHERE UserId = ?
                     """,
-                    (email, phone or None, user_id),
+                    (email, phone or None, specialization, user_id),
                 )
 
             conn.commit()

@@ -2589,3 +2589,28 @@ html[data-theme="dark"] .score-alert-card h3 { color: var(--dk-text); }
 html[data-theme="dark"] .subject-status.is-enrolled,
 html[data-theme="dark"] .subject-status.is-enrolled * { color: #6ee7b7 !important; }
 
+/* ═══════════════════════ NEW NOTIFICATION STYLES ═══════════════════════ */
+.portal-nav-badge {
+    margin-left: auto;
+    background: #ff4d4d;
+    color: white;
+    font-size: 0.72rem;
+    font-weight: 800;
+    padding: 2px 7px;
+    border-radius: 999px;
+    min-width: 18px;
+    text-align: center;
+    box-shadow: 0 4px 8px rgba(255, 77, 77, 0.25);
+    display: inline-block;
+}
+
+.btn-small {
+    padding: 6px 12px;
+    font-size: 0.75rem;
+    height: auto;
+}
+
+.portal-card-body p {
+    line-height: 1.5;
+}
+

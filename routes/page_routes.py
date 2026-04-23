@@ -92,10 +92,13 @@ def home():
             "PaymentGuide": [],
         }
 
+    session_user = current_session_user()
+    role_name = str(session_user.get('RoleName') or '').lower() if session_user else ''
     return render_template(
         "landing.html",
         landing_data=landing_data,
-        current_user=current_session_user(),
+        current_user=session_user,
+        role_name=role_name,
     )
 
 
@@ -143,6 +146,7 @@ _STUDENT_SECTIONS = {
     "exams": "Exam schedule",
     "tuition": "Tuition",
     "payment": "Online payment",
+    "notifications": "Thông báo",
 }
 
 
@@ -205,6 +209,12 @@ def student_tuition_page():
 @role_required("Student")
 def student_payment_page():
     return _render_student_portal("payment")
+
+
+@page_bp.get("/student/notifications")
+@role_required("Student")
+def student_notifications_page():
+    return _render_student_portal("notifications")
 
 
 @page_bp.get("/dashboard")

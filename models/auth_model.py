@@ -254,11 +254,20 @@ def get_student_home_data(user_id: int) -> Dict[str, Any]:
         total_enrollments = len(enrollment_list)
         outstanding_tuition = sum(float(item.get("RemainingAmount") or 0) for item in enrollment_list)
 
+        # Get notification count
+        cursor.execute("""
+            SELECT COUNT(*) 
+            FROM NotificationRecipients 
+            WHERE RecipientId = ? AND IsRead = 0
+        """, user_id)
+        unread_count = cursor.fetchone()[0]
+
         return {
             "Profile": student_profile,
             "Totals": {
                 "TotalEnrollments": total_enrollments,
                 "OutstandingTuition": outstanding_tuition,
+                "UnreadNotifications": unread_count,
             },
             "Enrollments": enrollment_list,
         }

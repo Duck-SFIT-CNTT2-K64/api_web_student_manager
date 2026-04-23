@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -7,7 +8,9 @@
     <link rel="icon" type="image/png" href="{{ url_for('static', filename='image/logo.png') }}">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;600;700&display=swap"
+        rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/landing.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/settings.css') }}">
@@ -22,12 +25,15 @@
         })();
     </script>
 </head>
+
 <body class="settings-body">
     {% set role_name = (profile.RoleName or '')|lower %}
     {% set full_name = (profile.FullName or '')|trim %}
     {% set user_initial = (full_name[:1] if full_name else 'U')|upper %}
-    {% set role_label = 'Administrator' if role_name == 'admin' else 'Instructor' if role_name == 'teacher' else 'Student' if role_name == 'student' else 'Member' %}
-    {% set home_path = '/home' if role_name in ['admin', 'teacher'] else '/student/home' if role_name == 'student' else '/' %}
+    {% set role_label = 'Administrator' if role_name == 'admin' else 'Instructor' if role_name == 'teacher' else
+    'Student' if role_name == 'student' else 'Member' %}
+    {% set home_path = '/home' if role_name in ['admin', 'teacher'] else '/student/home' if role_name == 'student' else
+    '/' %}
     {% set dob_value = profile.DateOfBirth[:10] if profile.DateOfBirth else '' %}
 
     <header class="site-header">
@@ -43,11 +49,11 @@
                 <span class="crumb-current">Account settings</span>
             </nav>
             <div class="header-tools">
-                <button type="button" class="theme-toggle" data-theme-toggle
-                        title="Toggle theme" aria-label="Toggle theme" aria-pressed="false">
+                <button type="button" class="theme-toggle" data-theme-toggle title="Toggle theme"
+                    aria-label="Toggle theme" aria-pressed="false">
                     <i class="fas fa-moon" data-theme-icon></i>
                 </button>
-                <a class="header-secondary" href="{{ home_path }}">
+                <a class="header-secondary" href="/">
                     <i class="fas fa-arrow-left"></i>
                     <span>Back to workspace</span>
                 </a>
@@ -95,7 +101,8 @@
                 <div>
                     <p class="eyebrow">Account settings</p>
                     <h1>Manage your profile &amp; security</h1>
-                    <p class="settings-sub">Update your personal information, change your password and customize your CLASSES369 experience.</p>
+                    <p class="settings-sub">Update your personal information, change your password and customize your
+                        CLASSES369 experience.</p>
                 </div>
             </header>
 
@@ -124,7 +131,8 @@
                         </label>
                         <label class="field">
                             <span>Phone number</span>
-                            <input type="tel" name="PhoneNumber" value="{{ profile.PhoneNumber or '' }}" pattern="[0-9+\-\s]{0,20}">
+                            <input type="tel" name="PhoneNumber" value="{{ profile.PhoneNumber or '' }}"
+                                pattern="[0-9+\-\s]{0,20}">
                         </label>
 
                         {% if role_name == 'student' %}
@@ -136,9 +144,9 @@
                             <span>Gender</span>
                             <select name="Gender">
                                 <option value="">— Select —</option>
-                                <option value="Nam" {% if profile.Gender == 'Nam' %}selected{% endif %}>Male</option>
-                                <option value="Nữ" {% if profile.Gender == 'Nữ' %}selected{% endif %}>Female</option>
-                                <option value="Khác" {% if profile.Gender == 'Khác' %}selected{% endif %}>Other</option>
+                                <option value="Male" {% if profile.Gender in ['Male', 'Nam'] %}selected{% endif %}>Male</option>
+                                <option value="Female" {% if profile.Gender in ['Female', 'Nữ'] %}selected{% endif %}>Female</option>
+                                <option value="Other" {% if profile.Gender in ['Other', 'Khác'] %}selected{% endif %}>Other</option>
                             </select>
                         </label>
                         <label class="field field-wide">
@@ -150,8 +158,7 @@
                         {% if role_name == 'teacher' %}
                         <label class="field field-wide">
                             <span>Specialization</span>
-                            <input type="text" value="{{ profile.Specialization or '' }}" disabled>
-                            <small class="field-hint">Contact the academic office to update your specialization.</small>
+                            <input type="text" name="Specialization" value="{{ profile.Specialization or '' }}">
                         </label>
                         {% endif %}
                     </div>
@@ -300,4 +307,5 @@
     <script src="{{ url_for('static', filename='js/theme.js') }}"></script>
     <script src="{{ url_for('static', filename='js/settings.js') }}"></script>
 </body>
+
 </html>

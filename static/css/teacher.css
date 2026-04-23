@@ -126,7 +126,7 @@
 }
 
 .qa-card {
-    background: #fff;
+    background: var(--surface);
     border-radius: 14px;
     padding: 20px 12px;
     text-align: center;
@@ -137,8 +137,8 @@
     flex-direction: column;
     align-items: center;
     gap: 10px;
-    box-shadow: 0 2px 10px rgba(0,0,0,0.07);
-    border: 1px solid rgba(0,0,0,0.05);
+    box-shadow: 0 2px 10px var(--shadow-sm);
+    border: 1px solid var(--shadow-sm);
     transition: transform 0.2s, box-shadow 0.2s;
 }
 
@@ -160,7 +160,7 @@
 .qa-label {
     font-size: 0.78rem;
     font-weight: 600;
-    color: #475569;
+    color: var(--text-secondary);
     line-height: 1.3;
 }
 
@@ -189,7 +189,7 @@
 .section-heading h2 {
     font-size: 1.25rem;
     font-weight: 700;
-    color: #1e293b;
+    color: var(--text);
     margin: 0 0 4px;
     display: flex;
     align-items: center;
@@ -208,16 +208,16 @@
 }
 
 .section-heading p {
-    color: #64748b;
+    color: var(--text-secondary);
     font-size: 0.875rem;
     margin: 0;
 }
 
 /* ── Info Card (profile) ────────────────────── */
 .profile-card {
-    background: #fff;
+    background: var(--surface);
     border-radius: 16px;
-    box-shadow: 0 2px 12px rgba(0,0,0,0.07);
+    box-shadow: 0 2px 12px var(--shadow-sm);
     overflow: hidden;
 }
 
@@ -271,19 +271,19 @@
 .profile-row-icon {
     width: 28px;
     text-align: center;
-    color: #94a3b8;
+    color: var(--text-muted);
     font-size: 0.85rem;
     flex-shrink: 0;
 }
 
 .profile-row-label {
-    color: #64748b;
+    color: var(--text-secondary);
     width: 120px;
     flex-shrink: 0;
 }
 
 .profile-row-value {
-    color: #1e293b;
+    color: var(--text);
     font-weight: 500;
 }
 
@@ -295,7 +295,7 @@
     display: flex;
     align-items: center;
     gap: 16px;
-    box-shadow: 0 2px 10px rgba(0,0,0,0.07);
+    box-shadow: 0 2px 10px var(--shadow-sm);
     border: 1px solid rgba(0,0,0,0.04);
     transition: transform 0.2s, box-shadow 0.2s;
 }
@@ -321,7 +321,7 @@
 .stat-label {
     display: block;
     font-size: 0.8rem;
-    color: #64748b;
+    color: var(--text-secondary);
     font-weight: 500;
     margin-bottom: 3px;
 }
@@ -329,16 +329,16 @@
 .stat-value {
     font-size: 1.5rem;
     font-weight: 700;
-    color: #1e293b;
+    color: var(--text);
     line-height: 1;
 }
 
 /* ── Section Cards / Panels ─────────────────── */
 .t-card {
-    background: #fff;
+    background: var(--surface);
     border-radius: 14px;
-    box-shadow: 0 2px 10px rgba(0,0,0,0.07);
-    border: 1px solid rgba(0,0,0,0.05);
+    box-shadow: 0 2px 10px var(--shadow-sm);
+    border: 1px solid var(--shadow-sm);
     overflow: hidden;
     margin-bottom: 20px;
 }
@@ -358,7 +358,7 @@
     gap: 10px;
     font-size: 0.95rem;
     font-weight: 600;
-    color: #1e293b;
+    color: var(--text);
 }
 
 .t-card-title .tct-icon {
@@ -381,16 +381,16 @@
     align-items: center;
     flex-wrap: wrap;
     padding: 16px 20px;
-    background: #f8fafc;
+    background: var(--page-bg);
     border-radius: 10px;
     margin-bottom: 16px;
-    border: 1px solid #e2e8f0;
+    border: 1px solid var(--border);
 }
 
 .t-filter-bar label {
     font-size: 0.82rem;
     font-weight: 600;
-    color: #64748b;
+    color: var(--text-secondary);
     margin-bottom: 0;
     white-space: nowrap;
 }
@@ -413,27 +413,27 @@
 }
 
 .t-table thead th {
-    background: #f8fafc;
+    background: var(--page-bg);
     padding: 11px 14px;
     text-align: left;
     font-size: 0.75rem;
     font-weight: 700;
-    color: #64748b;
+    color: var(--text-secondary);
     text-transform: uppercase;
     letter-spacing: 0.5px;
-    border-bottom: 2px solid #e2e8f0;
+    border-bottom: 2px solid var(--border);
     white-space: nowrap;
 }
 
 .t-table tbody td {
     padding: 12px 14px;
     border-bottom: 1px solid #f1f5f9;
-    color: #334155;
+    color: var(--text);
     vertical-align: middle;
 }
 
 .t-table tbody tr:hover td {
-    background: #f8fafc;
+    background: var(--page-bg);
 }
 
 .t-table tbody tr:last-child td {
@@ -443,7 +443,7 @@
 .t-table .empty-row td {
     text-align: center;
     padding: 32px;
-    color: #94a3b8;
+    color: var(--text-muted);
     font-style: italic;
 }
 
@@ -451,13 +451,13 @@
 .score-input {
     width: 72px;
     padding: 5px 8px;
-    border: 1.5px solid #e2e8f0;
+    border: 1.5px solid var(--border);
     border-radius: 6px;
     font-size: 0.875rem;
     text-align: center;
     transition: border-color 0.2s, box-shadow 0.2s;
-    background: #fff;
-    color: #1e293b;
+    background: var(--surface);
+    color: var(--text);
 }
 
 .score-input:focus {
@@ -482,7 +482,7 @@
     cursor: pointer;
     font-size: 0.68rem;
     font-weight: 600;
-    color: #64748b;
+    color: var(--text-secondary);
 }
 
 .att-radio-label input[type="radio"] {
@@ -502,7 +502,7 @@
     transition: background 0.15s;
 }
 
-.notif-item:hover { background: #f8fafc; }
+.notif-item:hover { background: var(--page-bg); }
 .notif-item:last-child { border-bottom: none; }
 
 .notif-dot {
@@ -523,7 +523,7 @@
 
 .notif-title {
     font-weight: 600;
-    color: #1e293b;
+    color: var(--text);
     font-size: 0.875rem;
     cursor: pointer;
     text-decoration: none;
@@ -535,7 +535,7 @@
 
 .notif-meta {
     font-size: 0.75rem;
-    color: #94a3b8;
+    color: var(--text-muted);
     display: flex;
     gap: 12px;
 }
@@ -550,7 +550,7 @@
 .t-form-group label {
     font-size: 0.8rem;
     font-weight: 600;
-    color: #475569;
+    color: var(--text-secondary);
 }
 
 /* ── Badges ─────────────────────────────────── */
@@ -569,7 +569,7 @@
 .t-badge-green  { background: #dcfce7; color: #15803d; }
 .t-badge-red    { background: #fee2e2; color: #be123c; }
 .t-badge-amber  { background: #fef3c7; color: #b45309; }
-.t-badge-gray   { background: #f1f5f9; color: #64748b; }
+.t-badge-gray   { background: var(--page-bg); color: var(--text-secondary); }
 .t-badge-purple { background: #ede9fe; color: #6d28d9; }
 
 /* ── Progress bars ──────────────────────────── */
@@ -603,7 +603,7 @@
 }
 
 .calendar-col {
-    border: 1px solid #e2e8f0;
+    border: 1px solid var(--border);
     border-radius: 10px;
     overflow: hidden;
     min-height: 120px;
@@ -620,14 +620,14 @@
 }
 
 .calendar-item {
-    background: #fff;
+    background: var(--surface);
     border-left: 3px solid #2563eb;
     margin: 6px;
     padding: 7px 8px;
     border-radius: 6px;
     font-size: 0.75rem;
     line-height: 1.45;
-    box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+    box-shadow: 0 1px 4px var(--shadow-sm);
 }
 
 .calendar-empty {
@@ -743,12 +743,12 @@
 #scoreStudentTableBody input[type="number"] {
     width: 72px;
     padding: 5px 8px;
-    border: 1.5px solid #e2e8f0;
+    border: 1.5px solid var(--border);
     border-radius: 6px;
     font-size: 0.875rem;
     text-align: center;
     transition: border-color 0.2s, box-shadow 0.2s;
-    background: #fff;
+    background: var(--surface);
 }
 
 #scoreStudentTableBody input[type="number"]:focus {
@@ -765,6 +765,35 @@
     .calendar-grid { grid-template-columns: repeat(3, 1fr); }
     .t-form-row { grid-template-columns: 1fr; }
 }
+/* ── Class Detail Modal Refinements ──────────────── */
+#classDetailModalClose:hover {
+    color: #ef4444 !important;
+}
+
+#classDetailGoScore:hover {
+    background: #1e40af !important;
+    transform: translateY(-1px);
+}
+
+#classDetailGoAttend:hover {
+    background: #fef08a !important;
+    transform: translateY(-1px);
+}
+
+#classDetailGoExams:hover {
+    background: #c7d2fe !important;
+    color: #312e81 !important;
+    transform: translateY(-1px);
+}
+
+#classDetailTableBody tr:hover td {
+    background: var(--page-bg);
+}
+
+#classDetailTableBody td {
+    border-bottom: 1px solid #f1f5f9;
+}
+
 /* -- SPA Sections Visibility ------------------ */
 .section {
     display: none;

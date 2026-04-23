@@ -37,6 +37,7 @@
         exams: [],
         scores: [],
         finance: [],
+        notifications: [],
     };
 
     var endpoints = {
@@ -50,6 +51,7 @@
         scores: "/api/students/scores/" + userId,
         finance: "/api/students/finance/" + userId,
         payment: "/api/students/finance/" + userId + "/payments",
+        notifications: "/api/notifications/my/all",
     };
 
     var activePanelEl = document.querySelector(".portal-panel.is-active");
@@ -427,6 +429,34 @@
                 return '<div class="score-judge ' + cls + '" style="display:block;padding:10px 14px;margin-bottom:8px;font-size:0.9rem">' + esc(m.text) + '</div>';
             }).join("");
         }
+    }
+
+    function renderNotifications() {
+        var listEl = document.getElementById("notificationsList");
+        if (!listEl) return;
+        var notifs = state.notifications || [];
+        if (!notifs.length) {
+            listEl.innerHTML = '<div class="portal-card"><div class="empty">Bạn không có thông báo nào.</div></div>';
+            return;
+        }
+        listEl.innerHTML = notifs.map(function (n) {
+            var dateStr = fmtDateVi(n.CreatedDate);
+            var unreadStyle = n.IsRead ? "" : 'border-left: 4px solid var(--accent); background: #fdf9f5;';
+            var markReadBtn = n.IsRead ? "" : '<button class="btn btn-outline btn-small" data-read-id="' + n.NotificationId + '">Đánh dấu đã đọc</button>';
+            return '<div class="portal-card" style="' + unreadStyle + '">'
+                + '  <div class="portal-card-head">'
+                + '    <h3>' + (n.IsRead ? "" : '<i class="fas fa-circle" style="font-size:0.5rem; color:var(--accent); vertical-align:middle; margin-right:6px"></i>') + esc(n.Title) + '</h3>'
+                + '    <span class="portal-card-badge">' + esc(n.CreatorName || "Hệ thống") + '</span>'
+                + '  </div>'
+                + '  <div class="portal-card-body">'
+                + '    <p style="margin: 0 0 10px; color: var(--ink-light); white-space: pre-wrap;">' + esc(n.Content) + '</p>'
+                + '    <div style="display:flex; align-items:center; justify-content:space-between">'
+                + '      <span style="font-size:0.8rem; color:var(--ink-lightest); font-weight:600">' + dateStr + '</span>'
+                + markReadBtn
+                + '    </div>'
+                + '  </div>'
+                + '</div>';
+        }).join("");
     }
 
     // ───────────────────────── REGISTRATION ─────────────────────────
@@ -1109,6 +1139,44 @@
 
         var examExport = document.getElementById("examExportBtn");
         if (examExport) examExport.addEventListener("click", exportExamsCSV);
+
+        var notifList = document.getElementById("notificationsList");
+        if (notifList) {
+            notifList.addEventListener("click", function (ev) {
+                var btn = ev.target.closest("[data-read-id]");
+                if (btn) {
+                    var id = Number(btn.dataset.readId);
+                    markAsRead(id);
+                }
+            });
+        }
+    }
+
+    function markAsRead(id) {
+        return fetch("/api/notifications/" + id + "/read", { method: "PUT" })
+            .then(function (res) { return res.json(); })
+            .then(function (json) {
+                if (json.success) {
+                    state.notifications.forEach(function (n) {
+                        if (n.NotificationId === id) n.IsRead = 1;
+                    });
+                    renderNotifications();
+                    updateBadge();
+                }
+            });
+    }
+
+    function updateBadge() {
+        var unreadCount = state.notifications.filter(function (n) { return !n.IsRead; }).length;
+        var badge = document.querySelector(".portal-nav-badge");
+        if (badge) {
+            if (unreadCount > 0) {
+                badge.textContent = unreadCount;
+                badge.style.display = "inline-block";
+            } else {
+                badge.style.display = "none";
+            }
+        }
     }
 
     // ───────────────────────── MAIN LOAD ─────────────────────────
@@ -1122,6 +1190,7 @@
             getJson(endpoints.exams).catch(function () { return []; }),
             getJson(endpoints.scores).catch(function () { return []; }),
             getJson(endpoints.finance).catch(function () { return []; }),
+            getJson(endpoints.notifications).catch(function () { return []; }),
         ]).then(function (results) {
             state.profile = results[0];
             state.learning = results[1] || { Enrollments: [], CourseContents: [] };
@@ -1131,6 +1200,7 @@
             state.exams = results[5] || [];
             state.scores = results[6] || [];
             state.finance = results[7] || [];
+            state.notifications = results[8] || [];
 
             renderScores();
             renderRegistration();
@@ -1139,6 +1209,8 @@
             renderMiniCalendar();
             renderExams();
             renderTuition();
+            renderNotifications();
+            updateBadge();
 
             // Overview counts
             var enrollCount = (state.learning.Enrollments || []).length;
