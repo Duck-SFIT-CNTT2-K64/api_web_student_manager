@@ -26,10 +26,6 @@ fi
 
 # Helper: run a SQL script through sqlcmd.
 # -b : exit non-zero on SQL errors so `set -e` will abort this script.
-# Note: Linux sqlcmd (v17/v18 ODBC) KHÔNG hỗ trợ -f <codepage>. Chúng ta
-#       dựa vào UTF-8 BOM (0xEF 0xBB 0xBF) ở đầu file để sqlcmd tự
-#       detect Unicode. Cả QLSV_TrungTamTinHoc.sql và seed_bulk_data.sql
-#       đều đã được lưu kèm BOM.
 run_script() {
   local script_path="$1"
   local label="$2"
@@ -52,12 +48,37 @@ done
 
 echo "[db-init] SQL Server is ready."
 
-IS_INITIALIZED="$("${SQLCMD_BIN}" -S "${DB_SERVER}" -U "${DB_ADMIN_USER}" -P "${MSSQL_SA_PASSWORD}" -C -h -1 -W -Q "SET NOCOUNT ON; SELECT CASE WHEN DB_ID(N'${DB_NAME}') IS NOT NULL AND EXISTS (SELECT 1 FROM [${DB_NAME}].sys.tables WHERE name = 'Roles') THEN 1 ELSE 0 END")"
-IS_INITIALIZED="$(echo "${IS_INITIALIZED}" | tr -d '\r\n[:space:]')"
+# ---- New: Wait for DB to be ONLINE if it already exists ----
+# Tránh lỗi Msg 904: Database cannot be autostarted during startup
+echo "[db-init] Checking if database ${DB_NAME} exists and is ONLINE..."
+while true; do
+    # Lấy state_desc: ONLINE, RECOVERING, etc.
+    DB_STATE=$("${SQLCMD_BIN}" -S "${DB_SERVER}" -U "${DB_ADMIN_USER}" -P "${MSSQL_SA_PASSWORD}" -C -h -1 -W -Q "SET NOCOUNT ON; SELECT state_desc FROM sys.databases WHERE name = N'${DB_NAME}'" || echo "NOT_FOUND")
+    DB_STATE=$(echo "${DB_STATE}" | tr -d '\r\n[:space:]')
+    
+    if [ -z "${DB_STATE}" ] || [ "${DB_STATE}" = "NOT_FOUND" ]; then
+        echo "[db-init] Database ${DB_NAME} does not exist yet."
+        break
+    fi
+    
+    if [ "${DB_STATE}" = "ONLINE" ]; then
+        echo "[db-init] Database ${DB_NAME} is ONLINE."
+        break
+    fi
+    
+    echo "[db-init] Database ${DB_NAME} is in state: ${DB_STATE}. Waiting..."
+    sleep 2
+done
+
+# Kiểm tra xem đã có bảng Roles chưa để quyết định có chạy schema script không.
+# Bọc trong || true để tránh set -e ngắt script nếu DB chưa có table.
+IS_INITIALIZED=0
+CHECK_INIT=$("${SQLCMD_BIN}" -S "${DB_SERVER}" -U "${DB_ADMIN_USER}" -P "${MSSQL_SA_PASSWORD}" -C -h -1 -W -Q "SET NOCOUNT ON; IF DB_ID(N'${DB_NAME}') IS NOT NULL AND EXISTS (SELECT 1 FROM [${DB_NAME}].sys.tables WHERE name = 'Roles') SELECT 1 ELSE SELECT 0" || echo "0")
+IS_INITIALIZED=$(echo "${CHECK_INIT}" | tr -d '\r\n[:space:]')
 
 # ---- Step 1: schema ----
 if [ "${IS_INITIALIZED}" = "1" ]; then
-  echo "[db-init] Database ${DB_NAME} already initialized. Skip schema import."
+  echo "[db-init] Database ${DB_NAME} already initialized (Roles table found). Skip schema import."
 else
   if [ ! -f "${SCHEMA_FILE}" ]; then
     echo "[db-init] Schema file not found: ${SCHEMA_FILE}"

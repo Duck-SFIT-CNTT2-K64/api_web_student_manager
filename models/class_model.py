@@ -29,6 +29,25 @@ def get_all_classes_with_details() -> List[Dict[str, Any]]:
                     WHEN c.MaxStudents IS NULL THEN NULL
                     ELSE c.MaxStudents - COUNT(DISTINCT e.EnrollmentId)
                 END AS RemainingSeats,
+                -- Lấy chuỗi tóm tắt lịch học (Dùng FOR XML PATH cho SQL Server cũ hơn hoặc STRING_AGG cho mới)
+                ISNULL(
+                    STUFF((
+                        SELECT ', ' + cs.Weekday + ' ' + CONVERT(VARCHAR(5), cs.StartTime, 108)
+                        FROM ClassSchedules cs
+                        WHERE cs.ClassId = c.ClassId
+                        ORDER BY 
+                            CASE 
+                                WHEN cs.Weekday = 'Monday' THEN 1
+                                WHEN cs.Weekday = 'Tuesday' THEN 2
+                                WHEN cs.Weekday = 'Wednesday' THEN 3
+                                WHEN cs.Weekday = 'Thursday' THEN 4
+                                WHEN cs.Weekday = 'Friday' THEN 5
+                                WHEN cs.Weekday = 'Saturday' THEN 6
+                                ELSE 7
+                            END
+                        FOR XML PATH(''), TYPE).value('.', 'NVARCHAR(MAX)'), 1, 2, ''),
+                    N'Chưa có lịch'
+                ) AS ScheduleSummary,
                 COUNT(DISTINCT cs.ScheduleId) AS ScheduleCount
             FROM Classes c
             INNER JOIN Courses co ON c.CourseId = co.CourseId
@@ -256,31 +275,72 @@ def delete_class_by_id(class_id: int, user_role: str = "Admin") -> bool:
     with get_db_connection() as connection:
         cursor = connection.cursor()
         
-        # Lấy danh sách các trạng thái của sinh viên trong lớp
+        # 1. Kiểm tra sĩ số thực tế đang học trong lớp này (Enrollment Status)
         cursor.execute("""
-            SELECT ss.StatusName, COUNT(*) as Count
-            FROM Enrollments e
-            INNER JOIN Students s ON e.StudentId = s.StudentId
-            INNER JOIN StudentStatuses ss ON s.StatusId = ss.StatusId
-            WHERE e.ClassId = ?
-            GROUP BY ss.StatusName
+            SELECT Status, COUNT(*) as Count
+            FROM Enrollments
+            WHERE ClassId = ?
+            GROUP BY Status
         """, class_id)
         
-        results = cursor.fetchall()
-        status_counts = {row[0]: row[1] for row in results}
+        enroll_results = cursor.fetchall()
+        enroll_status_counts = {row[0]: row[1] for row in enroll_results}
         
-        # 1. Luôn chặn nếu có sinh viên "Đang học"
-        active_count = status_counts.get('Đang học', 0)
-        if active_count > 0:
-            raise ValueError(f"Không thể xóa: Lớp vẫn còn {active_count} sinh viên đang theo học.")
-            
-        # 2. Kiểm tra trạng thái "Bảo lưu" dựa trên vai trò
-        deferred_count = status_counts.get('Bảo lưu', 0)
-        if deferred_count > 0:
-            if user_role.lower() != "admin":
-                raise ValueError(f"Chỉ Admin mới có quyền xóa lớp có sinh viên đang bảo lưu ({deferred_count} học viên).")
+        active_enrolled = enroll_status_counts.get("Enrolled", 0)
+        
+        # Ngăn chặn xóa nếu vẫn còn sinh viên đang học (áp dụng cho cả Admin)
+        if active_enrolled > 0:
+            raise ValueError(f"Không thể xóa lớp: Vẫn còn {active_enrolled} sinh viên đang theo học (Enrolled). Hãy chuyển lớp hoặc đổi trạng thái ghi danh cho sinh viên trước khi xóa.")
 
+        # 3. Thực hiện xóa các dữ liệu liên quan
+        # 1. Xóa bài làm của sinh viên (ExamSubmissions) - Phải xóa trước Exams
+        cursor.execute("""
+            DELETE FROM ExamSubmissions WHERE ExamId IN (SELECT ExamId FROM Exams WHERE ClassId = ?)
+        """, class_id)
+
+        # 2. Xóa thông báo liên quan đến lớp (nếu có cột ClassId)
+        # Lưu ý: Phải xóa NotificationRecipients trước do FK NO ACTION
+        try:
+            cursor.execute("""
+                DELETE FROM NotificationRecipients WHERE NotificationId IN (
+                    SELECT NotificationId FROM Notifications WHERE ClassId = ?
+                )
+            """, class_id)
+            cursor.execute("DELETE FROM Notifications WHERE ClassId = ?", class_id)
+        except Exception:
+            # Nếu cột ClassId không tồn tại trong Notifications thì bỏ qua
+            pass
+
+        # 3. Xóa biên lai (Receipts) - Phải xóa trước Tuitions/Enrollments (do ON DELETE NO ACTION)
+        cursor.execute("""
+            DELETE FROM Receipts WHERE TuitionId IN (
+                SELECT t.TuitionId FROM Tuitions t 
+                INNER JOIN Enrollments e ON t.EnrollmentId = e.EnrollmentId 
+                WHERE e.ClassId = ?
+            )
+        """, class_id)
+
+        # 4. Xóa điểm danh (Attendances) - Phải xóa trước ClassSchedules/Enrollments
+        cursor.execute("""
+            DELETE FROM Attendances WHERE EnrollmentId IN (SELECT EnrollmentId FROM Enrollments WHERE ClassId = ?)
+        """, class_id)
+        cursor.execute("""
+            DELETE FROM Attendances WHERE ScheduleId IN (SELECT ScheduleId FROM ClassSchedules WHERE ClassId = ?)
+        """, class_id)
+
+        # 5. Xóa bài tập/kiểm tra (Exams)
+        cursor.execute("DELETE FROM Exams WHERE ClassId = ?", class_id)
+
+        # 6. Xóa danh sách ghi danh (Enrollments)
+        # Lưu ý: Bảng Scores và Tuitions có ON DELETE CASCADE từ Enrollments nên sẽ tự động xóa theo
+        cursor.execute("DELETE FROM Enrollments WHERE ClassId = ?", class_id)
+        
+        # 7. Xóa lịch học (ClassSchedules)
+        cursor.execute("DELETE FROM ClassSchedules WHERE ClassId = ?", class_id)
+        
+        # 8. Cuối cùng mới xóa lớp (Classes)
         cursor.execute("DELETE FROM Classes WHERE ClassId = ?", class_id)
+        
         deleted = cursor.rowcount > 0
         connection.commit()
         return deleted

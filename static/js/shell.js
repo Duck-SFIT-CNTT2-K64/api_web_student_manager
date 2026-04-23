@@ -83,6 +83,53 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     }
 
+    /* ──────────────────────────────────────────────────────────
+       Collapsible sub-groups (nested dropdown inside nav-group)
+       Dùng cho "Accounts" trong Management group.
+       - Bấm .nav-sub-header → toggle class `open` trên .nav-sub-group
+       - State lưu localStorage theo data-subgroup
+       - Sub-group chứa item active sẽ luôn tự mở
+       ────────────────────────────────────────────────────────── */
+    var NAV_SUB_STATE_KEY = 'adminNavSubGroupState_v1';
+
+    function loadSubGroupState() {
+        try { return JSON.parse(localStorage.getItem(NAV_SUB_STATE_KEY) || '{}') || {}; }
+        catch (e) { return {}; }
+    }
+    function saveSubGroupState(state) {
+        try { localStorage.setItem(NAV_SUB_STATE_KEY, JSON.stringify(state)); }
+        catch (e) { /* bỏ qua */ }
+    }
+
+    var navSubGroups = document.querySelectorAll('.nav-sub-group');
+    if (navSubGroups.length) {
+        var storedSubState = loadSubGroupState();
+        navSubGroups.forEach(function (sub) {
+            var key = sub.getAttribute('data-subgroup') || '';
+            var header = sub.querySelector('.nav-sub-header');
+            var hasActive = !!sub.querySelector('.nav-item.active');
+
+            if (hasActive) {
+                sub.classList.add('open');
+            } else if (key && Object.prototype.hasOwnProperty.call(storedSubState, key)) {
+                sub.classList.toggle('open', !!storedSubState[key]);
+            }
+
+            if (header) {
+                header.addEventListener('click', function (ev) {
+                    ev.preventDefault();
+                    ev.stopPropagation(); // không lan lên nav-group-header
+                    sub.classList.toggle('open');
+                    if (key) {
+                        var next = loadSubGroupState();
+                        next[key] = sub.classList.contains('open');
+                        saveSubGroupState(next);
+                    }
+                });
+            }
+        });
+    }
+
     window.addEventListener('resize', function () {
         if (window.innerWidth > 1024 && sidebar) {
             sidebar.classList.remove('open');

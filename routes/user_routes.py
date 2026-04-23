@@ -241,9 +241,12 @@ def handle_users():
         return jsonify({"success": False, "error": str(exc)}), 500
 
 
-@user_bp.route("/<int:user_id>", methods=["PUT", "DELETE"])
+@user_bp.route("/<int:user_id>", methods=["PUT", "DELETE"]) # Đã thêm dấu < >
 @role_required("Admin")
 def handle_user_by_id(user_id: int):
+    # ----------------------------------------
+    # XỬ LÝ DELETE
+    # ----------------------------------------
     if request.method == "DELETE":
         try:
             with get_db_connection() as conn:
@@ -254,33 +257,44 @@ def handle_user_by_id(user_id: int):
         except Exception as exc:
             return jsonify({"success": False, "error": str(exc)}), 500
 
-    # PUT: Update user profile
-    try:
-        payload = request.get_json(silent=True) or {}
-        fullname = (payload.get("FullName") or "").strip()
-        email = (payload.get("Email") or "").strip()
-        phone = (payload.get("PhoneNumber") or "").strip()
-
-        if not fullname or not email:
-            return jsonify({"success": False, "error": "Full Name and Email are required."}), 400
-
-        with get_db_connection() as conn:
-            cursor = conn.cursor()
-            # Check email duplicate
-            cursor.execute("SELECT UserId FROM Users WHERE Email = ? AND UserId <> ?", (email, user_id))
-            if cursor.fetchone():
-                return jsonify({"success": False, "error": "Email already in use."}), 400
-
-            cursor.execute(
-                "UPDATE Users SET FullName = ?, Email = ?, PhoneNumber = ? WHERE UserId = ?",
-                (fullname, email, phone or None, user_id)
-            )
-            conn.commit()
-
-        return jsonify({"success": True, "message": "User updated."}), 200
-    except Exception as exc:
-        return jsonify({"success": False, "error": str(exc)}), 500
-
+    # ----------------------------------------
+    # XỬ LÝ PUT
+    # ----------------------------------------
+    elif request.method == "PUT":
+        try:
+            payload = request.get_json(silent=True) or {}
+            fullname = (payload.get("FullName") or "").strip()
+            email = (payload.get("Email") or "").strip()
+            phone = (payload.get("PhoneNumber") or "").strip()
+            username = (payload.get("Username") or "").strip()
+            
+            if not fullname or not email or not username:
+                return jsonify({"success": False, "error": "Username, Full Name and Email are required."}), 400
+            
+            with get_db_connection() as conn:
+                cursor = conn.cursor()
+                
+                # Check email duplicate
+                cursor.execute("SELECT UserId FROM Users WHERE Email = ? AND UserId <> ?", (email, user_id))
+                if cursor.fetchone():
+                    return jsonify({"success": False, "error": "Email already in use."}), 400
+                
+                # Check username duplicate
+                cursor.execute("SELECT UserId FROM Users WHERE Username = ? AND UserId <> ?", (username, user_id))
+                if cursor.fetchone():
+                    return jsonify({"success": False, "error": "Username already in use."}), 400
+                
+                # Thực hiện Update
+                cursor.execute(
+                    "UPDATE Users SET Username = ?, FullName = ?, Email = ?, PhoneNumber = ? WHERE UserId = ?",
+                    (username, fullname, email, phone or None, user_id)
+                )
+                conn.commit() # Lưu thay đổi vào DB
+                
+            return jsonify({"success": True, "message": "User updated."}), 200
+            
+        except Exception as exc:
+            return jsonify({"success": False, "error": str(exc)}), 500
 
 @user_bp.put("/<int:user_id>/status")
 @role_required("Admin")

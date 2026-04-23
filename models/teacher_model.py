@@ -200,10 +200,16 @@ def delete_teacher(teacher_id: int) -> bool:
     user_id = existing.get("UserId")
     with get_db_connection() as connection:
         cursor = connection.cursor()
-        # Xóa teacher trước, sau đó xóa user
+        # 1. Gỡ giảng viên khỏi các lớp đang dạy (nếu có)
+        cursor.execute("UPDATE Classes SET TeacherId = NULL WHERE TeacherId = ?", (teacher_id,))
+        
+        # 2. Xóa teacher
         cursor.execute("DELETE FROM Teachers WHERE TeacherId = ?", (teacher_id,))
+        
+        # 3. Xóa user nếu có
         if user_id:
             cursor.execute("DELETE FROM Users WHERE UserId = ?", (user_id,))
+            
         connection.commit()
     return True
 
@@ -482,13 +488,22 @@ def save_student_and_enroll(class_id: int, user_id: int, payload: Dict[str, Any]
                 student_id
             ))
         else:
-            # Tạo mới User cho sinh viên (Username = StudentCode, Password mặc định = StudentCode)
             try:
+                # Password mặc định là mã sinh viên, được hash
+                password_plain = student_code.strip()
+                hashed_pw = bcrypt.hashpw(password_plain.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
+                
                 cursor.execute("""
-                    INSERT INTO Users (Username, Password, FullName, Role)
+                    INSERT INTO Users (RoleId, Username, PasswordHash, FullName, Email, PhoneNumber, Status)
                     OUTPUT INSERTED.UserId
-                    VALUES (?, ?, ?, 'Student')
-                """, (student_code.strip(), student_code.strip(), payload.get("FullName"), payload.get("FullName")))
+                    VALUES (3, ?, ?, ?, ?, ?, 'Active')
+                """, (
+                    student_code.strip(), 
+                    hashed_pw, 
+                    payload.get("FullName"), 
+                    payload.get("Email"), 
+                    payload.get("PhoneNumber")
+                ))
                 new_user_id = cursor.fetchone()[0]
                 
                 cursor.execute("""

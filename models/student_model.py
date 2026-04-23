@@ -284,6 +284,14 @@ def update_student(student_id: int, payload: Dict[str, Any]) -> Optional[Dict[st
                 status_id,
                 student_id,
             )
+
+            # Nếu trạng thái sinh viên chuyển sang "Đã nghỉ học" (StatusId = 4)
+            # Cập nhật tất cả các ghi danh đang học thành "Dropped"
+            if int(status_id) == 4:
+                cursor.execute(
+                    "UPDATE Enrollments SET Status = N'Dropped' WHERE StudentId = ? AND Status = N'Enrolled'",
+                    student_id
+                )
             cursor.execute(
                 """
                 UPDATE Users
@@ -340,8 +348,35 @@ def delete_student_by_id(student_id: int) -> bool:
             raise ValueError(f"Không thể xóa sinh viên này vì vẫn còn khoản học phí chưa thanh toán ({unpaid_amount:,.0f} VNĐ).")
 
         try:
+            # 1. Xóa các dữ liệu liên quan
+            # Xóa bài làm sinh viên
+            cursor.execute("DELETE FROM ExamSubmissions WHERE StudentId = ?", student_id)
+            
+            # Xóa điểm và điểm danh
+            cursor.execute("DELETE FROM Scores WHERE EnrollmentId IN (SELECT EnrollmentId FROM Enrollments WHERE StudentId = ?)", student_id)
+            cursor.execute("DELETE FROM Attendances WHERE EnrollmentId IN (SELECT EnrollmentId FROM Enrollments WHERE StudentId = ?)", student_id)
+            
+            # Xóa biên lai và học phí
+            cursor.execute("""
+                DELETE FROM Receipts WHERE TuitionId IN (
+                    SELECT t.TuitionId FROM Tuitions t 
+                    INNER JOIN Enrollments e ON t.EnrollmentId = e.EnrollmentId 
+                    WHERE e.StudentId = ?
+                )
+            """, student_id)
+            cursor.execute("DELETE FROM Tuitions WHERE EnrollmentId IN (SELECT EnrollmentId FROM Enrollments WHERE StudentId = ?)", student_id)
+            
+            # Xóa các ghi danh
+            cursor.execute("DELETE FROM Enrollments WHERE StudentId = ?", student_id)
+            
+            # Xóa thông báo nhận được
+            cursor.execute("DELETE FROM NotificationRecipients WHERE UserId = ?", user_id)
+
+            # 2. Xóa thông tin sinh viên
             cursor.execute("DELETE FROM Students WHERE StudentId = ?", student_id)
             deleted = cursor.rowcount > 0
+            
+            # 3. Xóa user nếu không còn liên kết với Teacher
             cursor.execute(
                 """
                 DELETE FROM Users
